@@ -36,8 +36,9 @@ grep -n 'rpc-methods' deploy/systemd/scalar-*.service
 ### The faucet must not be signing with a dev seed
 
 **`FAUCET_SEED` is required before exposure and there is no safe default.** The
-faucet's in-code fallback is `//Ferdie`, a published Substrate dev seed. Its
-account held ~1e9 CMN, so once RPC is reachable anyone can empty it with a plain
+faucet now refuses to boot without it and refuses `//Name` dev seeds unless
+`FAUCET_ALLOW_DEV_SEED=true`. It used to fall back to `//Ferdie`, a published
+Substrate dev seed whose account held ~1e9 CMN, so once RPC is reachable anyone can empty it with a plain
 `balances.transfer` — and then every rate limit and the 1 000 CMN reserve
 protect nothing, because the attacker never touches the faucet at all.
 TESTNETAUDIT.md §6 I-6, issue #123.
@@ -48,7 +49,7 @@ TESTNETAUDIT.md §6 I-6, issue #123.
 
 # ~/.config/scalar-commons/faucet.env, mode 0600, never in git
 grep -q '^FAUCET_SEED=' ~/.config/scalar-commons/faucet.env \
-  || echo 'MISSING: FAUCET_SEED — the faucet is signing with //Ferdie'
+  || echo 'MISSING: FAUCET_SEED — the faucet will refuse to start'
 ```
 
 Fund the resulting address, then confirm the running faucet is actually using

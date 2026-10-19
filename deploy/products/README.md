@@ -117,9 +117,9 @@ Dispenses devnet CMN from a pre-funded account.
 
 - **Never a mint path.** It signs ordinary transfers from an account that already
   holds the funds; nothing here touches the emissions pallet or the supply cap.
-- Default signer is `//Ferdie` — endowed at genesis, not a validator, so draining
-  it moves no staked funds. It is a well-known dev seed: anything beyond a devnet
-  sets `FAUCET_SEED` in the 0600 env file, never in the unit, which is
+- No default signer: the faucet refuses to boot without `FAUCET_SEED`, and refuses
+  any `//Name` dev seed unless `FAUCET_ALLOW_DEV_SEED=true` (local devnet only). Set
+  `FAUCET_SEED` in the 0600 env file, never in the unit, which is
   world-readable in `~/.config/systemd/user`.
 - `FAUCET_RESERVE_CMN` (default 1000) is a floor, not a warning: a drip that
   would leave the funding account below reserve + existential deposit is refused

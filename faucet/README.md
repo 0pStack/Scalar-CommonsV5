@@ -5,9 +5,12 @@ per address **and** per IP so it cannot be drained.
 
 ## Where the funds come from
 
-From a **pre-funded devnet account** — by default `//Ferdie`, which is endowed at
-genesis in the local testnet chain spec and is *not* a validator, so spending
-from it touches no staked balance.
+From a **pre-funded account** set in `FAUCET_SEED`. There is no default: the
+faucet refuses to boot without one. On a local devnet, `FAUCET_ALLOW_DEV_SEED=true`
+lets it sign with `//Ferdie`, which is endowed at genesis in the local testnet
+chain spec and is *not* a validator, so spending from it touches no staked
+balance. Any `//Name` dev seed, or the published dev phrase itself, is refused without
+that opt-in (I-6, #123).
 
 There is **no mint path in this component, and there must never be one.** All
 minting on this chain flows through the emissions pallet; a faucet that could
@@ -49,16 +52,17 @@ round a real balance. `429` responses carry both `retryAfterMs` and a standard
 
 ```bash
 npm ci --no-audit --no-fund
-npm start
+FAUCET_ALLOW_DEV_SEED=true npm start   # local devnet; otherwise set FAUCET_SEED
 ```
 
-Configuration (all optional, all validated at startup — the process refuses to
+Configuration (all validated at startup; only `FAUCET_SEED` is required — the process refuses to
 boot on a bad value rather than falling back to a default drip amount):
 
 | Variable | Default |
 |---|---|
 | `FAUCET_RPC_ENDPOINT` | `ws://127.0.0.1:9944` |
-| `FAUCET_SEED` | `//Ferdie` |
+| `FAUCET_SEED` | **required** — no default |
+| `FAUCET_ALLOW_DEV_SEED` | `false` — `true` permits `//Name` dev seeds and makes `//Ferdie` the default |
 | `FAUCET_SS58_FORMAT` | `42` |
 | `FAUCET_DRIP_CMN` | `1500` |
 | `FAUCET_RESERVE_CMN` | `1000` |

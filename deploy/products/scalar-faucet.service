@@ -15,8 +15,9 @@ WorkingDirectory=/home/dev/scalar-commons-v4/faucet
 # because the faucet's in-code default is 8080, which is the indexer's.
 #
 # FAUCET_SEED is deliberately NOT set here: the unit file is world-readable in
-# ~/.config/systemd/user, the env file is installed 0600. The in-code default
-# is //Ferdie, a PUBLISHED dev seed — the account held ~1e9 CMN and anyone
+# ~/.config/systemd/user, the env file is installed 0600. The faucet refuses
+# to boot without it. It used to fall back to //Ferdie, a PUBLISHED dev seed —
+# the account held ~1e9 CMN and anyone
 # could have drained it the moment RPC went public, which made every rate limit
 # and the reserve protect nothing. Set a real FAUCET_SEED in the 0600 env file
 # before exposing this. TESTNETAUDIT.md §6 I-6, issue #123.
