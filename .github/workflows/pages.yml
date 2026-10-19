@@ -3,7 +3,7 @@
 # WHY A SEPARATE WORKFLOW. `ci-node.yml` already builds landing/ and docs/, but
 # it builds them to prove they compile — it is a gate, it runs on pull requests,
 # it has `permissions: contents: read`, and it throws the output away. Publishing
-# needs the opposite shape: master only, `pages: write` + `id-token: write`, and
+# needs the opposite shape: trunk only, `pages: write` + `id-token: write`, and
 # a single artifact that outlives the job. Bolting deployment onto a PR gate
 # would either hand write-scoped Pages credentials to every pull request or make
 # the required PR contexts depend on a deploy environment. So: two workflows,
@@ -31,9 +31,9 @@
 # workflow is fully offline and cannot publish a figure no node ever reported.
 name: pages
 
+# Manual only. Pages on a private repo needs GitHub Pro and would publish the
+# internal docs publicly; re-enable a push trigger deliberately, not by default.
 on:
-  push:
-    branches: [master]
   workflow_dispatch:
 
 # Least privilege: `contents: read` to check out, and the two scopes Pages
@@ -45,7 +45,7 @@ permissions:
 
 # Deployments are serialised, and in-flight ones are NOT cancelled: a half-
 # applied Pages deployment is worse than a slightly stale one. Queueing means
-# the last push to master still wins, it just waits its turn.
+# the last dispatched run still wins, it just waits its turn.
 concurrency:
   group: pages
   cancel-in-progress: false
