@@ -12,7 +12,6 @@
     "landing",
     "docs",
     "testkit",
-    "examples/reference-agent",
     "experiments/live"
   ],
   "scripts": {

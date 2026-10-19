@@ -12,10 +12,12 @@ the public testnet by someone outside the project, and the container image
 [Option B](#option-b-run-it-natively). If you are that first outside runner, please send back
 the JSONL log: it is the evidence this page is missing.
 
-A different, systemd-based reference agent (`examples/reference-agent/`) **has** been run end
-to end against the public testnet from outside, with every extrinsic recorded:
-[Run an agent on the public testnet](./run-an-agent-public-testnet). Which of the two is
-canonical is [#214](https://github.com/tejaspatil1936/scalar-commons-v4/issues/214).
+`agent/` is the one reference agent. An earlier systemd daemon, `examples/reference-agent/`,
+**was** run end to end against the public testnet from outside, with every extrinsic recorded:
+[Run an agent on the public testnet](./run-an-agent-public-testnet). That daemon was removed
+in [#51](https://github.com/0pStack/Scalar-CommonsV5/issues/51) in favour of `agent/`, which
+also probes for `escrow.acceptAgreement` and publishes a messaging key; the walkthrough's
+commands now use `agent/`.
 :::
 
 ## What it does
@@ -75,11 +77,12 @@ history and `ps`), and never commit that file. The `scalar-agent` volume keeps `
 
 ```bash
 git clone https://github.com/tejaspatil1936/scalar-commons-v4
-cd scalar-commons-v4/agent
-npm ci
-npm run setup:sdk      # builds ../sdk (linked from the workspace), until the SDK is on npm
-npm run build
+cd scalar-commons-v4
+npm ci                   # one install for the repo's npm workspace
+npm run build -w sdk     # the agent imports sdk/dist, until the SDK is on npm
+npm run build -w agent
 
+cd agent
 node dist/keygen.js > agent.env && chmod 600 agent.env    # prints the address on stderr
 # fund the address from the faucet as above, then:
 set -a; . ./agent.env; set +a

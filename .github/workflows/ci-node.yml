@@ -63,7 +63,6 @@ jobs:
       faucet: ${{ steps.filter.outputs.faucet }}
       docs: ${{ steps.filter.outputs.docs }}
       sdk: ${{ steps.filter.outputs.sdk }}
-      reference_agent: ${{ steps.filter.outputs.reference_agent }}
       agent: ${{ steps.filter.outputs.agent }}
       indexer: ${{ steps.filter.outputs.indexer }}
       explorer: ${{ steps.filter.outputs.explorer }}
@@ -106,7 +105,7 @@ jobs:
           # tsconfig.base.json, so a change there can break any package without
           # touching a file under it.
           if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^(\.github/workflows/ci-node\.yml|package\.json|package-lock\.json|\.nvmrc|tsconfig\.base\.json)$'; then
-            for p in landing faucet docs sdk reference_agent agent indexer explorer; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
+            for p in landing faucet docs sdk agent indexer explorer; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
             echo "→ all subprojects selected"
             exit 0
           fi
@@ -135,15 +134,7 @@ jobs:
             if selected "^$p/"; then echo "$p=true" >> "$GITHUB_OUTPUT"; else echo "$p=false" >> "$GITHUB_OUTPUT"; fi
           done
 
-          # The reference agent imports the workspace sdk/ (its built dist/), so
-          # an SDK change can break it; both paths select it.
-          if selected '^examples/reference-agent/' || selected '^sdk/'; then
-            echo "reference_agent=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "reference_agent=false" >> "$GITHUB_OUTPUT"
-          fi
-
-          # agent/ imports the workspace sdk/ (its built dist/) too, so an SDK
+          # agent/ imports the workspace sdk/ (its built dist/), so an SDK
           # change can break it; both paths select it.
           if selected '^agent/' || selected '^sdk/'; then
             echo "agent=true" >> "$GITHUB_OUTPUT"
@@ -388,40 +379,6 @@ jobs:
       - name: Not selected
         if: needs.changes.outputs.sdk != 'true'
         run: echo "sdk/ unchanged — nothing to check."
-
-  # ── reference-agent ───────────────────────────────────────────────────────
-  # Gate: npm ci at the root, build sdk/ (the agent imports the workspace SDK's
-  # dist/), then typecheck && test examples/reference-agent. Offline: the unit tests cover config parsing
-  # and work selection; the live run is recorded in docs/guide/run-an-agent.md.
-  reference-agent:
-    name: reference-agent
-    needs: changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        if: needs.changes.outputs.reference_agent == 'true'
-      - uses: actions/setup-node@v4
-        if: needs.changes.outputs.reference_agent == 'true'
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: npm ci
-        if: needs.changes.outputs.reference_agent == 'true'
-        run: npm ci
-      - name: build sdk
-        if: needs.changes.outputs.reference_agent == 'true'
-        run: npm run build -w sdk
-      - name: npm run typecheck
-        if: needs.changes.outputs.reference_agent == 'true'
-        run: npm run typecheck -w examples/reference-agent
-      - name: npm test
-        if: needs.changes.outputs.reference_agent == 'true'
-        run: npm test -w examples/reference-agent
-      - name: Not selected
-        if: needs.changes.outputs.reference_agent != 'true'
-        run: echo "examples/reference-agent/ and sdk/ unchanged — nothing to check."
 
   # ── agent ─────────────────────────────────────────────────────────────────
   # Gate: npm ci at the root, build sdk/ (the agent imports the workspace SDK's

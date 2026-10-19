@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# scripts/run-matty-agent.sh — run your Scalar Commons agent (beginner guide: examples/matty-agent/README.md).
+# examples/matty-agent/run-matty-agent.sh — run your Scalar Commons agent (beginner guide: examples/matty-agent/README.md).
 #
-#   scripts/run-matty-agent.sh start      check everything, get test CMN if needed, start the agent
+#   examples/matty-agent/run-matty-agent.sh start      check everything, get test CMN if needed, start the agent
 #                                         in the background, and verify its first transaction on chain
-#   scripts/run-matty-agent.sh status     is it running, and what has it done
-#   scripts/run-matty-agent.sh verify     prove the agent's latest transaction is on chain (explorer link)
-#   scripts/run-matty-agent.sh stop       stop the agent
-#   scripts/run-matty-agent.sh restart    stop, then start
-#   scripts/run-matty-agent.sh logs       follow the agent's activity (Ctrl+C stops watching, not the agent)
-#   scripts/run-matty-agent.sh check      read-only health check; spends nothing
-#   scripts/run-matty-agent.sh new-key    make a new agent key (only when none is configured)
+#   examples/matty-agent/run-matty-agent.sh status     is it running, and what has it done
+#   examples/matty-agent/run-matty-agent.sh verify     prove the agent's latest transaction is on chain (explorer link)
+#   examples/matty-agent/run-matty-agent.sh stop       stop the agent
+#   examples/matty-agent/run-matty-agent.sh restart    stop, then start
+#   examples/matty-agent/run-matty-agent.sh logs       follow the agent's activity (Ctrl+C stops watching, not the agent)
+#   examples/matty-agent/run-matty-agent.sh check      read-only health check; spends nothing
+#   examples/matty-agent/run-matty-agent.sh new-key    make a new agent key (only when none is configured)
 #
 # It runs the reference agent in agent/ (agent/src/main.ts) unchanged. What this
 # wrapper adds: it pins the public TESTNET and provider mode, refuses to start a
@@ -18,11 +18,11 @@
 # the agent after a crash or a lost connection, and verifies on chain.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 AGENT="$ROOT/agent"
 ONBOARD="$AGENT/dist/onboard.js"
 MAIN="$AGENT/dist/main.js"
-SELF="$ROOT/scripts/run-matty-agent.sh"
+SELF="$ROOT/examples/matty-agent/run-matty-agent.sh"
 
 # ── Fixed for this onboarding: the public testnet, provider mode, the minimum stake. ──
 # Not read from secrets on purpose: the approval Matty gives is for exactly this.
@@ -44,7 +44,7 @@ say() { printf '%s\n' "$*"; }
 die() { printf '\n  ✗ %s\n\n' "$*" >&2; exit 1; }
 
 need_build() {
-  [[ -f "$ONBOARD" && -f "$MAIN" ]] || die "Not set up yet. Run:  bash scripts/setup-matty-agent.sh"
+  [[ -f "$ONBOARD" && -f "$MAIN" ]] || die "Not set up yet. Run:  bash examples/matty-agent/setup-matty-agent.sh"
 }
 
 need_key() {
@@ -116,8 +116,8 @@ start() {
   say ""
   node "$ONBOARD" wait-first --since "$since" --timeout 180 || true
   say "Your agent keeps running while this Repl is awake."
-  say "  status:  scripts/run-matty-agent.sh status"
-  say "  stop:    scripts/run-matty-agent.sh stop"
+  say "  status:  examples/matty-agent/run-matty-agent.sh status"
+  say "  stop:    examples/matty-agent/run-matty-agent.sh stop"
 }
 
 stop() {
@@ -148,7 +148,7 @@ case "$cmd" in
   restart) stop; start ;;
   status)
     need_build; need_key
-    if pid="$(running_pid)"; then say "  ✓ agent is RUNNING (process $pid)"; else say "  ✗ agent is NOT running — start it with: scripts/run-matty-agent.sh start"; fi
+    if pid="$(running_pid)"; then say "  ✓ agent is RUNNING (process $pid)"; else say "  ✗ agent is NOT running — start it with: examples/matty-agent/run-matty-agent.sh start"; fi
     node "$ONBOARD" status
     ;;
   verify) need_build; need_key; node "$ONBOARD" verify "$@" ;;
@@ -160,7 +160,7 @@ case "$cmd" in
   new-key) need_build; node "$ONBOARD" new-key ;;
   __supervise) supervise ;;
   *)
-    say "usage: scripts/run-matty-agent.sh start | status | verify | stop | restart | logs | check | new-key"
+    say "usage: examples/matty-agent/run-matty-agent.sh start | status | verify | stop | restart | logs | check | new-key"
     [[ "$cmd" == "help" ]] || exit 2
     ;;
 esac

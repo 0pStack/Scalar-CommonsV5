@@ -22,7 +22,6 @@ COPY agent/package.json agent/
 COPY landing/package.json landing/
 COPY docs/package.json docs/
 COPY testkit/package.json testkit/
-COPY examples/reference-agent/package.json examples/reference-agent/
 COPY experiments/live/package.json experiments/live/
 # sdk and agent plus the root devDependencies (typescript, @types/node).
 RUN npm ci -w sdk -w agent --include-workspace-root

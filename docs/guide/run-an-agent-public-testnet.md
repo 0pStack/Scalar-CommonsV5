@@ -1,10 +1,15 @@
 # Run an agent on the public testnet
 
 ::: info How this page relates to [Run an agent](./run-an-agent)
-Two reference agents exist: [`agent/`](./run-an-agent) (container-first, from #189) and
-`examples/reference-agent/` (systemd, this page). This page is the one that has been **run
-against the public testnet from outside**, end to end, with the evidence below. Which one is
-canonical is an open decision: [#214](https://github.com/tejaspatil1936/scalar-commons-v4/issues/214).
+The commands on this page use the one reference agent, [`agent/`](./run-an-agent). The run
+recorded here was made with an earlier systemd daemon, `examples/reference-agent/`, which was
+removed in [#51](https://github.com/0pStack/Scalar-CommonsV5/issues/51) in favour of `agent/`.
+The chain-side evidence (extrinsics, events, balances, indexer reads) does not depend on which
+daemon sent the calls, so it stays as recorded. The daemon's own log lines below are in that
+earlier daemon's format (`{"msg":…}`); `agent/` logs one `{"ts":…,"event":…}` line per step
+instead. Two things that daemon did and `agent/` does not: it published a capability (which
+needs an on-chain identity, the `setIdentity`/`setCapability` calls below), and it read its
+seed from a 0600 file rather than from `AGENT_MNEMONIC`.
 :::
 
 This page takes you from nothing to an agent that is registered on the Scalar Commons
@@ -45,8 +50,8 @@ keys and a fresh clone of the repository. Every output block is real, captured a
 
 | | |
 |---|---|
-| a daemon | `examples/reference-agent` — TypeScript, built on `sdk/`, runs as a systemd user service |
-| on chain | an agent with 1 000 CMN locked as stake, a published capability, and a live heartbeat |
+| a daemon | `agent/` — TypeScript, built on `sdk/`, runs natively or in Docker ([Run an agent](./run-an-agent)) |
+| on chain | an agent with 1 000 CMN locked as stake, a metadata name, and a live heartbeat |
 | proof | one escrow job, hired by a second account, delivered and paid, visible in the explorer and the indexer API |
 
 ## What it costs, read live
@@ -118,22 +123,16 @@ re-run in §4 is on 16.5.6.)
 
 ## 2. Keys and CMN
 
-Two fresh accounts: **A** runs the agent, **B** hires it.
+Two fresh accounts: **A** runs the agent, **B** hires it. Build `agent/` first
+([§3, Build it](#build-it)), then, inside `agent/`:
 
-```js
-// keys.mjs — run inside examples/reference-agent (or any project with the SDK installed)
-import { Keyring } from '@polkadot/keyring';
-import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
-import { writeFileSync } from 'node:fs';
-
-await cryptoWaitReady();
-for (const name of ['A', 'B']) {
-  const mnemonic = mnemonicGenerate(12);
-  const pair = new Keyring({ type: 'sr25519', ss58Format: 42 }).addFromUri(mnemonic);
-  writeFileSync(`seed-${name}`, mnemonic + '\n', { mode: 0o600 });
-  console.log(name, pair.address);
-}
+```bash
+node dist/keygen.js > agent-A.env && chmod 600 agent-A.env   # prints A's address on stderr
+node dist/keygen.js > agent-B.env && chmod 600 agent-B.env   # prints B's address on stderr
 ```
+
+Each file holds `SCALAR_WS=wss://rpc.scalarnet.io`, `AGENT_MODE=provider` and the new
+`AGENT_MNEMONIC`; only the address reaches the terminal. The recorded run's two addresses:
 
 ```text
 A 5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy
@@ -161,25 +160,26 @@ you just short of `minStake`, and the faucet's per-address cooldown is 60 minute
 
 ## 3. Run the reference agent
 
-`examples/reference-agent` is a complete daemon. On start it registers with stake if the
-account is not yet an agent, heartbeats, and publishes its capabilities (setting the on-chain
-identity that `agents.setCapability` requires). Then, on every block, it:
+`agent/` is a complete daemon. On every pass (`POLL_SECONDS`, default 6) it:
 
-- heartbeats every `HEARTBEAT_EVERY_BLOCKS`;
-- finds escrow agreements **addressed to it** whose capability it publishes (or that carry
-  none, if `ACCEPT_UNCATEGORISED=true`), waits out `escrow.minDeliveryBlocks`, does the work
-  and records delivery;
-- optionally confirms deliveries where it is the **buyer** (`AUTO_CONFIRM`, off by default);
-- after each settled emissions era, claims if anything is pending.
+- registers with stake if the account is not yet an agent, and sets its metadata name;
+- heartbeats every `HEARTBEAT_BLOCKS`;
+- publishes its messaging key, on runtimes that have the messages pallet;
+- finds `Created` escrow agreements **addressed to it**, waits out `MIN_DELIVERY_BLOCKS`,
+  does the work and records delivery;
+- in `buyer` or `both` mode, opens agreements with the providers in `BUYER_PEERS` and confirms
+  delivered ones;
+- claims emissions if anything is pending.
 
-Every extrinsic is logged as one JSON line with its hash, block and explorer URL.
+Every step is logged as one JSON line with its transaction hash. Every variable is listed in
+[Run an agent → Configuration](./run-an-agent#configuration).
 
 ### Build it
 
 ```bash
 cd scalar-commons-v4 && npm ci                 # one install for the repo's npm workspace
 npm run build -w sdk                           # the agent imports dist/ from here
-npm run build -w examples/reference-agent
+npm run build -w agent
 ```
 
 The JS packages are one npm workspace with one lockfile, so `sdk/` is linked rather than
@@ -188,48 +188,29 @@ one-copy-of-polkadot rule as §1. Build the SDK first: the agent imports its `di
 
 ### Configure it
 
-Configuration is environment-only. The seed is **never** an environment variable — it lives
-in a 0600 file and only its path is configured; `SCALAR_SEED` is rejected at startup, and a
-seed file readable by group or other is refused.
-
-```bash
-install -d -m 700 ~/.config/scalar-agent
-install -m 600 seed-A ~/.config/scalar-agent/seed
-install -m 600 deploy/agent.env.example ~/.config/scalar-agent/agent.env   # then edit
-```
-
-The file used for this page (`deploy/agent.env.example` with four values changed):
+Configuration is environment-only, and the key is only ever read from `AGENT_MNEMONIC` in the
+environment, never from a command-line flag, so it does not land in shell history or `ps`.
+Keep it in the 0600 env file `keygen.js` wrote, and add to `agent-A.env`:
 
 ```ini
-SCALAR_WS=wss://rpc.scalarnet.io
-SCALAR_SEED_FILE=/home/dev/.config/scalar-agent/seed
-AGENT_STAKE_CMN=1000
-HEARTBEAT_EVERY_BLOCKS=100
-AGENT_CAPABILITIES=1
-ACCEPT_UNCATEGORISED=true
-AUTO_CONFIRM=false
-CLAIM_REWARDS=true
 AGENT_NAME=ref-agent-proof-A
-AGENT_METADATA_URI=
-EXPLORER_BASE=https://explorer.scalarnet.io
+HEARTBEAT_BLOCKS=100
+STATE_DIR=./state-A
 ```
 
-`HEARTBEAT_EVERY_BLOCKS=100` is short so the proof shows a periodic beat; the default 600
-(an hour) is plenty. Anything above `agents.heartbeatGracePeriod` (10 800) is refused, because
-the liveness multiplier would decay between beats.
+`HEARTBEAT_BLOCKS=100` is short so the proof shows a periodic beat; the default 600 (an hour)
+is plenty, and the chain's `agents.heartbeatGracePeriod` is 10 800. `STATE_DIR` keeps A's
+`state.json` and `agent.jsonl` apart from B's when both run from the same checkout.
 
-### Run it under systemd
+### Run it
 
 ```bash
-install -D -m 644 deploy/scalar-agent.service ~/.config/systemd/user/scalar-agent.service
-systemctl --user daemon-reload
-systemctl --user enable --now scalar-agent
-loginctl enable-linger "$USER"          # keep running after logout
-journalctl --user -u scalar-agent -o cat -f
+(set -a; . ./agent-A.env; set +a; exec node dist/main.js)
 ```
 
-The unit assumes the checkout is at `~/scalar-commons-v4`; if it is elsewhere, override
-`WorkingDirectory` with a drop-in rather than editing the unit. What it printed:
+Keep it running in its own terminal, or run the container from
+[Run an agent → Option A](./run-an-agent#option-a-docker) under any supervisor. What the
+recorded run's daemon printed:
 
 ```json
 {"level":"info","msg":"starting","address":"5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy","endpoint":"wss://rpc.scalarnet.io","spec":306,"free":"1100000000000000"}
@@ -242,21 +223,33 @@ The unit assumes the checkout is at `~/scalar-commons-v4`; if it is elsewhere, o
 ```
 
 (`ts` and `blockHash` fields trimmed for width.) Four extrinsics in four consecutive blocks,
-then it waits for work.
+then it waits for work. `agent/` sends `register`, `updateMetadata` and `heartbeat` here, and
+no identity or capability call.
 
 ## 4. Hire it, and watch it deliver
 
-The same package ships `dist/buyer.js`, the other side of the trade. As **B**:
+The other side of the trade is the same agent in buyer mode. In `agent-B.env`, change
+`AGENT_MODE` to `buyer` and add:
 
-```bash
-export SCALAR_WS=wss://rpc.scalarnet.io SCALAR_SEED_FILE=$PWD/seed-B
-node dist/buyer.js register
-BRIEF="summarise block #750000 for the run-an-agent guide" \
-  node dist/buyer.js hire 5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy 10 200 1
+```ini
+AGENT_NAME=ref-agent-proof-B
+STATE_DIR=./state-B
+BUYER_PEERS=5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy
+BUYER_AMOUNT_CMN=10
+BUYER_MAX_OPEN=1
+BUYER_DELIVER_WITHIN_BLOCKS=200
 ```
 
-`hire <provider> <CMN> <blocks> <capability>` opens a 10 CMN agreement, deliverable within 200
-blocks, tagged capability 1 — the one A published:
+Then, in a second terminal inside `agent/`:
+
+```bash
+(set -a; . ./agent-B.env; set +a; exec node dist/main.js)
+```
+
+B registers, heartbeats, and opens one 10 CMN agreement with A, deliverable within 200 blocks.
+`agent/` tags no capability and takes no brief: its `deliverableHash` is a stub derived from the
+two addresses and the block. The recorded run used the earlier daemon's buyer CLI
+(`buyer.js hire <provider> 10 200 1`), which tagged capability 1, the one A had published:
 
 ```json
 {"msg":"extrinsic register","txHash":"0x7c3d8ffbbdd5fba48165e9692c4ae507498ee161a5e64082665207e8f29840d8","blockNumber":750677}
@@ -279,16 +272,18 @@ Waiting matters: `recordDelivery` before `created_at + MinDeliveryBlocks` fails 
 `escrow.MinDeliveryBlocksNotElapsed` and **still pays the fee**. When this run started the
 SDK's default retry policy would have paid it four times
 ([#160](https://github.com/tejaspatil1936/scalar-commons-v4/issues/160)); since #194 the SDK gives
-up at once on a deterministic dispatch error. The daemon checks the guard itself either way,
-and runs the SDK with `maxRetries: 0` so a transport error is reconsidered on the next block
-rather than retried in a tight loop.
+up at once on a deterministic dispatch error. `agent/` checks the guard itself either way
+(`MIN_DELIVERY_BLOCKS` must match the runtime's `escrow.minDeliveryBlocks`). The recorded run's
+daemon also ran the SDK with `maxRetries: 0`; `agent/` keeps the SDK default, which since #194
+gives up at once on a deterministic dispatch error.
 
-B then waits for the delivery and confirms, which releases the escrow:
+B's next pass sees the agreement `Delivered` and confirms it, which releases the escrow. (The
+recorded run did this by hand with `buyer.js wait` and `buyer.js confirm`.)
 
-```bash
-node dist/buyer.js wait 5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy 0
-node dist/buyer.js confirm 5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy 0
-```
+::: danger The reference buyer confirms without checking
+`agent/` in buyer mode confirms any agreement marked Delivered without checking the delivery
+proof. Only list providers you fully trust in `BUYER_PEERS`, such as your own instance A here.
+:::
 
 ```json
 {"msg":"delivered","seq":0,"deliveryProof":"0x88c85e6a035ec7e58d9c071d1340dc310d8a607fe327e682e7ce3b22907652f6","atHead":750690}
@@ -298,7 +293,7 @@ node dist/buyer.js confirm 5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy 0
 
 **Thirteen blocks from hire to payment**, ten of them the mandatory delivery window.
 
-**Re-run on 2026-09-26**, after master moved to the #194 SDK and this package to
+**Re-run on 2026-09-26**, after master moved to the #194 SDK and the earlier daemon to
 `@polkadot/api` 16.5.6 — same two accounts, public endpoints only, no duplicate-instance
 warning:
 
@@ -313,8 +308,9 @@ warning:
 The chain never sees a payload — only two 32-byte commitments: the buyer's `deliverableHash`
 (what it asked for) and the provider's `deliveryHash` (what it produced). The result itself
 travels off-chain, by whatever channel the two agree on, and a dispute is judged against
-those commitments. The reference worker (`src/worker.ts`) does no real work: it hashes the
-agreement's identity so the lifecycle can run end to end. That file is the one you replace.
+those commitments. The reference worker (`deliveryHashFor` in `agent/src/agent.ts`) does no
+real work: it hashes the agreement's identity so the lifecycle can run end to end. That
+function is the one you replace.
 :::
 
 ### Where the money went
@@ -405,7 +401,7 @@ funding lineage, or beyond `stake × maxVolToStakeRatio`. The pool is then split
 [tester guide](./testnet-tester-guide#_5-how-cmn-is-actually-earned) walks through the weight
 terms.
 
-The daemon claims for you: on every settlement it reads `pendingEmissions` and calls
+The daemon claims for you: on every pass it reads `pendingEmissions` and calls
 `emissions.claim` **only if it is non-zero**, because a zero claim fails with
 `emissions.NothingToClaim` and still pays the fee.
 
@@ -422,8 +418,8 @@ block #754 158, and these are its events, from `/v1/events?section=emissions`:
 
 The agent-count ceiling was **270 000 CMN**; the rule cut it to **α × qualifying volume =
 1.0 × 10 CMN = 10 CMN**, and that is what was minted. A was the only agent with weight, so it
-received all of it, less one planck of rounding. The daemon noticed the settlement on the next
-block and claimed:
+received all of it, less one planck of rounding. The recorded run's daemon noticed the
+settlement on the next block and claimed (`agent/` logs this as one `claim` event):
 
 ```json
 {"msg":"emissions era settled","era":61,"eraEmission":"10000000000000","pending":"9999999999999"}
@@ -440,49 +436,13 @@ did *not* qualify A for the floor share: 10 CMN is below `MinQualifyingVol` (50 
 
 ## 7. Wrap your own agent
 
-You probably already have an agent. You do not need the daemon — you need four calls. The
-adapter in `examples/reference-agent/src/adapter.ts` is one SDK call per method, and the
-integration below is compiled with the package (`src/wrap-example.ts`), so it cannot drift:
+You probably already have an agent. You do not need the daemon — you need a handful of SDK
+calls. `agent/src/chain.ts` (`SdkChain`) is the adapter: one SDK call per agent action, behind
+the small `Chain` interface in `agent/src/types.ts`. `agent/src/agent.ts` is the loop that
+drives it — register, heartbeat, deliver, confirm, claim — and its offline tests run it against
+a fake `Chain`, so you can lift the loop and swap in your own work and hand-over.
 
-```ts
-import { blake2AsHex } from '@polkadot/util-crypto';
-import { ScalarAgentAdapter, loadSigner } from './adapter.js';
-import { selectWork } from './work.js';
-
-export async function runWrapped(agent: YourAgent, wsUrl: string, seedFile: string) {
-  const chain = await ScalarAgentAdapter.connect(wsUrl, await loadSigner(seedFile));
-
-  // 1. register (once) — locks the stake and burns the registration fee
-  if (!(await chain.isRegistered())) await chain.register(1_000n * 10n ** 12n);
-
-  let lastBeat = 0;
-  const delivered = new Set<string>();
-  await chain.api.rpc.chain.subscribeNewHeads(async (header) => {
-    const now = header.number.toNumber();
-
-    // 2. heartbeat — well inside the 10 800-block grace period
-    if (now - lastBeat >= 600) { lastBeat = now; await chain.heartbeat(); }
-
-    // 3. accept — work addressed to you, past MinDeliveryBlocks, before the deadline
-    const { deliver } = selectWork(await chain.allAgreements(), {
-      me: chain.address, now, minDeliveryBlocks: chain.minDeliveryBlocks(),
-      capabilities: [], acceptUncategorised: true,
-    });
-
-    for (const job of deliver) {
-      const id = `${job.buyer}/${job.seq}`;
-      if (delivered.has(id)) continue;
-      delivered.add(id);
-      const result = await agent.handle(job);        // your framework does the work
-      await agent.publish(result, job.buyer);        // and hands the result over, off-chain
-      // 4. deliver — commit the hash of what you produced; the buyer confirms to pay you
-      await chain.deliver(job, blake2AsHex(result, 256));
-    }
-  });
-}
-```
-
-Underneath, each adapter method is exactly one of these SDK calls (from `sdk/src/index.ts`):
+Underneath, the actions map to these SDK calls (from `sdk/src/index.ts`):
 
 | Agent action | SDK call | Extrinsic | Arguments |
 |---|---|---|---|
@@ -495,13 +455,13 @@ Underneath, each adapter method is exactly one of these SDK calls (from `sdk/src
 | read position | `client.netPosition(address)` | `system.account` + `agents.*` + `emissions.*` | returns bigint plancks |
 | publish capability | `api.tx.agents.setCapability(id, true)` via `submitAndWatch` | `agents.setCapability` | needs an identity (`identity.setIdentity`) first |
 
-Two things every wrapper should copy from the daemon:
+Two things every wrapper should do:
 
-- **Construct the client with `{ maxRetries: 0 }`** (`ScalarCommonsClient.connect(url, { maxRetries: 0 })`),
-  or at least keep the SDK at or after #194: before it, the default retried *any* failure three
-  times and paid for each one (#160).
+- **Keep the SDK at or after #194**, or construct the client with `{ maxRetries: 0 }`
+  (`ScalarCommonsClient.connect(url, { maxRetries: 0 })`): before #194, the default retried
+  *any* failure three times and paid for each one (#160).
 - **Serialise your writes.** Two extrinsics from one account in flight at once race for the
-  same nonce and one is rejected. The daemon runs every action through one queue.
+  same nonce and one is rejected. `agent/` awaits each step of a pass before the next.
 
 ## Reading the numbers yourself
 
@@ -516,9 +476,8 @@ console.log('heartbeat fee', (await api.tx.agents.heartbeat().paymentInfo(YOUR_A
 
 ## Stopping, and leaving
 
-```bash
-systemctl --user disable --now scalar-agent
-```
+Stop the process with Ctrl+C or `SIGTERM` (`docker stop` for the container): the agent logs a
+`stop` event and exits after the current pass.
 
 Stopping the daemon does not unlock anything. To leave, call `agents.requestUnstake`, wait
 `agents.unstakeCooldown` (100 800 blocks, about 7 days), then `agents.completeUnstake`. The
@@ -534,5 +493,5 @@ the chain, your registration and your balance are gone together — start again 
 | 3 | The completion fee is 175 bps today (it was 25 when the tester guide was written); budget for it moving. | costs |
 | 4 | `/v1/escrows/:buyer/:provider/:seq` 404s as soon as an agreement completes; history lives in events. | §5 — [#175](https://github.com/tejaspatil1936/scalar-commons-v4/issues/175) |
 | 5 | The SDK retried deterministic failures and paid for each ([#160](https://github.com/tejaspatil1936/scalar-commons-v4/issues/160)); fixed on master by #194 after this run started. The daemon disables retries regardless. | §4 |
-| 7 | Two reference agents now exist (`agent/` and `examples/reference-agent/`); only this one has been run against the public testnet. | [#214](https://github.com/tejaspatil1936/scalar-commons-v4/issues/214) |
+| 7 | Two reference agents existed (`agent/` and `examples/reference-agent/`), and only the second had been run against the public testnet. [#51](https://github.com/0pStack/Scalar-CommonsV5/issues/51) kept `agent/` and removed the other; the commands on this page now use `agent/`. | [#214](https://github.com/tejaspatil1936/scalar-commons-v4/issues/214) |
 | 6 | `faucet.scalarnet.io/health` still reports `"specVersion":305` while the chain runs 306 — the faucet reads the version once at startup. | costs — [#173](https://github.com/tejaspatil1936/scalar-commons-v4/issues/173) |

@@ -1,6 +1,6 @@
 /**
  * Pure decisions behind the beginner onboarding wrapper (`onboard.ts`,
- * driven by `scripts/run-matty-agent.sh`). Offline and unit-tested.
+ * driven by `examples/matty-agent/run-matty-agent.sh`). Offline and unit-tested.
  *
  * The agent in `main.ts` registers itself on its first pass — it locks the
  * stake and burns the registration fee with no further question. This file

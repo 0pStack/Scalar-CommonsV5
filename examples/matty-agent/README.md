@@ -49,11 +49,11 @@ it, paste a command, and press **Enter**.
 🟦 **USER ACTION.** Paste this into the **Shell** and press Enter:
 
 ```bash
-bash scripts/setup-matty-agent.sh
+bash examples/matty-agent/setup-matty-agent.sh
 ```
 
 🟩 **AUTOMATIC ACTION.** It downloads what the agent needs, builds it, and runs its self-tests.
-This takes one or two minutes; you'll see `Tests  50 passed`. It then creates your agent's key
+This takes one or two minutes; you'll see `Tests  63 passed`. It then creates your agent's key
 and shows it **once**, like this:
 
 ```text
@@ -98,7 +98,7 @@ you: the testnet, and the smallest stake.
 🟦 **USER ACTION.** Open a **new Shell tab**, so it can see your new secrets. Then paste:
 
 ```bash
-scripts/run-matty-agent.sh start
+examples/matty-agent/run-matty-agent.sh start
 ```
 
 🟩 **AUTOMATIC ACTION.** You'll see this happen, step by step:
@@ -140,7 +140,7 @@ but not the whole project; see *What if Replit goes to sleep?* below. From now o
 To see how it's doing at any time:
 
 ```bash
-scripts/run-matty-agent.sh status
+examples/matty-agent/run-matty-agent.sh status
 ```
 
 Example:
@@ -165,7 +165,7 @@ change it.
 To get a fresh link for your agent's latest transaction at any time:
 
 ```bash
-scripts/run-matty-agent.sh verify
+examples/matty-agent/run-matty-agent.sh verify
 ```
 
 It prints the transaction, whether it succeeded, what it did (for a heartbeat:
@@ -183,13 +183,13 @@ working by itself.
 
 | You want to… | Type this in the Shell |
 |---|---|
-| see if it's working | `scripts/run-matty-agent.sh status` |
-| get the proof link again | `scripts/run-matty-agent.sh verify` |
-| stop it | `scripts/run-matty-agent.sh stop` |
-| start it again | `scripts/run-matty-agent.sh start` |
-| restart it | `scripts/run-matty-agent.sh restart` |
-| check everything without doing anything | `scripts/run-matty-agent.sh check` |
-| watch every event live (technical; Ctrl+C to stop watching) | `scripts/run-matty-agent.sh logs` |
+| see if it's working | `examples/matty-agent/run-matty-agent.sh status` |
+| get the proof link again | `examples/matty-agent/run-matty-agent.sh verify` |
+| stop it | `examples/matty-agent/run-matty-agent.sh stop` |
+| start it again | `examples/matty-agent/run-matty-agent.sh start` |
+| restart it | `examples/matty-agent/run-matty-agent.sh restart` |
+| check everything without doing anything | `examples/matty-agent/run-matty-agent.sh check` |
+| watch every event live (technical; Ctrl+C to stop watching) | `examples/matty-agent/run-matty-agent.sh logs` |
 
 Stopping the agent doesn't lose anything. It stays registered, and its test coins stay locked,
 until you start it again. `start` never registers twice and never asks the faucet again once
@@ -202,7 +202,7 @@ idle. When the project stops, **your agent stops too**, and nothing breaks. To b
 open the project and run:
 
 ```bash
-scripts/run-matty-agent.sh start
+examples/matty-agent/run-matty-agent.sh start
 ```
 
 Being offline for a while costs almost nothing. The network allows about **18 hours** (10 800
@@ -214,7 +214,7 @@ picks up any job that is still open; a job whose deadline passed while it was of
 - **Replit Reserved VM Deployment.** Replit describes this as a machine that "never sleeps"
   and can run a background worker. It's a **paid** Replit feature, and this project has **not
   tested it**. If you try it, use the run command
-  `bash scripts/setup-matty-agent.sh && scripts/run-matty-agent.sh start` and add the same two
+  `bash examples/matty-agent/setup-matty-agent.sh && examples/matty-agent/run-matty-agent.sh start` and add the same two
   secrets to the deployment.
 - **Any always-on Linux computer or server with Node.js 18+.** The same two commands work
   there; this setup was tested on Linux. Set `AGENT_MNEMONIC` and `APPROVED_AGENT_ADDRESS` as
@@ -230,9 +230,9 @@ picks up any job that is still open; a job whose deadline passed while it was of
 | `AGENT_MNEMONIC is not a valid 12-word key phrase` | A typo, or a missing or extra word. | Copy the 12 words again, with single spaces between them. |
 | `the faucet says wait` | The faucet gives one drip per agent **and per internet address** per hour. Replit computers share internet addresses, so someone else may have used it. | Wait the time it shows, then `start` again. |
 | `cannot reach the Scalar Commons testnet` | There's a network problem, or the testnet is down. | Try again in a few minutes. |
-| `the public indexer does not show this transaction yet` | The public record lags the network by a few seconds. | Run `scripts/run-matty-agent.sh verify` again in a minute. |
-| `Not set up yet` | The build is missing, maybe after a Replit restart or an update. | Run `bash scripts/setup-matty-agent.sh` again. With the secrets set, it doesn't make a new key. |
-| `agent is NOT running` | Replit slept or restarted. | `scripts/run-matty-agent.sh start` |
+| `the public indexer does not show this transaction yet` | The public record lags the network by a few seconds. | Run `examples/matty-agent/run-matty-agent.sh verify` again in a minute. |
+| `Not set up yet` | The build is missing, maybe after a Replit restart or an update. | Run `bash examples/matty-agent/setup-matty-agent.sh` again. With the secrets set, it doesn't make a new key. |
+| `agent is NOT running` | Replit slept or restarted. | `examples/matty-agent/run-matty-agent.sh start` |
 | `problem in …` lines under *Recent agent activity* | One step failed once. The agent carries on and tries again next time. | Nothing, unless the same line keeps repeating for hours. |
 | Balance or registration suddenly gone | The testnet was reset. | Run `start` again. It gets fresh test coins and registers again with the same key. |
 

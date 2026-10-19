@@ -1,6 +1,6 @@
 /**
  * Beginner onboarding around the reference agent — driven by
- * `scripts/run-matty-agent.sh`, not meant to be typed by hand.
+ * `examples/matty-agent/run-matty-agent.sh`, not meant to be typed by hand.
  *
  *   node dist/onboard.js new-key                       make a key; shows it ONCE so its owner can store it as a secret
  *   node dist/onboard.js check [--for-start] [--dry-run]
@@ -235,7 +235,7 @@ async function waitFirst(cfg: Config, args: string[]): Promise<void> {
   const prior = existsSync(logPath) ? latestTx(readFileSync(logPath, 'utf8')) : null;
   info('no new transaction was needed yet (the agent heartbeats about once an hour).');
   if (prior) return verify(cfg, [prior.tx]);
-  info('run "scripts/run-matty-agent.sh status" in a few minutes.');
+  info('run "examples/matty-agent/run-matty-agent.sh status" in a few minutes.');
 }
 
 async function status(cfg: Config): Promise<void> {
