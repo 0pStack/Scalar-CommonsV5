@@ -1,5 +1,9 @@
 # Scalar Commons — Swarm Bootstrap Bundle (v2, complete)
 
+> **Historical.** The extracted `scalar-commons-bootstrap-bundle/` directory and
+> the one-shot `backlog.sh` have been removed from the tree; both remain in git
+> history. Do not re-run `backlog.sh`: it would file 12 stale bootstrap issues.
+
 **This bundle unzips directly at the repo root.** Every path is final — no
 rearranging. Supersedes the earlier swarm-kit zip (which lacked the SC-E1
 experiment files, .mcp.json, and the knowledge graph seed).
