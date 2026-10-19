@@ -1,9 +1,10 @@
-# Full gate: everything that must hold before code reaches master.
+# Full gate: everything that must hold before code reaches main.
 #
 # ROUND6 rewrite. What was here before had never executed a single time, for a
-# reason visible in one line: it triggered on `push: branches: [main]`, and this
-# repository's default branch is `master`. No branch named `main` has ever
-# existed. Every "green" merge to date was green because nothing ran.
+# reason visible in one line: it triggered on `push: branches: [main]` while the
+# upstream (scalar-commons-v4) default branch was `master`, so every "green"
+# merge there was green because nothing ran. This repository's trunk is `main`,
+# and the triggers below follow it.
 #
 # The build step is the anti-stub gate. `node/src/main.rs` was `fn main() {}`
 # for the entire life of this project and no check noticed; `cargo build
@@ -13,9 +14,9 @@ name: ci-full
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:

@@ -24,9 +24,9 @@ name: ci-node
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -83,8 +83,8 @@ jobs:
             echo "── files changed vs origin/$BASE_REF ──"
             printf '%s\n' "$CHANGED"
           else
-            # push to master / manual dispatch: there is no "the change" to scope
-            # to, and master's true status is the thing we want to know. Run all.
+            # push to main / manual dispatch: there is no "the change" to scope
+            # to, and main's true status is the thing we want to know. Run all.
             CHANGED=""
             echo "event=$EVENT — running every subproject job"
           fi
@@ -108,7 +108,7 @@ jobs:
           # `type OracleScoreProvider = ();` is still in runtime/src/lib.rs.
           # Editing those Rust files can therefore turn the landing gate red, so
           # they belong in its filter. Without this, a runtime change would break
-          # landing on master with no PR having ever run the check.
+          # landing on main with no PR having ever run the check.
           if selected '^landing/' \
             || selected '^runtime/src/lib\.rs$' \
             || selected '^pallets/emissions/src/lib\.rs$' \
@@ -271,12 +271,12 @@ jobs:
   # `describe.skipIf(!runReal)` behind RUN_INTEGRATION=1 — so a plain `npm test`
   # is offline by construction (9 passed, 1 skipped).
   #
-  # THIS JOB IS RED ON MASTER TODAY, and that is the point of adding it. Two
-  # real defects, both measured 2026-08-19 and reported verbatim in CI-NODE.md:
+  # THIS JOB WAS RED ON THE UPSTREAM master WHEN ADDED, and that was the point.
+  # Two real defects, both measured 2026-08-19 and reported in CI-NODE.md:
   #
-  #   1. `npm ci` FAILS — sdk/ has no package-lock.json on master at all, so the
-  #      gate cannot even install. (npm error code EUSAGE.)
-  #   2. `npm run typecheck` FAILS with 47 errors in src/index.ts (TS2532/TS2722
+  #   1. `npm ci` FAILED — sdk/ had no package-lock.json at all, so the
+  #      gate could not even install. (npm error code EUSAGE.)
+  #   2. `npm run typecheck` FAILED with 47 errors in src/index.ts (TS2532/TS2722
   #      under noUncheckedIndexedAccess).
   #
   # Neither is fixed or worked around in this round, per the standing rule: a
@@ -287,8 +287,8 @@ jobs:
   #
   # Deliberately NO `cache: npm` on this job: setup-node's npm cache requires a
   # lockfile and would fail during setup, burying the actual EUSAGE error from
-  # `npm ci` behind a less informative one. Restore the cache line when the
-  # lockfile lands.
+  # `npm ci` behind a less informative one. sdk/package-lock.json is now
+  # tracked, so the cache line can be restored.
   sdk:
     name: sdk
     needs: changes

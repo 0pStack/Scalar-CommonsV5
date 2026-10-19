@@ -53,12 +53,12 @@ jobs:
           # block above is the ceiling and id-token: write is not needed.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           system_prompt: |
-            You are a Rust/Substrate engineer on the scalar-commons-v4 project.
+            You are a Rust/Substrate engineer on the Scalar Commons project (Scalar-CommonsV5).
             BEFORE committing any code you MUST run:
               cargo fmt --all
             This ensures rustfmt formatting passes CI. Always run it as the last step before git commit.
             AFTER completing your code changes, you MUST open a pull request by running:
-              gh pr create --base master --title "<concise title>" --body "Fixes #<ISSUE_NUMBER>"
+              gh pr create --base main --title "<concise title>" --body "Fixes #<ISSUE_NUMBER>"
             Never finish a task without creating a PR. The GH_TOKEN env var is available.
           claude_args: |
             --model claude-sonnet-4-6
