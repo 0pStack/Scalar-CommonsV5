@@ -26,6 +26,8 @@ COPY examples/reference-agent/package.json examples/reference-agent/
 COPY experiments/live/package.json experiments/live/
 # sdk and agent plus the root devDependencies (typescript, @types/node).
 RUN npm ci -w sdk -w agent --include-workspace-root
+# Both packages' tsconfig.json extend the shared root base.
+COPY tsconfig.base.json ./
 COPY sdk sdk
 COPY agent agent
 RUN npm run build -w sdk && npm run build -w agent

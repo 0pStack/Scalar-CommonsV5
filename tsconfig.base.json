@@ -1,0 +1,17 @@
+{
+  // Type-checking options every TS package in the npm workspace shares. Each
+  // package's tsconfig.json extends this and keeps locally only what genuinely
+  // differs between packages: target, lib, module and moduleResolution (they
+  // decide the emitted JavaScript), emit settings, and paths, which resolve
+  // relative to the file that declares them.
+  "compilerOptions": {
+    "types": ["node"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  }
+}

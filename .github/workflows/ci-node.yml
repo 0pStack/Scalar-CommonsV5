@@ -96,9 +96,10 @@ jobs:
           # A change to this workflow re-runs everything: the gate itself is the
           # thing under test, and scoping it to nothing would let a broken gate
           # merge green. So does a change to the workspace root: every job
-          # installs from the one root lockfile, so a dependency bump there can
-          # break any package without touching a file under it.
-          if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^(\.github/workflows/ci-node\.yml|package\.json|package-lock\.json|\.nvmrc)$'; then
+          # installs from the one root lockfile and every TS package extends
+          # tsconfig.base.json, so a change there can break any package without
+          # touching a file under it.
+          if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^(\.github/workflows/ci-node\.yml|package\.json|package-lock\.json|\.nvmrc|tsconfig\.base\.json)$'; then
             for p in landing faucet docs sdk reference_agent agent indexer explorer; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
             echo "→ all subprojects selected"
             exit 0
