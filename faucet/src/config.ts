@@ -60,8 +60,11 @@ const DEV_SEED = '//Ferdie';
  * The signing seed has no silent default. `//Ferdie`, every other `//Name` URI, and
  * DEV_PHRASE itself (`//Name` is shorthand for `DEV_PHRASE//Name`) are published:
  * once RPC is public anyone can empty that account with a plain transfer, and the
- * rate limits and reserve protect nothing (I-6, #123). A dev seed is accepted only
- * when the operator opts in with FAUCET_ALLOW_DEV_SEED.
+ * rate limits and reserve protect nothing (I-6, #123). Any URI starting with `/` is
+ * refused too: it is a derivation path with no phrase of its own, so a soft path
+ * such as `/Alice` can only name a key everyone can derive (subkey reads it as
+ * `DEV_PHRASE/Alice`). A dev seed is accepted only when the operator opts in with
+ * FAUCET_ALLOW_DEV_SEED.
  *
  * Errors never echo the seed: a `///password` suffix would land in the journal.
  */
@@ -73,10 +76,10 @@ function faucetSeed(env: Env): string {
       'FAUCET_SEED is required. For a local devnet only, set FAUCET_ALLOW_DEV_SEED=true to sign with //Ferdie.',
     );
   }
-  const isDevSeed = seed.startsWith('//') || seed.startsWith(DEV_PHRASE);
+  const isDevSeed = seed.startsWith('/') || seed.startsWith(DEV_PHRASE);
   if (isDevSeed && !allowDevSeed) {
     throw new Error(
-      'FAUCET_SEED is a published dev seed (//Name or the dev phrase); set FAUCET_ALLOW_DEV_SEED=true if this is a local devnet.',
+      'FAUCET_SEED is a published dev seed (/Name, //Name or the dev phrase); set FAUCET_ALLOW_DEV_SEED=true if this is a local devnet.',
     );
   }
   return seed;

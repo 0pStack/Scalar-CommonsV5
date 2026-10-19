@@ -67,7 +67,7 @@ boot on a bad value rather than falling back to a default drip amount):
 |---|---|
 | `FAUCET_RPC_ENDPOINT` | `ws://127.0.0.1:9944` |
 | `FAUCET_SEED` | **required** — no default |
-| `FAUCET_ALLOW_DEV_SEED` | `false` — `true` permits `//Name` dev seeds and makes `//Ferdie` the default |
+| `FAUCET_ALLOW_DEV_SEED` | `false` — `true` permits `/Name` and `//Name` dev seeds and makes `//Ferdie` the default |
 | `FAUCET_SS58_FORMAT` | `42` |
 | `FAUCET_DRIP_CMN` | `1500` |
 | `FAUCET_RESERVE_CMN` | `1000` |

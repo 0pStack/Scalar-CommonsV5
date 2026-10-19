@@ -56,6 +56,17 @@ describe('configFromEnv — signing seed (I-6, #123)', () => {
     expect(() => configFromEnv({ FAUCET_SEED: '//Alice//stash' })).toThrow(/published dev seed/);
   });
 
+  it('refuses a soft-path dev URI such as /Alice unless explicitly allowed', () => {
+    expect(() => configFromEnv({ FAUCET_SEED: '/Alice' })).toThrow(/published dev seed/);
+    expect(() => configFromEnv({ FAUCET_SEED: '/Alice//stash' })).toThrow(/published dev seed/);
+    expect(configFromEnv({ ...DEV, FAUCET_SEED: '/Alice' }).faucetSeed).toBe('/Alice');
+    expect(configFromEnv({ ...DEV, FAUCET_SEED: '/Alice//stash' }).faucetSeed).toBe('/Alice//stash');
+  });
+
+  it('names every dev-seed form in the refusal', () => {
+    expect(() => configFromEnv({ FAUCET_SEED: '//Ferdie' })).toThrow('(/Name, //Name or the dev phrase)');
+  });
+
   it('refuses the published dev phrase, bare or derived, unless explicitly allowed', () => {
     expect(() => configFromEnv({ FAUCET_SEED: DEV_PHRASE })).toThrow(/published dev seed/);
     expect(() => configFromEnv({ FAUCET_SEED: `${DEV_PHRASE}//Alice` })).toThrow(/published dev seed/);
