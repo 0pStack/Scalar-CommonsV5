@@ -7,7 +7,7 @@
  * `https://faucet.scalarnet.io` is pasted into chats and issue comments. On
  * launch day it greeted every one of those readers with
  * `404 {"ok":false,"code":"NOT_FOUND","error":"no route for GET /"}` — the
- * server only knew `/drip`, `/health` and `/balance/*`. PUBLIC-LAUNCH.md §5
+ * server only knew `/drip`, `/health` and `/balance/*`. docs/history/PUBLIC-LAUNCH.md §5
  * finding F-2, issue #156.
  *
  * Both halves are pinned here: the **200**, because a 404 is what monitors and

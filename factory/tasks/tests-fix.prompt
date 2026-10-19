@@ -1,4 +1,4 @@
-Fix test COMPILATION only. Read ROUND3.md and factory/blocked/resolved/*tests-fix* 
+Fix test COMPILATION only. Read docs/history/ROUND3.md and factory/blocked/resolved/*tests-fix* 
 if present. Authorized changes, nothing else:
 1. Add missing [dev-dependencies] to all 7 pallet Cargo.toml files (derive the
    list from each pallet's tests.rs imports; versions matching Cargo.lock).

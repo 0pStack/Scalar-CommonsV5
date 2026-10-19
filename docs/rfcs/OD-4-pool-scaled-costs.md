@@ -5,7 +5,7 @@
 | RFC ID | OD-4 |
 | Status | DRAFT — for review; **no recommendation adopted** (see §8, reserved for Keith) |
 | Scope | Design only. No code, no parameter changes, no storage migrations proposed for merge. |
-| Origin | SC-E1 Phase-0 cross-cutting finding — R-SC-0003, R-SC-0004 (`experiments/sc-e1/SC-E1-PHASE0-RESULTS.md`) |
+| Origin | SC-E1 Phase-0 cross-cutting finding — R-SC-0003, R-SC-0004 (`docs/history/sc-e1/SC-E1-PHASE0-RESULTS.md`) |
 | System under discussion | `pallets/emissions`, `pallets/escrow`, `pallets/auto-params` |
 | Author | Claude (agent-task, issue #8) |
 | Companion | `SC-E1-SEEV-protocol-spec.md`, `SC-E1-phase0-verdicts.json` |
@@ -264,8 +264,8 @@ i.e. `κ` must itself be **pool-indexed** to preserve the guarantee — the flat
 
 ## 9. References
 
-- `experiments/sc-e1/SC-E1-PHASE0-RESULTS.md` — R-SC-0003, R-SC-0004, cross-cutting result, action #4 (open OD-4).
-- `experiments/sc-e1/SC-E1-SEEV-protocol-spec.md` — C-1b guard inventory, P0 gates, hard limits.
+- `docs/history/sc-e1/SC-E1-PHASE0-RESULTS.md` — R-SC-0003, R-SC-0004, cross-cutting result, action #4 (open OD-4).
+- `docs/history/sc-e1/SC-E1-SEEV-protocol-spec.md` — C-1b guard inventory, P0 gates, hard limits.
 - `pallets/emissions/src/lib.rs` — `compute_weight_cached` (work-score log shape, `MinQualifyingVol` gate, velocity bonus), `settle_era`, `run_era_rules` call site.
 - `pallets/auto-params/src/lib.rs` — `EraMetrics`, `ParamBounds`, `AutoParamsProvider`, `rule_ring_farming` / `rule_oracle_participation` / `rule_emission_concentration` (rule pattern), `apply_param_checked`.
 - `pallets/escrow/src/lib.rs` — completion-fee application (`CompletionFeeProvider`, `FeeDestination` → Treasury).

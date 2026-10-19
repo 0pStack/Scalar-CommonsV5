@@ -137,7 +137,7 @@ tmux attach -t loops                # watch (ctrl-b n / ctrl-b w to navigate)
 | `trackB-indexer` | `cd indexer && npm ci && npm test` |
 | `trackB-sdk` | `cd sdk && npm ci && npm run typecheck && npm test` |
 | `trackB-explorer` | `cd explorer && npm ci && npm run build && npm test` |
-| `trackC-od4` | `python3 -m pytest experiments/sc-e1/tests -q` |
+| `trackC-od4` | `python3 -m pytest docs/history/sc-e1/tests -q` |
 
 Each prompt requires the agent to **write its test suite first, from the spec**,
 then implement. Three of these components largely don't exist yet, so the tests

@@ -9,11 +9,11 @@
 # credential. It is not one. `Sudo.Key`, validator stashes and agent accounts
 # are all readable by any stranger via `state_getStorage`, and our launch and
 # audit records quote them deliberately so a reader can verify for themselves
-# that the chain is not running on a well-known dev key (see PUBLIC-LAUNCH.md,
+# that the chain is not running on a well-known dev key (see docs/history/PUBLIC-LAUNCH.md,
 # where the flagged line exists precisely to prove Sudo.Key is NOT Alice).
 #
 # Why the carve-out is safe. Its scope is deliberately narrow:
-#   * NOT a path allowlist -- PUBLIC-LAUNCH.md is still fully scanned.
+#   * NOT a path allowlist -- docs/history/PUBLIC-LAUNCH.md is still fully scanned.
 #   * NOT a rule disable -- generic-api-key still fires on every other value.
 #   * Bound to that one rule, via [[rules.allowlists]], so an SS58-shaped
 #     string is still reportable by any other rule.

@@ -144,7 +144,7 @@ impl pallet_referenda::TracksInfo<crate::Balance, crate::BlockNumber> for Tracks
     /// Reaching tracks 0 and 1 requires a `pallet_custom_origins`-style origin
     /// enum, as Polkadot's own runtimes use. That is a governance-surface
     /// addition, not a port, so it is reported rather than invented here — see
-    /// ROUND3.md. Until then those tracks are configured but unreachable, which
+    /// docs/history/ROUND3.md. Until then those tracks are configured but unreachable, which
     /// is the honest state of the original design.
     fn track_for(origin: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
         match frame_system::RawOrigin::try_from(origin.clone()) {

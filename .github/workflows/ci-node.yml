@@ -15,7 +15,7 @@
 # NOTHING HERE REQUIRES A LIVE CHAIN. Every command below runs against committed
 # fixtures or mocks. The suites that genuinely need the devnet are NOT deleted
 # and NOT skipped — they are simply not selected by the CI invocation, and each
-# omission is named in CI-NODE.md with its reason. See the per-job comments.
+# omission is named in docs/history/CI-NODE.md with its reason. See the per-job comments.
 name: ci-node
 
 on:
@@ -346,7 +346,7 @@ jobs:
   # is offline by construction (9 passed, 1 skipped).
   #
   # THIS JOB WAS RED ON THE UPSTREAM master WHEN ADDED, and that was the point.
-  # Two real defects, both measured 2026-08-19 and reported in CI-NODE.md:
+  # Two real defects, both measured 2026-08-19 and reported in docs/history/CI-NODE.md:
   #
   #   1. `npm ci` FAILED — sdk/ had no package-lock.json at all, so the
   #      gate could not even install. (npm error code EUSAGE.)

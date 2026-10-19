@@ -10,7 +10,7 @@ references them is installed.
 
 > **Status: installed and serving.** This config is live on scalarnet.io as of
 > 2026-09-09. It has been parsed by `nginx -t`, reloaded, and verified end to
-> end from an external host — see `PUBLIC-LAUNCH.md` in the repo root for the
+> end from an external host — see `docs/history/PUBLIC-LAUNCH.md` for the
 > full PASS/FAIL table. The template in `nginx/` is now the exact source of the
 > installed file: `render-config.sh` with `DOMAIN=scalarnet.io` reproduces
 > `/etc/nginx/sites-available/scalarnet` byte for byte (§4a below).

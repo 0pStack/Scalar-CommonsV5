@@ -175,7 +175,7 @@ pub mod pallet {
     ///
     /// Not bounded per *orchestrator*: one orchestrator may hold a slot on every
     /// agent, which is what makes `deregister_orchestrator`'s drain O(open
-    /// proposals). See ROUND9.md.
+    /// proposals). See docs/history/ROUND9.md.
     #[pallet::storage]
     pub type PendingLinkProposals<T: Config> = StorageDoubleMap<
         _,

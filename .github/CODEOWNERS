@@ -7,7 +7,7 @@
 #
 # NOTE: CODEOWNERS only *requests* review on its own. The blocking half is a
 # branch protection setting on main, which cannot be configured from a file
-# in the repository -- see ROUND6.md "Remaining gaps".
+# in the repository -- see docs/history/ROUND6.md "Remaining gaps".
 #
 # Order matters: later patterns win.
 

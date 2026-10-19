@@ -27,7 +27,7 @@
 # They are left as blocking steps on purpose. Neither `continue-on-error` nor
 # deleting them would make the code any better; it would only hide the debt,
 # and hiding it is how this repository got a node that was `fn main() {}`.
-# Clearing them is a small, mechanical, self-contained commit. See ROUND6.md.
+# Clearing them is a small, mechanical, self-contained commit. See docs/history/ROUND6.md.
 name: ci-fast
 
 on:

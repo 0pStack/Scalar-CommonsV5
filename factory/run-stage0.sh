@@ -48,7 +48,7 @@ TASKS=(
   "trackB-indexer|trackB-indexer.prompt|cd indexer && npm ci --no-audit --no-fund && npm test"
   "trackB-sdk|trackB-sdk.prompt|cd sdk && npm ci --no-audit --no-fund && npm run typecheck && npm test"
   "trackB-explorer|trackB-explorer.prompt|cd explorer && npm ci --no-audit --no-fund && npm run build && npm test"
-  "trackC-od4|trackC-od4.prompt|python3 -m pytest experiments/sc-e1/tests -q"
+  "trackC-od4|trackC-od4.prompt|python3 -m pytest docs/history/sc-e1/tests -q"
 )
 
 if stop_requested; then

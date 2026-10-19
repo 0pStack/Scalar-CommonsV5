@@ -1,5 +1,9 @@
 # TESTNETAUDIT.md — Scalar Commons v4
 
+> **Path note (2026-10-19).** The root planning and round reports cited below
+> (`AUDIT.md`, `CI-NODE.md`, `STATUS.md`, `ROUND*.md`, …) and `experiments/sc-e1/`
+> now live under `docs/history/`. Citations are left as written at audit time.
+
 Read-only audit of `master @ 6efba16` and the live 5-validator devnet, against `ENDGOAL.md`.
 2026-09-08, 08:18–14:05 CEST. 17 auditors; every CRITICAL/HIGH finding adversarially verified.
 Nothing was modified, committed, merged, labelled, dispatched or fixed. No extrinsic was submitted.

@@ -91,7 +91,7 @@ fn chain_properties() -> Properties {
 ///
 /// Note that all three are in the authority set, so `--dev` on one machine
 /// authors roughly a third of slots and cannot reach GRANDPA's 2/3 finality
-/// quorum on its own. See ROUND4.md "Gate B evidence".
+/// quorum on its own. See docs/history/ROUND4.md "Gate B evidence".
 pub fn development_config() -> ChainSpec {
     ChainSpec::builder(
         scalar_commons_runtime::WASM_BINARY.expect("WASM binary not available"),
@@ -134,7 +134,7 @@ pub fn development_config() -> ChainSpec {
 /// | 7   | 5         | 2              |
 ///
 /// At `n = 3` the threshold was every single authority, so stopping one froze
-/// finality outright while block production carried on — ROUND10.md §2.5
+/// finality outright while block production carried on — docs/history/ROUND10.md §2.5
 /// measured exactly that. Five clears the threshold with four voters, so the
 /// chain keeps finalizing through one validator being down for a restart, a
 /// snapshot, or a crash.
@@ -303,7 +303,7 @@ fn dev_genesis(
     // GENESIS_AGENT_STAKE (10,000 CMN) equals AgentsFullFloorStake, promotes it
     // twice — so those accounts land at rank 2, not rank 1. What is genuinely
     // lost is seeding the *stash* accounts; the inducted members are the
-    // controllers. See ROUND4.md "chain_spec adaptations".
+    // controllers. See docs/history/ROUND4.md "chain_spec adaptations".
 
     let stakers: Vec<(
         AccountId,

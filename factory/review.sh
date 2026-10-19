@@ -20,7 +20,7 @@
 # rules a reviewer needs are embedded in its lens prompt.
 #
 # ---------------------------------------------------------------------------
-# PAST BUG — DO NOT REGRESS (fixed 2026-08-05; see FACTORY-REVIEW-FIX.md)
+# PAST BUG — DO NOT REGRESS (fixed 2026-08-05; see docs/history/FACTORY-REVIEW-FIX.md)
 #
 # This script used to invoke `claude -p "$(cat "$pf")"`, passing the whole
 # prompt as ONE argv string. Linux caps a SINGLE argument at MAX_ARG_STRLEN =

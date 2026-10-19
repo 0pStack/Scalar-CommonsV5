@@ -28,7 +28,7 @@
 |---|---|
 | Source of truth | `pallets/emissions/src/lib.rs`, `pallets/agents/src/lib.rs`, `runtime/src/lib.rs`, `pallets/auto-params/src/lib.rs` |
 | Method | Direct source read; every constant carries a `file:line` ref and its live runtime value |
-| Companion inputs | `experiments/sc-e1/SC-E1-SEEV-protocol-spec.md` §4; `experiments/sc-e1/SC-E1-PHASE0-RESULTS.md`; `experiments/sc-e1/SC-E1-phase0-sim.py` (MA-3) |
+| Companion inputs | `docs/history/sc-e1/SC-E1-SEEV-protocol-spec.md` §4; `docs/history/sc-e1/SC-E1-PHASE0-RESULTS.md`; `docs/history/sc-e1/SC-E1-phase0-sim.py` (MA-3) |
 
 **Limitation — workbook tab 03 not parsed cell-by-cell.** `SC-E1-SEEV-workbook.xlsx`
 is a compressed (DEFLATE) binary; `python3`, `node`, and `unzip` are permission-gated

@@ -222,7 +222,7 @@ print(" ".join((d.get("scripts") or {}).keys()))
 # is EMPTY: every issue fell through to the workspace cargo gate, which is
 # already green on master. loop.sh then short-circuits ("gate already passes
 # before any attempt — nothing to do. PASS") and the issue is reported done with
-# zero work performed. That was F-1 in STAGE1-SETUP.md.
+# zero work performed. That was F-1 in docs/history/STAGE1-SETUP.md.
 #
 # So the gate is read from the issue body, where a human wrote it deliberately:
 # the first fenced code block under a "## Gate" heading.

@@ -574,7 +574,7 @@ no manual intervention:
 ### Negative control — two down does stall, as predicted
 
 Three of five is below the threshold of 4, so finality must stop. It does; see
-ROUND15.md for the verbatim run. This matters: without it, "finality survived
+docs/history/ROUND15.md for the verbatim run. This matters: without it, "finality survived
 one node down" could just mean nothing was ever being tested.
 
 **Operationally:** restart or snapshot one node freely. Never two at once.

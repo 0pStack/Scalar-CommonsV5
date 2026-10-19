@@ -85,7 +85,7 @@ jobs:
 
       # rust-toolchain.toml pins 1.85.0 because this SDK tag cannot be built by
       # a newer rustc (sp-io's `#[no_mangle]` panic handler is rejected outright
-      # -- see rust-toolchain.toml and ROUND3.md). The previous workflow used
+      # -- see rust-toolchain.toml and docs/history/ROUND3.md). The previous workflow used
       # `dtolnay/rust-toolchain@stable`, which OVERRIDES that pin: a floating
       # toolchain against a fixed March-2025 SDK tag, guaranteed to break with
       # no commit to blame. The channel is read from the file so there is one

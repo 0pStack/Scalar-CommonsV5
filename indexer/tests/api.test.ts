@@ -117,7 +117,7 @@ describe('settledEraFromEvent', () => {
  * The root index.
  *
  * `/` used to 404 with the endpoint list attached (`api.scalarnet.io/` →
- * `{"error":"no such endpoint: /","endpoints":[...]}`, PUBLIC-LAUNCH.md §5
+ * `{"error":"no such endpoint: /","endpoints":[...]}`, docs/history/PUBLIC-LAUNCH.md §5
  * F-2). The bytes were nearly right; the status code told every monitor and
  * every human that the host was broken. These cases pin both halves — the 200
  * and the pointer — and pin them against a dependency object that throws on

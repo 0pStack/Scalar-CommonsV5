@@ -548,7 +548,7 @@ impl frame_support::traits::EnsureOrigin<RuntimeOrigin> for EnsureRootWithRank {
 
 // V4: RankedCollective is active — Technical Council from rank-3 agents.
 //
-// `Polls = RankedPolls` — GOVERNANCE DECISION, see ROUND3.md.
+// `Polls = RankedPolls` — GOVERNANCE DECISION, see docs/history/ROUND3.md.
 //
 // A single pallet-referenda instance has exactly ONE Tally type across all of
 // its tracks. ConvictionVoting requires `conviction_voting::TallyOf`;
@@ -777,7 +777,7 @@ impl pallet_safe_mode::Config for Runtime {
 // added — the set of calls that may NEVER be paused.
 //
 // `()` is the faithful port: the previous config carried no such protection, so
-// every call was pausable, and `()` preserves exactly that. See ROUND3.md — this
+// every call was pausable, and `()` preserves exactly that. See docs/history/ROUND3.md — this
 // interacts with first principle #3 ("no root-gated liveness") and is flagged
 // there for review rather than silently changed here.
 impl pallet_tx_pause::Config for Runtime {
@@ -1568,7 +1568,7 @@ mod runtime {
     pub type Constitution = pallet_constitution;
     // V4: Technical Council poll set — pallet-referenda Instance2, carrying the
     // ranked-collective tally. Appended at 41; indices are append-only and 41
-    // was previously unused. See ROUND3.md "Governance decisions".
+    // was previously unused. See docs/history/ROUND3.md "Governance decisions".
     #[runtime::pallet_index(41)]
     pub type RankedPolls = pallet_referenda<Instance2>;
     // spec 308: on-chain coordination messages. Appended at 42, the next unused index;
@@ -1704,7 +1704,7 @@ impl_runtime_apis! {
     /// with its key in `SessionKeys` since before this runtime first compiled,
     /// but this declaration was missing — so the node had a discovery key it
     /// could never use, and multi-node networks needed explicit `--bootnodes`
-    /// for every peer. See ROUND4.md gap 1.
+    /// for every peer. See docs/history/ROUND4.md gap 1.
     ///
     /// `Pallet::authorities()` returns the current keys concatenated with the
     /// next session's, sorted and deduplicated — which is exactly the contract

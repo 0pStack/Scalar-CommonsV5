@@ -1,13 +1,13 @@
 You are an autonomous worker in a bounded factory loop on the Scalar Commons
 repository.
 
-TRACK C — TASK: implement OD-4 pool-scaled gaming costs in the experiments/sc-e1
+TRACK C — TASK: implement OD-4 pool-scaled gaming costs in the docs/history/sc-e1
 economic simulator, and measure the effect on wash-trader profitability.
 
 ################  ABSOLUTE RULE — NON-NEGOTIABLE  ################
 NEVER make a check pass by weakening code. In this task specifically:
   - Do NOT tune the baseline downward to manufacture a "decrease".
-  - Do NOT delete, skip, or loosen experiments/sc-e1/tests/test_analyze.py.
+  - Do NOT delete, skip, or loosen docs/history/sc-e1/tests/test_analyze.py.
   - Do NOT make the strict-decrease check trivially true (comparing a number to
     itself, comparing against a constant you chose, wrapping it in try/except,
     or asserting on a value the mechanism does not actually affect).
@@ -20,7 +20,7 @@ worst thing you could do here, because a parameter decision will be made on it.
 
 ## Scope — simulation only
 
-Touch ONLY experiments/sc-e1/. Do NOT modify pallets/, runtime/, node/, or
+Touch ONLY docs/history/sc-e1/. Do NOT modify pallets/, runtime/, node/, or
 tests/. This is a model, not the chain. No storage migrations, no runtime
 constants, no extrinsics.
 
@@ -29,8 +29,8 @@ constants, no extrinsics.
 1. docs/rfcs/OD-4-pool-scaled-costs.md — the design RFC. It defines the problem
    and THREE mechanisms. Read §1 (problem), §2 (notation and baseline algebra),
    §3, §4, §5 (the mechanisms), §6 (comparison), §7 (open questions).
-2. experiments/sc-e1/SC-E1-PHASE0-V2-RESULTS.md — the current baseline results.
-3. experiments/sc-e1/SC-E1-phase0-sim.py — the simulator you are extending. Note
+2. docs/history/sc-e1/SC-E1-PHASE0-V2-RESULTS.md — the current baseline results.
+3. docs/history/sc-e1/SC-E1-phase0-sim.py — the simulator you are extending. Note
    its header: it documents model assumptions MA'-1..MA'-8. Any assumption you
    add or change must be documented in the same style, in the same place.
 4. docs/VERIFIED-CONSTANTS.md — the real constants. Do not invent values.
@@ -53,7 +53,7 @@ summary):
 
 ### Step 1 — tests first
 
-Add tests under experiments/sc-e1/tests/ (pytest; the existing suite lives
+Add tests under docs/history/sc-e1/tests/ (pytest; the existing suite lives
 there). Write them BEFORE the mechanism code, from the RFC's algebra. Run them,
 watch them fail, then implement. Required coverage:
 
@@ -87,7 +87,7 @@ for the baseline and for each mechanism configuration, swept across a range of
 per-era pool sizes P that BRACKETS the break-evens in the RFC (~1.12M CMN/era
 for wash, ~2.78M CMN/era for sybil) — i.e. the sweep must include pools where
 the flat guards are known to have already expired. Print the table to stdout in
-a readable form and also write it as a JSON artifact under experiments/sc-e1/.
+a readable form and also write it as a JSON artifact under docs/history/sc-e1/.
 
 Include the honest archetypes in the table deliberately: a mechanism that
 suppresses wash trading by also crushing A-1 honest-worker profitability is a
@@ -106,7 +106,7 @@ MA'-x style, and note anything the model cannot capture.
 
 ## THE GATE (the only definition of success)
 
-    python3 -m pytest experiments/sc-e1/tests -q
+    python3 -m pytest docs/history/sc-e1/tests -q
 
 This must pass, and it must include:
   - the pre-existing test_analyze.py, still passing, unmodified
@@ -129,7 +129,7 @@ Commit in small scoped steps ("sc-e1: add Mechanism B pool-scaled fee"). Do not
 push and do not open a PR — the factory handles that.
 ## GATE TIGHTENED (2026-08-01)
 The old gate passed with zero work. The gate now also requires a NEW file
-experiments/sc-e1/tests/test_od4_pool_scaling.py containing real assertions
+docs/history/sc-e1/tests/test_od4_pool_scaling.py containing real assertions
 proving: (a) pool-scaled gaming costs are implemented in the sim, (b) the
 wash-trader archetype's profit is strictly LOWER with OD-4 active than in the
 baseline run. Empty or assertion-free tests violate the standing rule.

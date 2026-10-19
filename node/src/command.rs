@@ -141,13 +141,13 @@ pub fn run() -> Result<()> {
                     BenchmarkCmd::Overhead(_) => Err(
                         "Overhead benchmarking is not wired for this node: it needs an extrinsic \
                          builder (the reference's `RemarkBuilder`) and inherent benchmark data. \
-                         See ROUND6.md."
+                         See docs/history/ROUND6.md."
                             .into(),
                     ),
                     BenchmarkCmd::Extrinsic(_) => Err(
                         "Extrinsic benchmarking is not wired for this node: it needs an extrinsic \
                          factory (the reference's `RemarkBuilder` + `TransferKeepAliveBuilder`). \
-                         See ROUND6.md."
+                         See docs/history/ROUND6.md."
                             .into(),
                     ),
                     BenchmarkCmd::Machine(cmd) => {

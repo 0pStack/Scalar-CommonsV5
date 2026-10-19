@@ -36,7 +36,7 @@ sp-consensus-grandpa   = { workspace = true }
 # ROUND5: needed to declare AuthorityDiscoveryApi in impl_runtime_apis!.
 # pallet-authority-discovery has been wired since before Round 3, but the
 # runtime API the sc-authority-discovery worker calls was never declared, so
-# the node could not spawn the worker at all. See ROUND4.md gap 1.
+# the node could not spawn the worker at all. See docs/history/ROUND4.md gap 1.
 sp-authority-discovery = { workspace = true }
 sp-session             = { workspace = true }
 sp-staking             = { workspace = true }
@@ -142,7 +142,7 @@ std = [
 # ROUND5: completed the feature graph. Previously this listed 5 of the 40
 # dependencies that expose a `runtime-benchmarks` feature, which meant enabling
 # it built a runtime whose benchmark machinery disagreed with itself — the
-# reason ROUND4.md gap 5 recorded benchmarking as "not wired end to end".
+# reason docs/history/ROUND4.md gap 5 recorded benchmarking as "not wired end to end".
 #
 # The rule applied is the kitchensink runtime's, mechanically: every dependency
 # that declares a `runtime-benchmarks` feature gets it forwarded. (The

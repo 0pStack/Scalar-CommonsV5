@@ -372,7 +372,7 @@ broken, but (e) failing means anyone on the internet owns the chain.
 ### Last full run
 
 scalarnet.io, 2026-09-09. All checks pass; the complete PASS/FAIL table with raw
-evidence is in `PUBLIC-LAUNCH.md` at the repo root. The off-host sweep, which
+evidence is in `docs/history/PUBLIC-LAUNCH.md`. The off-host sweep, which
 cannot be run from the server itself, was confirmed from an external host at
 14:40 CEST: **9944/9945/9948/8080/8082 unreachable, port 80 answers, ws upgrade
 101, `author_rotateKeys` refused.**

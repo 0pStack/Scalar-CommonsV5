@@ -10,7 +10,7 @@
 # ROUND15 — finality now SURVIVES this. The old note here said taking one node
 # down pauses finalization; that was true of the 3-authority set, where
 # GRANDPA's supermajority threshold was 3 of 3 and any absence was fatal to
-# finality (measured in ROUND10.md §2.5). The set is now five, so the threshold
+# finality (measured in docs/history/ROUND10.md §2.5). The set is now five, so the threshold
 # is 4 and the remaining four still finalize while this script has one node
 # stopped. Block production and finalization both continue. See README.md
 # "Fault tolerance" for the verbatim evidence.

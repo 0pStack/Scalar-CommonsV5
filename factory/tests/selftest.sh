@@ -4,7 +4,7 @@
 # The factory's guarantees are only worth what they can be demonstrated to do,
 # so each bound gets an executable test with an asserted outcome. Uses a STUB
 # `claude` on PATH: these tests must be free, fast, and deterministic. Real API
-# billing is verified separately (see FACTORY-REPORT.md).
+# billing is verified separately (see docs/history/FACTORY-REPORT.md).
 #
 #   ./factory/tests/selftest.sh          # run all
 #   ./factory/tests/selftest.sh 3        # run one case

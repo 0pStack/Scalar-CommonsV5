@@ -31,7 +31,7 @@ Paste:
 ```
 T0 round, human-authorised in advance under the same terms as the 305/306 upgrades: fully autonomous, never ask a question, mechanical abort conditions only. If a decision is not covered, take the more conservative option and record it. On an abort, file an issue with the full report (tier:T0), skip only dependent work, finish the rest. Repo ~/scalar-commons-v4, master. Never print the contents of ~/.factory/env or ~/.config/scalar-commons/*; scripts/apply-upgrade.mjs may read the sudo key file the way it already does. Never weaken a check to pass.
 
-Goal: spec 309 = on-chain coordination messages + per-agent messaging key. Read CONTEXT.md, UPGRADE-306.md, deploy/upgrade.md, pallets/agents, pallets/escrow, runtime/src/lib.rs first.
+Goal: spec 309 = on-chain coordination messages + per-agent messaging key. Read docs/history/CONTEXT.md, UPGRADE-306.md, deploy/upgrade.md, pallets/agents, pallets/escrow, runtime/src/lib.rs first.
 
 Decisions already made (do not revisit):
 D14 Messaging key: pallets/agents gets an optional 32-byte X25519 public key per agent (`MessagingKey<T>: StorageMap<AccountId, [u8;32]>`), set by a new extrinsic `set_messaging_key(key: [u8;32])` callable only by a registered agent, replaceable at any time (rotation), removable with `clear_messaging_key()`. Event `MessagingKeySet { who, key }`. No deposit. Existing registrations are untouched; no storage migration is needed for them.
@@ -45,7 +45,7 @@ Phase B — apply: build the wasm from merged master, backup exactly as for 306 
 
 Abort conditions (stop, file issue, skip dependents): a previously green test goes red; CI not green after two fix attempts; try-runtime reports any storage error; apply preflight fails; fewer than five validators authoring 10 minutes after the upgrade; live fee charged differs from the formula; any message stored in state other than the nonce map (grep the storage in the metadata). Never tune bounds or fees to pass.
 
-Finish with: PR number and merge SHA, block number of the upgrade, runtime version on public wss, the live-proof extrinsic hashes and fee table, any issues filed, and every conservative choice you made. Update CONTEXT.md.
+Finish with: PR number and merge SHA, block number of the upgrade, runtime version on public wss, the live-proof extrinsic hashes and fee table, any issues filed, and every conservative choice you made. Update docs/history/CONTEXT.md.
 ```
 
 Detach with `Ctrl-b d`. Rust CI is ~20 min per run; the upgrade itself is minutes; the live proof is minutes. Expect the report within a few hours.
@@ -196,7 +196,7 @@ Round 0 now (it only waits) → Round A → Spike alongside → Round B → Roun
 
 ## What I will do with the reports
 
-- Round A: check the fee table and the live proof, then update CONTEXT.md and the v0.307 workbook.
+- Round A: check the fee table and the live proof, then update docs/history/CONTEXT.md and the v0.307 workbook.
 - Spike: decide whether transport (c) is in or out — I'll tell you in one line.
 - Round B: run the external-buyer pilot again from here, this time as on-chain messages instead of JSON pasted between chats, against the Replit provider once its runner speaks the same envelope.
 
