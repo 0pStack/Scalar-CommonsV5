@@ -1,0 +1,67 @@
+# Rust build environment shared by ci-fast, ci-full and release.
+#
+# The toolchain comes from rust-toolchain.toml and nowhere else: this SDK tag
+# cannot be built by a newer rustc (see rust-toolchain.toml), so a floating
+# `@stable` would break with no commit to blame.
+#
+# All Rust jobs share one cache key, so a pull request restores the crates the
+# last main build compiled instead of starting cold. Only main saves, so
+# pull requests never evict it from the repository's 10 GB cache budget.
+name: Set up Rust
+description: Reclaim runner disk, install protoc and the pinned toolchain, restore the build cache.
+
+inputs:
+  components:
+    description: Extra rustup components, comma-separated.
+    default: rust-src
+  cache:
+    description: Restore and save the shared build cache ("false" for clean release builds).
+    default: "true"
+
+outputs:
+  channel:
+    description: The toolchain channel read from rust-toolchain.toml.
+    value: ${{ steps.toolchain.outputs.channel }}
+
+runs:
+  using: composite
+  steps:
+    # A full workspace link needs more than the ~14 GB a standard runner has
+    # free. None of this is reachable from the build. Only CodeQL is removed
+    # from hostedtoolcache: the runner resolves node for JavaScript actions there.
+    - name: Free runner disk
+      shell: bash
+      run: |
+        df -h /
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+        sudo rm -rf /opt/hostedtoolcache/CodeQL
+        docker image prune -af || true
+        df -h /
+
+    # litep2p -> sc-network pulls prost-build, which shells out to protoc.
+    - name: Install protoc
+      shell: bash
+      run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+    - name: Resolve pinned toolchain
+      id: toolchain
+      shell: bash
+      run: echo "channel=$(grep -oP 'channel\s*=\s*"\K[^"]+' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: ${{ steps.toolchain.outputs.channel }}
+        targets: wasm32v1-none
+        components: ${{ inputs.components }}
+
+    - name: Assert the pinned toolchain is what we got
+      shell: bash
+      run: |
+        rustc --version
+        rustc --version | grep -q '${{ steps.toolchain.outputs.channel }}'
+
+    - if: inputs.cache == 'true'
+      uses: Swatinem/rust-cache@v2
+      with:
+        shared-key: workspace
+        save-if: ${{ github.ref == 'refs/heads/main' }}

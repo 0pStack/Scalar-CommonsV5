@@ -1,22 +1,32 @@
-# Full gate: everything that must hold before code reaches main.
+# Full Rust gate for main: release build, node smoke test, benchmarks feature
+# graph, workspace tests.
 #
-# ROUND6 rewrite. What was here before had never executed a single time, for a
-# reason visible in one line: it triggered on `push: branches: [main]` while the
-# upstream (scalar-commons-v4) default branch was `master`, so every "green"
-# merge there was green because nothing ran. This repository's trunk is `main`,
-# and the triggers below follow it.
+# Runs only when something that can change the Rust build changes. The build
+# reads nothing outside these paths (no include_str!/include_bytes! of outside
+# files; build.rs only builds the node and the Wasm runtime), and Cargo.lock and
+# rust-toolchain.toml pin everything, so a commit outside them would rebuild
+# exactly what the last run built. Pull requests are gated by ci-fast; this runs
+# once the change is on main. Run it by hand from the Actions tab at any time.
 #
-# The build step is the anti-stub gate. `node/src/main.rs` was `fn main() {}`
-# for the entire life of this project and no check noticed; `cargo build
-# --release` compiling the workspace, producing the binary, and that binary
-# answering `--version` and building genesis cannot be satisfied by a stub.
+# The build step is the anti-stub gate: `node/src/main.rs` was `fn main() {}`
+# for a long time and no check noticed. A binary that compiles, answers
+# `--version` and builds genesis from its own runtime cannot be a stub.
 name: ci-full
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+    paths:
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - rustfmt.toml
+      - node/**
+      - runtime/**
+      - pallets/**
+      - tests/**
+      - .github/workflows/ci-full.yml
+      - .github/actions/setup-rust/**
   workflow_dispatch:
 
 concurrency:
@@ -29,84 +39,16 @@ jobs:
     timeout-minutes: 120
 
     env:
-      # Run 30742971934 died with `/usr/bin/ld: final link failed: No space left
-      # on device` ~80 minutes in, during `cargo test --workspace --no-run`. The
-      # release build and the benchmarks check had both already passed, so this
-      # was never a code defect -- the job simply ran the runner out of disk.
-      #
-      # Measured on this workspace: `cargo test --no-run` links 26 test binaries
-      # and `.debug_*` sections are 90-91% of each one's bytes (pallet-oracle:
-      # 0.16 GB total, 0.14 GB debuginfo). target/debug reaches 30 GB locally
-      # against roughly 14 GB free on a standard runner.
-      #
-      # Nothing in this job reads a backtrace, opens a debugger or symbolises a
-      # core dump. It compiles, links and asks the node for `--version`. So the
-      # debuginfo is bought and never used, and dropping it is free in the only
-      # sense that matters here: no check becomes weaker, because no check was
-      # ever looking at a symbol table.
-      #
-      # Verified on the pinned toolchain rather than assumed -- cargo 1.85.0,
-      # same trivial crate built both ways: 3,997,592 -> 438,616 bytes (-89%).
-      # `[profile.test]` in Cargo.toml sets only opt-level, so it inherits this.
+      # Debuginfo is 90% of every test binary's bytes and nothing here reads a
+      # symbol table. With it, target/debug reaches ~30 GB against ~14 GB free
+      # on a standard runner (run 30742971934 died with "No space left on
+      # device" during the test link). `[profile.test]` inherits this.
       CARGO_PROFILE_DEV_DEBUG: "0"
 
     steps:
-      # ── Disk economics ────────────────────────────────────────────────────
-      # First, before checkout: the reclaim is worthless once the build has
-      # already filled the disk. None of this bloat is reachable from any step
-      # below -- this workspace is Rust and protoc, with no .NET, Android, GHC
-      # or CodeQL anywhere in its graph.
-      #
-      # Only the CodeQL subdirectory is removed from /opt/hostedtoolcache, not
-      # the tree: the runner resolves node for JavaScript actions (checkout,
-      # rust-cache) out of that directory, and deleting all of it would break
-      # every step that follows.
-      #
-      # This step must never be the reason a run goes red. It reclaims space or
-      # it does not; the gates below decide the verdict.
-      - name: Free runner disk
-        run: |
-          echo "── disk before reclaim ──"
-          df -h /
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc /usr/local/.ghcup
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          docker image prune -af || true
-          echo "── disk after reclaim ──"
-          df -h /
-
       - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-rust
 
-      # litep2p -> sc-network pulls prost-build, which shells out to protoc at
-      # build time. GitHub's ubuntu images do not ship it.
-      - name: Install protoc
-        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
-
-      # rust-toolchain.toml pins 1.85.0 because this SDK tag cannot be built by
-      # a newer rustc (sp-io's `#[no_mangle]` panic handler is rejected outright
-      # -- see rust-toolchain.toml and docs/history/ROUND3.md). The previous workflow used
-      # `dtolnay/rust-toolchain@stable`, which OVERRIDES that pin: a floating
-      # toolchain against a fixed March-2025 SDK tag, guaranteed to break with
-      # no commit to blame. The channel is read from the file so there is one
-      # source of truth and drift is impossible.
-      - name: Resolve pinned toolchain
-        id: toolchain
-        run: echo "channel=$(grep -oP 'channel\s*=\s*"\K[^"]+' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ steps.toolchain.outputs.channel }}
-          targets: wasm32v1-none
-          components: rust-src
-      - name: Assert the pinned toolchain is what we got
-        run: |
-          rustc --version
-          rustc --version | grep -q '${{ steps.toolchain.outputs.channel }}'
-
-      - uses: Swatinem/rust-cache@v2
-
-      # ── The anti-stub gate ────────────────────────────────────────────────
-      # Builds the WASM runtime and the node binary. A stubbed node cannot pass.
       - name: Build release (runtime WASM + node binary)
         run: cargo build --release
 
@@ -114,54 +56,18 @@ jobs:
         run: |
           test -x target/release/scalar-node
           ./target/release/scalar-node --version
-          # Exercises the WASM blob end to end: GenesisBuilder::build_state runs
-          # inside the runtime to produce this. A runtime that does not execute
-          # cannot produce a raw chain spec.
+          # GenesisBuilder::build_state runs inside the runtime to produce this,
+          # so a runtime that does not execute cannot produce a raw chain spec.
           ./target/release/scalar-node build-spec --chain dev --raw > /dev/null
 
-      # ── Benchmarks feature graph ──────────────────────────────────────────
-      # Round 5 found this feature half-wired: frame-support/runtime-benchmarks
-      # was on while the pallets implementing the methods it switches on were
-      # off, which is a compile error in three SDK crates. Nothing caught it
-      # because the feature was never built. Now it is.
+      # The feature was once half-wired (frame-support's flag on, the pallets'
+      # off), a compile error nothing caught because it was never built.
       - name: Check runtime-benchmarks feature graph
         run: cargo check --workspace --features runtime-benchmarks
 
-      # ── Tests ─────────────────────────────────────────────────────────────
-      # This step was `--no-run` from ROUND6 until ROUND14. The reason was never
-      # cost: 6 of 90 tests FAILED at runtime across pallet-agents,
-      # pallet-emissions, pallet-oracle and pallet-orchestrator -- including an
-      # `attempt to add with overflow` in pallet-agents' integer_sqrt -- so a
-      # full run would have been red on arrival. Compile-only was chosen over
-      # `|| true` because a step that cannot fail is not a check, and the
-      # instruction left here was explicit: swap `--no-run` for a full run once
-      # those six are fixed.
-      #
-      # They are fixed. As of ROUND14 the suite is 109 passed / 0 failed
-      # (`cargo test --workspace`), which is the condition that step named.
-      # Running them is now the point: ROUND14 added 12 tests whose whole value
-      # is their runtime verdict -- they pass against the fixed code and fail
-      # against the old behaviour -- and a compile-only step enforces none of
-      # that. Until this commit CI could not have told a passing suite from a
-      # failing one.
-      #
-      # Room to run it comes from the two measures already in this job: the
-      # pre-checkout disk reclaim, and CARGO_PROFILE_DEV_DEBUG=0 (see the env
-      # block, where the -89% figure is measured rather than assumed). Those
-      # were added for the LINK step, which is the expensive part and which this
-      # job already performs -- executing the binaries afterwards costs runtime,
-      # not disk. Local wall-clock for the run itself is under 2s.
-      #
-      # Blocking, deliberately. If the suite goes red this job goes red.
       - name: Tests
         run: cargo test --workspace
 
-      # ── Disk headroom, recorded ───────────────────────────────────────────
-      # `if: always()` so the number survives a red run. A disk figure is only
-      # diagnostic when a gate has just failed -- reporting it exclusively on
-      # success would have told us nothing about run 30742971934, which is the
-      # run that made this step necessary. This reports; it never votes, so the
-      # job's conclusion is unchanged either way.
       - name: Disk headroom after the build
         if: always()
         run: df -h /

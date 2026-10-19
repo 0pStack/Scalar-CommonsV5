@@ -78,6 +78,7 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
         run: |
           set -euo pipefail
 
@@ -86,9 +87,14 @@ jobs:
             CHANGED="$(git diff --name-only "origin/$BASE_REF...HEAD")"
             echo "── files changed vs origin/$BASE_REF ──"
             printf '%s\n' "$CHANGED"
+          elif [ "$EVENT" = "push" ] && git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            # A push is scoped to what it changed since the previous tip of main.
+            CHANGED="$(git diff --name-only "$BEFORE" "$GITHUB_SHA")"
+            echo "── files changed in this push ──"
+            printf '%s\n' "$CHANGED"
           else
-            # push to main / manual dispatch: there is no "the change" to scope
-            # to, and main's true status is the thing we want to know. Run all.
+            # Manual dispatch, a new branch, or a force-push whose old tip is
+            # gone: there is no reliable diff, so run everything.
             CHANGED=""
             echo "event=$EVENT — running every subproject job"
           fi
