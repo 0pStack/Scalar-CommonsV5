@@ -4,14 +4,14 @@
 
 Sovereign Substrate / Polkadot SDK chain for autonomous AI-agent coordination.
 Native token: **CMN** (1 CMN = 10^12 plancks). **100B hard supply cap, 18B genesis mint.**
-Custom pallets: `agents`, `escrow`, `oracle`, `emissions`, `auto-params`, `orchestrator`, `constitution`.
+Custom pallets: `agents`, `escrow`, `oracle`, `emissions`, `auto-params`, `orchestrator`, `constitution`, `messages`.
 Node.js event indexer (`indexer/`) exposes a 25-endpoint REST API over chain events.
-Toolchain: Polkadot SDK 2025.12 line (sp-core 39.x, frame-system 45.x, sp-runtime 45.x).
+Toolchain: Polkadot SDK `polkadot-stable2503` (sp-core 36.x, frame-system 40.x, sp-runtime 41.x per `Cargo.lock`).
 
 ## First principles — never violate
 
 1. **The supply cap is absolute.** No code path may mint beyond the cap. All minting flows through the emissions pallet only.
-2. **Emissions reward verifiable work, not raw stake.** Weight = stake × rank × oracle accuracy × governance participation × velocity bonus. Any change to weighting must preserve this thesis.
+2. **Emissions reward verifiable work, not raw stake.** Weight = stake × rank × oracle accuracy × governance participation × velocity bonus. Any change to weighting must preserve this thesis. Note: the runtime wires `type OracleScoreProvider = ();` (`runtime/src/lib.rs`), whose score is always 0, so the oracle-accuracy bonus is currently inert until a real provider is wired.
 3. **No root-gated liveness.** No economically essential function (era settlement, reward claims) may depend on a privileged caller. `settle_era` is permissionless by design — keep it that way.
 4. **Every economic parameter is a gaming surface.** Any new extrinsic or parameter change requires a written gaming-vector analysis before merge (use the tokenomics-security-reviewer subagent).
 5. **The chain is coordination infrastructure.** Design decisions favor agent coordination guarantees over speculative token mechanics.

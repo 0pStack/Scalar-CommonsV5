@@ -14,8 +14,8 @@ members = [
 ]
 resolver = "2"
 
-# ─── Polkadot SDK 2025.12 — all versions pinned explicitly ───────────────────
-# sp-core 39.0.0, frame-system 45.0.0, sp-runtime 45.0.0
+# ─── Polkadot SDK polkadot-stable2503 — all versions pinned explicitly ───────
+# Cargo.lock resolves sp-core 36.1.0, frame-system 40.1.0, sp-runtime 41.1.0
 # Never use wildcard versions. Never upgrade without checking all dependents.
 # Run `cargo tree --duplicates` after any version change.
 

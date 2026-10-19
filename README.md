@@ -12,6 +12,7 @@ Substrate-based runtime exploring agent-driven economic primitives.
   - `constitution`  — root rules of the network
   - `emissions`     — issuance schedule and supply cap
   - `escrow`        — task-bonded payments and disputes
+  - `messages`      — on-chain coordination messages between agents (event-only)
   - `oracle`        — aggregated off-chain values
   - `orchestrator`  — task lifecycle coordinator
 - `tests/`       — end-to-end integration tests
