@@ -5,3 +5,20 @@ Cargo.lock.bak
 .idea/
 .vscode/
 *.swp
+node_modules/
+
+# Secrets. Real keys live in ~/.config/scalar-commons (0600), never in the repo.
+.env
+.env.*
+*.env
+!*.env.example
+# Deliberate public dev node keys for the local 5-node devnet, tracked on purpose.
+!deploy/nodes.env
+# Secret-free config, tracked on purpose.
+!deploy/public/domain.env
+!factory/config.env
+*.key
+*.pem
+node-key*
+keystore/
+**/chains/*/network/secret_*
