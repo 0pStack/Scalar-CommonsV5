@@ -3,6 +3,7 @@ import { Keyring } from '@polkadot/keyring';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import type { SubmittableExtrinsic } from '@polkadot/api/types';
 import type { ISubmittableResult } from '@polkadot/types/types';
+import { SS58_PREFIX } from '@scalar-commons/sdk';
 
 /** Node under test. Defaults to the lab dev-real node; override with SCALAR_WS. */
 export const SCALAR_WS = process.env.SCALAR_WS ?? 'ws://127.0.0.1:9955';
@@ -27,7 +28,7 @@ export async function nodeIsUp(ms = 4000): Promise<boolean> {
   }
 }
 
-export const keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
+export const keyring = new Keyring({ type: 'sr25519', ss58Format: SS58_PREFIX });
 
 /** The funded dev account used only to endow throwaway test accounts. */
 export const alice = () => keyring.addFromUri('//Alice');

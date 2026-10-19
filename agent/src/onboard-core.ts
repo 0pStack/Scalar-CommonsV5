@@ -14,7 +14,7 @@
  *    pass. It asks the faucet first instead.
  */
 
-const PLANCKS_PER_CMN = 10n ** 12n;
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
 /** 1 CMN kept back for the fees of the first few calls (register, metadata, heartbeat ≈ 0.0001 CMN each). */
 export const FEE_HEADROOM = PLANCKS_PER_CMN;

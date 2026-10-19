@@ -14,7 +14,8 @@ that every other package's `npm test` is offline. CI (`.github/workflows/ci-node
 
 ## Run
 
-Install once at the repository root (`npm ci`), then, from the root:
+Install once at the repository root (`npm ci`) and build the SDK the suites import
+(`npm run build -w sdk`), then, from the root:
 
 ```bash
 npm run test:live -w e2e              # lifecycle + faucet + indexer + explorer
@@ -54,8 +55,8 @@ Each suite keeps the variable it always had:
 
 ## Why one package
 
-The suites share their dependencies (`@polkadot/*` and vitest) and one vitest
-config, so they are one workspace package. The faucet, indexer and explorer suites
+The suites share their dependencies (`@polkadot/*`, the workspace SDK for the chain
+constants, and vitest) and one vitest config, so they are one workspace package. The faucet, indexer and explorer suites
 import their app's `src/` by relative path. The apps export no library entry point,
 and `tsconfig.json` here typechecks those sources together with the tests. The
 lifecycles have their own `lifecycle/tsconfig.json` only to relax

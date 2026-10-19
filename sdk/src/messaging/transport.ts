@@ -14,6 +14,7 @@ import { hexToU8a, u8aEq, u8aToHex } from '@polkadot/util';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 
 import type { SubmitResult } from '../submit.js';
+import { SS58_PREFIX } from '../constants.js';
 import {
   MAX_ONCHAIN_PAYLOAD,
   MESSAGE_KINDS,
@@ -61,7 +62,7 @@ export class OnChainTransport implements Transport {
   constructor(
     private readonly client: MessageSubmitter,
     private readonly signer: KeyringPair,
-    private readonly ss58Format = 42,
+    private readonly ss58Format = SS58_PREFIX,
   ) {}
 
   async send(message: SignedMessage, opts: { hashOnly?: boolean } = {}): Promise<SubmitResult> {
@@ -106,7 +107,7 @@ export class HttpsTransport implements Transport {
     opts: { fetch?: typeof fetch; ss58Format?: number } = {},
   ) {
     this.fetchImpl = opts.fetch ?? globalThis.fetch;
-    this.ss58 = opts.ss58Format ?? 42;
+    this.ss58 = opts.ss58Format ?? SS58_PREFIX;
   }
 
   async send(message: SignedMessage): Promise<void> {
@@ -227,7 +228,7 @@ export async function subscribeMessages(
 ): Promise<() => void> {
   const api = apiLike as ChainApi;
   const me = decodeAddress(self);
-  const ss58 = opts.ss58Format ?? 42;
+  const ss58 = opts.ss58Format ?? SS58_PREFIX;
   const report = (err: unknown) => opts.onError?.(err instanceof Error ? err : new Error(String(err)));
   let next = opts.fromBlock;
   let queue = Promise.resolve();

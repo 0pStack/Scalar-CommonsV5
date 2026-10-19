@@ -4,11 +4,12 @@
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 import { isLoopbackWs } from '../dist/loopback.js'; // run `npm run build` first
 
 const ws = process.env.SCALAR_WS ?? 'ws://127.0.0.1:9944';
 if (!isLoopbackWs(ws)) throw new Error(`refusing to fund on non-loopback ${ws}`);
-const amount = BigInt(process.env.FUND_CMN ?? '1500') * 1_000_000_000_000n;
+const amount = BigInt(process.env.FUND_CMN ?? '1500') * PLANCKS_PER_CMN;
 await cryptoWaitReady();
 const api = await ApiPromise.create({ provider: new WsProvider(ws) });
 const keyring = new Keyring({ type: 'sr25519' });

@@ -1,8 +1,5 @@
+import { CMN_DECIMALS, PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 import type { AgentMode } from './types.js';
-
-/** 1 CMN = 10^12 plancks. */
-const PLANCKS_PER_CMN = 1_000_000_000_000n;
-const CMN_DECIMALS = 12;
 
 export interface Config {
   /** Node WebSocket endpoint (`SCALAR_WS`). */

@@ -3,6 +3,7 @@ import { Keyring } from "@polkadot/keyring";
 import type { KeyringPair } from "@polkadot/keyring/types";
 import type { Codec, ISubmittableResult } from "@polkadot/types/types";
 import { cryptoWaitReady } from "@polkadot/util-crypto";
+import { SS58_PREFIX } from "@scalar-commons/sdk";
 
 export const WS = process.env.SCALAR_WS ?? "ws://127.0.0.1:9955";
 
@@ -15,7 +16,7 @@ export async function connect(): Promise<ApiPromise> {
 
 export async function keyring(): Promise<Keyring> {
   await cryptoWaitReady();
-  return new Keyring({ type: "sr25519", ss58Format: 42 });
+  return new Keyring({ type: "sr25519", ss58Format: SS58_PREFIX });
 }
 
 export interface Outcome {

@@ -4,10 +4,10 @@ import type { KeyringPair } from '@polkadot/keyring/types';
 import type { SubmittableExtrinsic } from '@polkadot/api/types';
 import type { EventRecord } from '@polkadot/types/interfaces';
 import { cryptoWaitReady, randomAsU8a } from '@polkadot/util-crypto';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
 export const WS = process.env.SCALAR_WS ?? 'ws://127.0.0.1:9955';
-const CMN = 10n ** 12n;
-export const cmn = (n: number | bigint): bigint => BigInt(n) * CMN;
+export const cmn = (n: number | bigint): bigint => BigInt(n) * PLANCKS_PER_CMN;
 
 export async function connect(): Promise<ApiPromise> {
   return ApiPromise.create({ provider: new WsProvider(WS, 1000) });

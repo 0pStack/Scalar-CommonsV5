@@ -18,6 +18,8 @@ import type { KeyringPair } from '@polkadot/keyring/types';
 import { compactFromU8a, compactToU8a, hexToU8a, isHex, stringToU8a, u8aConcat, u8aEq, u8aToHex } from '@polkadot/util';
 import { blake2AsU8a, decodeAddress, encodeAddress, sr25519Verify } from '@polkadot/util-crypto';
 
+import { SS58_PREFIX } from '../constants.js';
+
 /** Envelope format version this SDK produces and accepts. */
 export const ENVELOPE_VERSION = 1;
 
@@ -479,7 +481,7 @@ export class MessageInbox {
     this.genesis = opts.genesisHash;
     this.nonces = opts.nonces ?? new NonceTracker();
     this.opener = opts.open;
-    this.ss58 = opts.ss58Format ?? 42;
+    this.ss58 = opts.ss58Format ?? SS58_PREFIX;
   }
 
   receive(bytes: Uint8Array, bestBlock: number | bigint, opts: ReceiveOptions = {}): ReceivedMessage {

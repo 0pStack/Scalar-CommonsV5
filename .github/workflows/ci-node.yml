@@ -145,8 +145,9 @@ jobs:
           fi
 
           # e2e/ typechecks the faucet, indexer and explorer sources its live
-          # suites import (by relative path), so a change there can break it.
-          if selected '^e2e/' || selected '^(faucet|indexer|explorer)/src/'; then
+          # suites import (by relative path) and imports the workspace sdk/ (its
+          # built dist/), so a change to any of them can break it.
+          if selected '^e2e/' || selected '^(faucet|indexer|explorer)/src/' || selected '^sdk/'; then
             echo "e2e=true" >> "$GITHUB_OUTPUT"
           else
             echo "e2e=false" >> "$GITHUB_OUTPUT"
@@ -420,7 +421,8 @@ jobs:
         run: echo "agent/ and sdk/ unchanged — nothing to check."
 
   # ── e2e ───────────────────────────────────────────────────────────────────
-  # Gate: npm ci && npm run typecheck -w e2e. Typecheck ONLY: every suite in
+  # Gate: npm ci, build sdk/ (e2e imports the workspace SDK's dist/), then
+  # npm run typecheck -w e2e. Typecheck ONLY: every suite in
   # e2e/ needs a live chain, so none of them runs here. The typecheck keeps the
   # live suites compiling against the faucet, indexer and explorer sources they
   # import, so a refactor there cannot silently break them between devnet runs.
@@ -441,9 +443,12 @@ jobs:
       - name: npm ci
         if: needs.changes.outputs.e2e == 'true'
         run: npm ci
+      - name: build sdk
+        if: needs.changes.outputs.e2e == 'true'
+        run: npm run build -w sdk
       - name: npm run typecheck
         if: needs.changes.outputs.e2e == 'true'
         run: npm run typecheck -w e2e
       - name: Not selected
         if: needs.changes.outputs.e2e != 'true'
-        run: echo "e2e/ and the app sources it imports unchanged — nothing to check."
+        run: echo "e2e/, sdk/ and the app sources e2e imports unchanged — nothing to check."
