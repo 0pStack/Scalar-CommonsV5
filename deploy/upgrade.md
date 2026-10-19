@@ -10,7 +10,7 @@ happened here: the on-chain `:code` at the finalized head was **byte-identical
 to genesis**, and all five earlier bumps (300 → 304) were compiled into *fresh
 geneses* before this chain started, not applied to it. `System::LastRuntimeUpgrade`
 cannot tell those two cases apart — it reads `compact(304) ++ "scalar-commons"`
-either way — so the `:code` comparison is what settles it. See TESTNETAUDIT.md
+either way — so the `:code` comparison is what settles it. See docs/history/TESTNETAUDIT.md
 §6 I-20 and issue #136.
 
 ---
@@ -256,7 +256,7 @@ runtime that does not require a rebuild at the exact previous commit.
 ## Notes for spec 305 specifically
 
 Spec 305 sets `type EraPayout = ()`, ending staking inflation (issue #120,
-TESTNETAUDIT.md §6 I-2). Two things to watch after applying, neither of which is
+docs/history/TESTNETAUDIT.md §6 I-2). Two things to watch after applying, neither of which is
 a failure of the upgrade:
 
 - **The next era boundary must book a zero payout.** Watch for a

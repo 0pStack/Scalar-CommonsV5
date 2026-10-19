@@ -193,7 +193,7 @@ a different one.
 **Why the node and not nginx:** on websockets `limit_req` bounds *connection
 establishment* only, never the JSON-RPC messages inside an already-open socket.
 Before this, one client past nginx's 10 r/s handshake budget could call at an
-unbounded rate in unbounded batches. TESTNETAUDIT.md §6 I-23, issue #139.
+unbounded rate in unbounded batches. docs/history/TESTNETAUDIT.md §6 I-23, issue #139.
 
 ### Rolling restart — one node at a time
 
@@ -225,7 +225,7 @@ Neither of the two controls below was recorded anywhere in this repository until
 now: `git grep -il 'fail2ban|PermitRootLogin|PasswordAuthentication'` over the
 whole tracked tree returned nothing. A clean-machine rebuild following this
 directory therefore reproduced neither of them, and an operator had no way to
-know either existed. That is issue #138 (TESTNETAUDIT.md §6 I-24).
+know either existed. That is issue #138 (docs/history/TESTNETAUDIT.md §6 I-24).
 
 ### sshd — currently accepts password AND root login from the internet
 

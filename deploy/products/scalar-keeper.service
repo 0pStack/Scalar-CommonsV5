@@ -6,7 +6,7 @@ Documentation=file:///home/dev/scalar-commons-v4/deploy/products/README.md
 # of that design is that if nobody calls it, it never happens — and nobody did.
 # For ~512 000 blocks, about 142 elapsed eras, LastSettledEra was null and no
 # CMN had ever been emitted by the mechanism this project is about. See
-# TESTNETAUDIT.md §6 I-8 and issue #125.
+# docs/history/TESTNETAUDIT.md §6 I-8 and issue #125.
 #
 # This keeper holds NO privilege. It is an ordinary signed account calling an
 # extrinsic any agent could call. If it stops, settlement is not blocked —

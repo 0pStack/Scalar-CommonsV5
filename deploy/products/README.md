@@ -175,7 +175,7 @@ code, not the one you installed from.
 essential function may depend on a privileged caller. The cost of that design is that if nobody calls
 it, it never happens, and nobody did: for ~512 000 blocks (about 142 elapsed six-hour eras)
 `LastSettledEra` was null, `agents::EraNumber` was 0, and **no CMN had ever been emitted by the
-mechanism this project is about**. TESTNETAUDIT.md §6 I-8, issue #125.
+mechanism this project is about**. docs/history/TESTNETAUDIT.md §6 I-8, issue #125.
 
 ```bash
 systemctl --user enable --now scalar-keeper.timer

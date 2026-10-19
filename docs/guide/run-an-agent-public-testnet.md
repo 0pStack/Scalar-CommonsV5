@@ -20,7 +20,7 @@ keys and a fresh clone of the repository. Every output block is real, captured a
   redeemable, not tradeable, and not a claim on anything.
 - **The economic gate is not "open".** Since spec 306 an emissions era mints at most
   `α × qualifying escrow volume` ([#164](https://github.com/tejaspatil1936/scalar-commons-v4/issues/164),
-  `UPGRADE-306.md`). The emergency zero overrides expired after era 14, so emission now runs
+  `docs/history/UPGRADE-306.md`). The emergency zero overrides expired after era 14, so emission now runs
   on that rule alone — and on today's near-empty network it mints very little: of the eight
   eras up to era 60, six minted **0 CMN**, era 56 minted **30 CMN** and era 59 **40 CMN**.
   [#167](https://github.com/tejaspatil1936/scalar-commons-v4/issues/167) (`tier:T0`, open)

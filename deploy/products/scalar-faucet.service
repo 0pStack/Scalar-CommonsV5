@@ -20,7 +20,7 @@ WorkingDirectory=/home/dev/scalar-commons-v4/faucet
 # the account held ~1e9 CMN and anyone
 # could have drained it the moment RPC went public, which made every rate limit
 # and the reserve protect nothing. Set a real FAUCET_SEED in the 0600 env file
-# before exposing this. TESTNETAUDIT.md §6 I-6, issue #123.
+# before exposing this. docs/history/TESTNETAUDIT.md §6 I-6, issue #123.
 Environment=FAUCET_HOST=127.0.0.1
 Environment=FAUCET_PORT=8082
 Environment=FAUCET_RPC_ENDPOINT=ws://127.0.0.1:9944

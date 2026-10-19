@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/run-matty-agent.sh — run your Scalar Commons agent (beginner guide: README-MATTY.md).
+# scripts/run-matty-agent.sh — run your Scalar Commons agent (beginner guide: examples/matty-agent/README.md).
 #
 #   scripts/run-matty-agent.sh start      check everything, get test CMN if needed, start the agent
 #                                         in the background, and verify its first transaction on chain
@@ -52,7 +52,7 @@ need_key() {
     die "AGENT_URI is set. This onboarding only uses your own AGENT_MNEMONIC secret — remove the AGENT_URI secret."
   fi
   if [[ -z "${AGENT_MNEMONIC:-}" ]]; then
-    die "No AGENT_MNEMONIC secret found. Add it in Replit Secrets (see README-MATTY.md, STEP 4), then open a NEW Shell tab and try again."
+    die "No AGENT_MNEMONIC secret found. Add it in Replit Secrets (see examples/matty-agent/README.md, STEP 4), then open a NEW Shell tab and try again."
   fi
 }
 

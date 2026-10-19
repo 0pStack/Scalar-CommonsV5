@@ -28,7 +28,7 @@
  * `:code` at the finalized head was byte-identical to genesis, and all five
  * previous spec bumps (300 -> 304) were compiled into fresh geneses before this
  * chain started. So this is the first one, and it needs to be repeatable and
- * auditable rather than typed once. See TESTNETAUDIT.md §6 I-20, issue #136.
+ * auditable rather than typed once. See docs/history/TESTNETAUDIT.md §6 I-20, issue #136.
  *
  * SAFETY
  *

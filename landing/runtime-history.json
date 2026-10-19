@@ -13,7 +13,7 @@
         "sha256": "9b67d2f14ce062442f6d6abe158fa2bf95d47b9ac7b45e2901f3e065ae60ed2a",
         "blake2_256": "0xdc0855f41037a8dbc681d4c26e34ff854b8f0509a166ade5fce4b5542025e058"
       },
-      "recordFile": "UPGRADE-305.md"
+      "recordFile": "docs/history/UPGRADE-305.md"
     },
     {
       "specVersion": 306,
@@ -27,7 +27,7 @@
         "sha256": "d57f3cd78cebbf408793cddd081593c45576425eacf5014c38a57b01a4b0a73d",
         "blake2_256": "0xd5a37c1b5ded9369e821c63ae1683ed5a2cecfe76a78b49a529505d2a6880005"
       },
-      "recordFile": "UPGRADE-306.md"
+      "recordFile": "docs/history/UPGRADE-306.md"
     },
     {
       "specVersion": 307,
@@ -56,7 +56,7 @@
         "sha256": "699238c48e7b5fc7af0eda967a29a71cf10fefa1920a40e501e0e9509f7590c2",
         "blake2_256": "0x52a404fd85f4996734fe284cad00de70f6debbf03210cd434669f765df9e6292"
       },
-      "recordFile": "evidence/day5/309-apply.md",
+      "recordFile": "docs/history/evidence/day5/309-apply.md",
       "summarySource": "runtime/src/lib.rs",
       "introduces": [
         "messages",

@@ -66,7 +66,7 @@ export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
     // `$proxy_add_x_forwarded_for`, `X-Forwarded-For: 1.2.3.4` becomes
     // "1.2.3.4, <real ip>" and reading the left-most gave the attacker a fresh
     // rate-limit bucket per forged value. Four forged headers all returned 200
-    // in testing. TESTNETAUDIT.md §6 I-6, issue #123.
+    // in testing. docs/history/TESTNETAUDIT.md §6 I-6, issue #123.
     //
     // The right-most entry is the one OUR proxy appended, so it is the only one
     // a remote caller cannot choose. The faucet vhost additionally overwrites

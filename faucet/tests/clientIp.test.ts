@@ -10,7 +10,7 @@
  * nginx's stock appending variable, `X-Forwarded-For: 1.2.3.4` becomes
  * "1.2.3.4, <real ip>", and the faucet handed the attacker a fresh rate-limit
  * bucket for every forged value. Four forged headers all returned 200 in the
- * audit's testing. TESTNETAUDIT.md §6 I-6, issue #123.
+ * audit's testing. docs/history/TESTNETAUDIT.md §6 I-6, issue #123.
  *
  * The fix reads the RIGHT-most entry — the one our own proxy appended, the only
  * one a remote caller cannot choose. The vhost additionally overwrites the

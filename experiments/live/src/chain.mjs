@@ -5,7 +5,7 @@
  * ledger — the previous generation of this tooling imported no transport at all
  * (`recording-sdk.ts` appended to an in-memory array), which is why ENDGOAL
  * §3.4's launch gate had never actually been executed against a chain.
- * TESTNETAUDIT.md §6 I-7.
+ * docs/history/TESTNETAUDIT.md §6 I-7.
  */
 
 import { createRequire } from 'node:module';

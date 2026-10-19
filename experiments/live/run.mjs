@@ -7,7 +7,7 @@
  * gate had never been executed, and the tooling could not execute it — the
  * archetype runners imported no transport at all, `scripts/run-eras.sh` and
  * `extract-export.sh` were `exit 1` stubs, and zombienet.toml named a binary
- * that does not exist. TESTNETAUDIT.md §6 I-7, issue #124.
+ * that does not exist. docs/history/TESTNETAUDIT.md §6 I-7, issue #124.
  *
  * This runner has no fixtures and no recorded ledger. Every archetype funds
  * fresh accounts from //Alice, submits real extrinsics, waits for real era

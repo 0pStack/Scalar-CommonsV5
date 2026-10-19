@@ -12,7 +12,7 @@
  * exactly what occurred: the Emissions storage prefix held one key (its own
  * storage version), `LastSettledEra` was null, and `agents::EraNumber` was 0
  * after ~512 000 blocks — about 142 elapsed six-hour eras. No CMN has ever been
- * emitted by the mechanism the project is about. TESTNETAUDIT.md §6 I-8,
+ * emitted by the mechanism the project is about. docs/history/TESTNETAUDIT.md §6 I-8,
  * issue #125.
  *
  * This keeper closes that gap without weakening the design: it is an ordinary

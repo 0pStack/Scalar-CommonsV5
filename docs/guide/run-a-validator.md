@@ -433,7 +433,7 @@ lost its keystore, or has keys that do not match `session.nextKeys(stash)`.
 **Runtime upgrades are forkless and need nothing from you.** The runtime is WASM stored on
 chain; a `set_code` upgrade switches every node at the same block, without a restart. Spec 306
 was applied that way at block #543 472 with all five validators running and none restarted
-(`UPGRADE-306.md`). **Node (client) upgrades** — a new `scalar-node` binary — are only needed
+(`docs/history/UPGRADE-306.md`). **Node (client) upgrades** — a new `scalar-node` binary — are only needed
 when a release says so; they are published as GitHub Releases with a checksum. Swap the binary,
 `sha256sum -c`, restart.
 

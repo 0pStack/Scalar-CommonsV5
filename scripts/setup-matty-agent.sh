@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/setup-matty-agent.sh — one-time setup (beginner guide: README-MATTY.md).
+# scripts/setup-matty-agent.sh — one-time setup (beginner guide: examples/matty-agent/README.md).
 #
 # Installs and builds the SDK and the reference agent in agent/ (the documented
 # native build: npm ci, npm run setup:sdk, npm run build), runs the agent's
@@ -37,7 +37,7 @@ printf '\n  ✓ setup finished\n'
 
 if [[ -z "${AGENT_MNEMONIC:-}" ]]; then
   node "$AGENT/dist/onboard.js" new-key
-  printf '  Next: add the two secrets above (README-MATTY.md, STEP 4), open a NEW Shell tab, then run:\n\n    scripts/run-matty-agent.sh start\n\n'
+  printf '  Next: add the two secrets above (examples/matty-agent/README.md, STEP 4), open a NEW Shell tab, then run:\n\n    scripts/run-matty-agent.sh start\n\n'
 else
   printf '\n  Your AGENT_MNEMONIC secret is set. Health check (read-only):\n\n'
   bash "$ROOT/scripts/run-matty-agent.sh" check

@@ -6,7 +6,7 @@
 #
 # Turns off password authentication, keyboard-interactive authentication and
 # root login on this host. See sshd.conf for why, and
-# TESTNETAUDIT.md §6 I-24 / issue #138 for how it was found.
+# docs/history/TESTNETAUDIT.md §6 I-24 / issue #138 for how it was found.
 #
 # THE FAILURE MODE THIS SCRIPT EXISTS TO PREVENT
 #

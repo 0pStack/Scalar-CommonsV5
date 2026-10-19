@@ -44,7 +44,7 @@ is a *safe* RPC method, so `--rpc-methods safe` does not withhold it: once
 devnet was rotated off Alice on 2026-09-09; a new or reset one is not until you
 do it. Never use this spec for a chain that holds value — that is
 `mainnet_genesis_config`, which takes the operator multisig as root.
-TESTNETAUDIT.md §6 I-1, issue #119.
+docs/history/TESTNETAUDIT.md §6 I-1, issue #119.
 
 ```bash
 # reads Sudo::Key from the running chain; no dependencies beyond curl
@@ -68,7 +68,7 @@ faucet now refuses to boot without it and refuses `//Name` dev seeds unless
 Substrate dev seed whose account held ~1e9 CMN, so once RPC is reachable anyone
 can empty it with a plain `balances.transfer` — and then every rate limit and the 1 000 CMN reserve
 protect nothing, because the attacker never touches the faucet at all.
-TESTNETAUDIT.md §6 I-6, issue #123.
+docs/history/TESTNETAUDIT.md §6 I-6, issue #123.
 
 ```bash
 # generate a key; print the phrase ONCE and put it in the 0600 env file

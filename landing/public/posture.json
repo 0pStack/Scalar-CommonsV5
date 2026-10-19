@@ -5,7 +5,7 @@
     "findingsExamined": {
       "value": 382,
       "asOf": "2026-09-08",
-      "source": "TESTNETAUDIT.md §2 — 382 findings from 17 auditors over the runtime, the products and the host; every CRITICAL and HIGH (73) adversarially verified, 34 severities corrected.",
+      "source": "docs/history/TESTNETAUDIT.md §2 — 382 findings from 17 auditors over the runtime, the products and the host; every CRITICAL and HIGH (73) adversarially verified, 34 severities corrected.",
       "todo": "recorded"
     },
     "fixedIn307": {
@@ -23,7 +23,7 @@
     "lastRehearsal": {
       "value": "Runtime 309 rehearsed 2026-10-05, by the operators",
       "asOf": "2026-10-05",
-      "source": "evidence/day5/309-apply.md, section: the blob on prod is byte-identical to the one that was rehearsed \u2014 runtime 309 was applied to a chopsticks fork of live 307 state and run on the released validator binary before the prod apply, with control runs on an unupgraded fork to establish which behaviour the upgrade caused. Run by the operators (this lab), NOT by an outside party: no independent rehearsal has taken place. The earlier team rehearsals are in UPGRADE-305.md and UPGRADE-306.md.",
+      "source": "docs/history/evidence/day5/309-apply.md, section: the blob on prod is byte-identical to the one that was rehearsed \u2014 runtime 309 was applied to a chopsticks fork of live 307 state and run on the released validator binary before the prod apply, with control runs on an unupgraded fork to establish which behaviour the upgrade caused. Run by the operators (this lab), NOT by an outside party: no independent rehearsal has taken place. The earlier team rehearsals are in docs/history/UPGRADE-305.md and docs/history/UPGRADE-306.md.",
       "todo": "recorded. TODO(owner): an INDEPENDENT rehearsal, by someone outside the core team, is still outstanding \u2014 this entry deliberately does not claim one."
     }
   }

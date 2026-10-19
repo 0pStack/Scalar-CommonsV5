@@ -136,7 +136,7 @@ test('the two records on the page are labelled as records, and the posture recor
   }
   // The two numbers recorded today, each in the document it cites.
   assert.equal(posture.fields.findingsExamined.value, 382);
-  assert.match(readRepoFile('TESTNETAUDIT.md'), /\*\*382 findings\*\* from 17 auditors/);
+  assert.match(readRepoFile('docs/history/TESTNETAUDIT.md'), /\*\*382 findings\*\* from 17 auditors/);
   assert.equal(posture.fields.fixedIn307.value, 4);
   const escrow = readRepoFile('pallets/escrow/src/lib.rs');
   for (const name of ['MaxAgreementSpan', 'SpanTooLong']) assert.ok(escrow.includes(name), `pallets/escrow lacks ${name}, which the 307 record cites`);

@@ -11,7 +11,7 @@
  * not withhold it. The moment `wss://rpc.<domain>` is reachable, any stranger
  * can call `sudo.sudo(system.set_code)`, `balances.force_transfer`,
  * `system.kill_storage` or `sudo.set_key`. TLS, nginx rate limits and ufw do
- * not mitigate it. See TESTNETAUDIT.md §6 I-1 and issue #119.
+ * not mitigate it. See docs/history/TESTNETAUDIT.md §6 I-1 and issue #119.
  *
  * This script performs ONE call: `sudo.setKey(newAddress)`, signed by //Alice.
  * It is a rotation, not a removal — decision D1. Root still exists afterwards;

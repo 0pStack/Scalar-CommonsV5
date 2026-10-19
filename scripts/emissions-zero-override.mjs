@@ -55,7 +55,7 @@
  * dispatches `paysFee: No`, but that is post-dispatch. ChargeTransactionPayment
  * runs inside validate_transaction and still requires the signer to cover the
  * estimated fee, so an unfunded root key cannot get the extrinsic into the pool
- * at all (UPGRADE-305.md, first attempt).
+ * at all (docs/history/UPGRADE-305.md, first attempt).
  */
 
 import { createRequire } from 'node:module';

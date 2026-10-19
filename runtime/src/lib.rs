@@ -913,7 +913,7 @@ impl pallet_staking::Config for Runtime {
     // CMN at genesis to 6 053 831 090.07 CMN — +43 581 090 CMN, 100% of it from
     // staking — while pallet-emissions minted exactly zero. Passive stake earned
     // 43.6M CMN in 35 days on a chain whose thesis is that stake alone earns
-    // nothing. See TESTNETAUDIT.md §6 I-2 and issue #120.
+    // nothing. See docs/history/TESTNETAUDIT.md §6 I-2 and issue #120.
     //
     // `()` implements EraPayout returning (Zero, Zero): no validator payout, no
     // remainder to the treasury. pallet-emissions becomes the only mint path,
@@ -1843,7 +1843,7 @@ impl pallet_authorship::Config for Runtime {
 // ─── Runtime tests ────────────────────────────────────────────────────────────
 //
 // The runtime crate had no tests at all before this — no `[dev-dependencies]`,
-// no `#[cfg(test)]` module — which is part of TESTNETAUDIT.md §6 I-22. That
+// no `#[cfg(test)]` module — which is part of docs/history/TESTNETAUDIT.md §6 I-22. That
 // mattered here specifically: `type EraPayout` is a Config type, so a
 // regression that restored inflation would be a one-line edit with nothing
 // asserting against it, on the exact code path that minted 43.58M CMN outside

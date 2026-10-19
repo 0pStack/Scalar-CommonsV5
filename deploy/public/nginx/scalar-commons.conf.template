@@ -172,7 +172,7 @@ server {
         # real peer to whatever the caller sent, leaving the caller in control
         # of every entry but the last. Applied to every vhost, not just the
         # faucet: nothing here sits behind another trusted proxy, so an
-        # inherited XFF is always forged. TESTNETAUDIT.md §6 I-6, issue #123.
+        # inherited XFF is always forged. docs/history/TESTNETAUDIT.md §6 I-6, issue #123.
         proxy_set_header X-Forwarded-For   $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
 
@@ -278,7 +278,7 @@ server {
         # OVERWRITE, never append ($proxy_add_x_forwarded_for). The faucet
         # reads this header to enforce its per-IP drip limit; the appending
         # variable would let a caller prepend a fake chain and rotate through
-        # invented IPs. TESTNETAUDIT.md §6 I-6, issue #123.
+        # invented IPs. docs/history/TESTNETAUDIT.md §6 I-6, issue #123.
         proxy_set_header X-Forwarded-For   $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_connect_timeout 10s;

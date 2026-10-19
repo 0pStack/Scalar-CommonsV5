@@ -708,7 +708,7 @@ can still call it. That property is the design, not a workaround.
 
 The cost of permissionless settlement is that if nobody calls it, it never happens — and for
 a long stretch nobody did, which is why the keeper exists at all
-(`TESTNETAUDIT.md` §6 I-8).
+(`docs/history/TESTNETAUDIT.md` §6 I-8).
 
 ### What `settle_era` pays, and to whom
 
@@ -859,7 +859,7 @@ two numbers is a documentation discrepancy, not a mint.
 
 The bulk of issuance growth to date was **not** emissions: spec 305 removed staking
 inflation after `TotalIssuance` grew by 43.58 M CMN from `pallet-staking` while
-`pallet-emissions` minted exactly zero (`TESTNETAUDIT.md` §6 I-2). Emissions are now the
+`pallet-emissions` minted exactly zero (`docs/history/TESTNETAUDIT.md` §6 I-2). Emissions are now the
 only mint path.
 :::
 
@@ -1168,7 +1168,7 @@ say-so.
 
 | Document | What it is |
 |---|---|
-| [`TESTNETAUDIT.md`](https://github.com/tejaspatil1936/scalar-commons-v4/blob/master/TESTNETAUDIT.md) | The standing testnet audit — numbered findings (`I-1`, `I-2`, …) with the issues they became |
+| [`docs/history/TESTNETAUDIT.md`](https://github.com/tejaspatil1936/scalar-commons-v4/blob/master/TESTNETAUDIT.md) | The standing testnet audit — numbered findings (`I-1`, `I-2`, …) with the issues they became |
 | [`AUDIT.md`](https://github.com/tejaspatil1936/scalar-commons-v4/blob/master/AUDIT.md) | The full codebase audit |
 | [`PUBLIC-LAUNCH.md`](https://github.com/tejaspatil1936/scalar-commons-v4/blob/master/PUBLIC-LAUNCH.md) | The launch record: what was verified at go-live, with the commands and outputs |
 

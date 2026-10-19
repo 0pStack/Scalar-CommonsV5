@@ -100,7 +100,7 @@ The cap is an absolute invariant, not a target. Three things enforce it:
    that validator's `ErasRewardPoints` share, and mints nothing for a stash with
    `RewardDestination::None`.
 
-   See TESTNETAUDIT.md §6 I-2 and issue #120, which stays open until this residue is
+   See docs/history/TESTNETAUDIT.md §6 I-2 and issue #120, which stays open until this residue is
    resolved. The genesis-mint and headroom figures in the table above are **separately
    wrong** and tracked as issue #121 (I-3) — they describe the unreachable
    `mainnet_genesis_config` allocation, not this chain.

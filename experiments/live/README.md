@@ -9,7 +9,7 @@ network, and states the consequence plainly:
 archetype runners imported no transport at all — `recording-sdk.ts` appended to
 an in-memory array — `scripts/run-eras.sh` and `extract-export.sh` were `exit 1`
 stubs, `zombienet.toml` named a binary that does not exist, and `ci/sc-e1.yml`
-was never in `.github/workflows/`. TESTNETAUDIT.md §6 I-7, issue #124. That
+was never in `.github/workflows/`. docs/history/TESTNETAUDIT.md §6 I-7, issue #124. That
 previous harness is archived at `docs/history/sc-e1/`.
 
 This directory replaces that with something that actually touches the chain.
