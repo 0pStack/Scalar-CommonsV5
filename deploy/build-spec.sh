@@ -24,3 +24,6 @@ mv "${OUT}.tmp" "${OUT}"
 echo "==> wrote ${OUT}"
 echo "==> genesis / spec identity:"
 grep -oE '"(id|name|protocolId)": *"[^"]*"' "${OUT}" | head -5
+echo "==> WARNING: this genesis roots Sudo at //Alice, a published seed. A chain started"
+echo "    from it is publicly controllable once RPC is reachable: rotate with"
+echo "    scripts/sudo-set-key.mjs first (deploy/public/INSTALL.md §0, #119)."

@@ -608,9 +608,15 @@ value:
 - **Node keys are `0x00…01` through `0x00…05`.** Real ones come from
   `scalar-node key generate-node-key --file <path>`, are 0600, and are backed up
   — losing one changes a bootnode's peer id.
-- **`sudo` is a single Alice key** (`chain_spec.rs`: "replaced by multisig in
-  staging/mainnet"). Mainnet needs the multisig, and the documented day-14
-  referendum handoff that removes sudo entirely.
+- **Genesis `sudo` is the published `//Alice` key.** `scalar-local-raw.json` is
+  a dev-only genesis: every chain freshly started or reset from it has a
+  publicly controllable root until `scripts/sudo-set-key.mjs` rotates it (the
+  live devnet was rotated 2026-09-09, #119). Run the check in
+  `public/INSTALL.md` §0 before any RPC is reachable. The `staging` preset is no
+  better: its sudo and validators derive from published `//SudoKey` and
+  `//ValidatorN` seeds, not a multisig. Mainnet needs `mainnet_genesis_config`
+  with the operator multisig as root, and the documented day-14 referendum
+  handoff that removes sudo entirely.
 - **One host — and this is the big one after ROUND15.** Five validators sharing
   a box, a kernel, a disk, a NIC, a power supply and one `systemd --user`
   manager is **one fault domain, not five.** ROUND15 proved the chain survives

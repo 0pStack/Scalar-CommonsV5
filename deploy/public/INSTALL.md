@@ -33,13 +33,40 @@ grep -n 'rpc-methods' deploy/systemd/scalar-*.service
 # every validator must show:  --rpc-methods safe
 ```
 
+### Root must not be held by //Alice
+
+**`deploy/scalar-local-raw.json` is a dev-only genesis.** It puts `Sudo::Key` on
+`//Alice`, a published seed, so every chain freshly started from it — by
+`deploy/install.sh`, `reset-chain.sh` or `build-spec.sh` — has a publicly
+controllable root. `Sudo` is exempt from SafeMode and `author_submitExtrinsic`
+is a *safe* RPC method, so `--rpc-methods safe` does not withhold it: once
+`rpc.<DOMAIN>` is reachable, anyone can `sudo.sudo(system.set_code)`. The live
+devnet was rotated off Alice on 2026-09-09; a new or reset one is not until you
+do it. Never use this spec for a chain that holds value — that is
+`mainnet_genesis_config`, which takes the operator multisig as root.
+TESTNETAUDIT.md §6 I-1, issue #119.
+
+```bash
+# reads Sudo::Key from the running chain; no dependencies beyond curl
+curl -s -H 'Content-Type: application/json' \
+  -d '{"id":1,"jsonrpc":"2.0","method":"state_getStorage","params":["0x5c0d1176a568c1f92944340dbfed9e9c530ebca703c85910e7164cb7d1c9e47b"]}' \
+  http://127.0.0.1:9944 \
+  | grep -q d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d \
+  && echo 'STOP: root is //Alice — run scripts/sudo-set-key.mjs before exposing RPC'
+
+# rotate: dry-run first, then for real; the new phrase goes in
+# ~/.config/scalar-commons/sudo.key (0600) and nowhere else
+node scripts/sudo-set-key.mjs <new-ss58-address> --dry-run
+node scripts/sudo-set-key.mjs <new-ss58-address>
+```
+
 ### The faucet must not be signing with a dev seed
 
 **`FAUCET_SEED` is required before exposure and there is no safe default.** The
 faucet now refuses to boot without it and refuses `//Name` dev seeds unless
 `FAUCET_ALLOW_DEV_SEED=true`. It used to fall back to `//Ferdie`, a published
-Substrate dev seed whose account held ~1e9 CMN, so once RPC is reachable anyone can empty it with a plain
-`balances.transfer` — and then every rate limit and the 1 000 CMN reserve
+Substrate dev seed whose account held ~1e9 CMN, so once RPC is reachable anyone
+can empty it with a plain `balances.transfer` — and then every rate limit and the 1 000 CMN reserve
 protect nothing, because the attacker never touches the faucet at all.
 TESTNETAUDIT.md §6 I-6, issue #123.
 
