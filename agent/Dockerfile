@@ -21,8 +21,7 @@ COPY explorer/package.json explorer/
 COPY agent/package.json agent/
 COPY landing/package.json landing/
 COPY docs/package.json docs/
-COPY testkit/package.json testkit/
-COPY experiments/live/package.json experiments/live/
+COPY e2e/package.json e2e/
 # sdk and agent plus the root devDependencies (typescript, @types/node).
 RUN npm ci -w sdk -w agent --include-workspace-root
 # Both packages' tsconfig.json extend the shared root base.

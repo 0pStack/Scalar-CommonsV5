@@ -1,5 +1,5 @@
 // Agents pallet lifecycle, asserted on emitted events and read-back storage (never on the
-// submission result alone). Runs against any node: SCALAR_WS=ws://host:port npm test.
+// submission result alone). Runs against any node: SCALAR_WS=ws://host:port npm run test:live:lifecycle -w e2e.
 // Skips (and says so) when no node answers, so a missing node is visible, not a false pass.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ApiPromise } from '@polkadot/api';

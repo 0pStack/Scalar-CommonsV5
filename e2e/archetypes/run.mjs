@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * experiments/live/run.mjs — execute attacker archetypes against a live chain.
+ * e2e/archetypes/run.mjs — execute attacker archetypes against a live chain.
  *
  * ENDGOAL §3.4 requires each archetype to be run against a live network and
  * says plainly: "If wash trading still pays, the project does not launch." That

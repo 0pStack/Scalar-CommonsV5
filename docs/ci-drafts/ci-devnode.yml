@@ -1,9 +1,9 @@
 # ci-devnode — DRAFT. Not enabled: this file lives under docs/ci-drafts/, not .github/workflows/.
 #
-# WHY: unit tests run against mock runtimes. The testkit lifecycles (register ->
-# escrow -> settle_era ...) only mean something against the real runtime, so this
-# builds scalar-node, starts `--dev --tmp`, and points the testkit at it via
-# SCALAR_WS. It is meant to be an informational check, not a required one.
+# WHY: unit tests run against mock runtimes. The e2e/lifecycle pallet lifecycles
+# (register -> escrow -> settle_era ...) only mean something against the real
+# runtime, so this builds scalar-node, starts `--dev --tmp`, and points them at
+# it via SCALAR_WS. It is meant to be an informational check, not a required one.
 name: ci-devnode
 
 on:
@@ -58,9 +58,9 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
 
-      # testkit/ is a member of the root npm workspace (one package-lock.json).
-      - name: Install testkit dependencies
-        run: npm ci -w testkit
+      # e2e/ is a member of the root npm workspace (one package-lock.json).
+      - name: Install e2e dependencies
+        run: npm ci -w e2e
 
       - name: Start dev node
         run: |
@@ -80,8 +80,8 @@ jobs:
           done
           echo "node never answered"; tail -50 node.log; exit 1
 
-      - name: Run testkit against the dev node
-        run: npm test --prefix testkit
+      - name: Run the pallet lifecycles against the dev node
+        run: npm run test:live:lifecycle -w e2e
 
       - name: Dump node log on failure
         if: failure()

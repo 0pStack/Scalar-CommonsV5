@@ -8,12 +8,12 @@ import { cryptoWaitReady, decodeAddress, encodeAddress } from '@polkadot/util-cr
 import type { KeyringPair } from '@polkadot/keyring/types';
 import type { SubmittableExtrinsic } from '@polkadot/api/types';
 
-import { connectChain } from '../src/chain.ts';
-import { IndexerStore } from '../src/store.ts';
-import { ChainIndexer } from '../src/indexer.ts';
-import { createApiServer, ROUTES } from '../src/api.ts';
-import { fetchAgents, fetchEscrows } from '../src/chainState.ts';
-import { loadConfig } from '../src/config.ts';
+import { connectChain } from '../../indexer/src/chain.ts';
+import { IndexerStore } from '../../indexer/src/store.ts';
+import { ChainIndexer } from '../../indexer/src/indexer.ts';
+import { createApiServer, ROUTES } from '../../indexer/src/api.ts';
+import { fetchAgents, fetchEscrows } from '../../indexer/src/chainState.ts';
+import { loadConfig } from '../../indexer/src/config.ts';
 
 /**
  * End-to-end against the live devnet node.

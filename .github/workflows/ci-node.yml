@@ -20,8 +20,9 @@
 #
 # NOTHING HERE REQUIRES A LIVE CHAIN. Every command below runs against committed
 # fixtures or mocks. The suites that genuinely need the devnet are NOT deleted
-# and NOT skipped — they are simply not selected by the CI invocation, and each
-# omission is named in docs/history/CI-NODE.md with its reason. See the per-job comments.
+# and NOT skipped — they live in e2e/ (pallet lifecycles, the faucet, indexer
+# and explorer live suites, the attacker-archetype runner), which this workflow
+# typechecks but never runs. How to run them is in e2e/README.md.
 name: ci-node
 
 on:
@@ -66,6 +67,7 @@ jobs:
       agent: ${{ steps.filter.outputs.agent }}
       indexer: ${{ steps.filter.outputs.indexer }}
       explorer: ${{ steps.filter.outputs.explorer }}
+      e2e: ${{ steps.filter.outputs.e2e }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -105,7 +107,7 @@ jobs:
           # tsconfig.base.json, so a change there can break any package without
           # touching a file under it.
           if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^(\.github/workflows/ci-node\.yml|package\.json|package-lock\.json|\.nvmrc|tsconfig\.base\.json)$'; then
-            for p in landing faucet docs sdk agent indexer explorer; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
+            for p in landing faucet docs sdk agent indexer explorer e2e; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
             echo "→ all subprojects selected"
             exit 0
           fi
@@ -140,6 +142,14 @@ jobs:
             echo "agent=true" >> "$GITHUB_OUTPUT"
           else
             echo "agent=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # e2e/ typechecks the faucet, indexer and explorer sources its live
+          # suites import (by relative path), so a change there can break it.
+          if selected '^e2e/' || selected '^(faucet|indexer|explorer)/src/'; then
+            echo "e2e=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "e2e=false" >> "$GITHUB_OUTPUT"
           fi
 
           echo "── selection ──"; cat "$GITHUB_OUTPUT"
@@ -179,21 +189,14 @@ jobs:
         run: echo "landing/ unchanged — nothing to check."
 
   # ── faucet ─────────────────────────────────────────────────────────────────
-  # Gate: npm ci && npm run typecheck && npm test <offline files>
+  # Gate: npm ci && npm run typecheck && npm test. Every file in faucet/tests is
+  # offline.
   #
-  # EXCLUDED FROM CI: tests/faucet.live.test.ts (25 tests). It drips real CMN
-  # from a genesis-endowed account and asserts the balance moved on chain; its
-  # own header states it is deliberately NOT skippable, because "an unreachable
-  # node is a blocking finding". That is the right call for a devnet gate and
-  # the wrong one for a hosted runner with no chain, so CI runs every test file
-  # except tests/*.live.test.ts. Excluding by glob rather than listing the
-  # offline files means a new offline test is picked up without editing this.
-  #
-  # The file is NOT deleted, NOT skipped, and NOT modified. `npm test` with no
-  # arguments still runs every file, live included, and that is still the gate a
-  # human or the factory runs against the devnet. Measured 2026-08-19 against
-  # the live 5-validator devnet: 55/55 pass. The live tests are excluded for
-  # environment, not for health.
+  # The live suite (25 tests: real drips from a genesis-endowed account, balance
+  # asserted on chain, deliberately NOT skippable because "an unreachable node is
+  # a blocking finding") moved to e2e/faucet/ and runs with
+  # `npm run test:live:faucet -w e2e` against a devnet. Measured 2026-08-19
+  # against the live 5-validator devnet, before the move: 55/55 pass.
   faucet:
     name: faucet
     needs: changes
@@ -214,20 +217,21 @@ jobs:
       - name: npm run typecheck
         if: needs.changes.outputs.faucet == 'true'
         run: npm run typecheck -w faucet
-      - name: npm test (offline suites only — see header)
+      - name: npm test
         if: needs.changes.outputs.faucet == 'true'
-        run: npm test -w faucet -- --exclude 'tests/*.live.test.ts'
+        run: npm test -w faucet
       - name: Not selected
         if: needs.changes.outputs.faucet != 'true'
         run: echo "faucet/ unchanged — nothing to check."
 
   # ── indexer ────────────────────────────────────────────────────────────────
-  # Gate: npm ci && npm run typecheck && npm test, minus tests/live.test.ts.
+  # Gate: npm ci && npm run typecheck && npm test. Every file in indexer/tests
+  # is offline (in-memory SQLite, constructed inputs).
   #
-  # EXCLUDED FROM CI: tests/live.test.ts. It submits real extrinsics, indexes
-  # the finalized blocks they land in and cross-checks all 25 v1 endpoints
-  # against direct RPC reads; it fails (does not skip) when no node answers.
-  # Every other file is offline (in-memory SQLite, constructed inputs).
+  # The live suite (real extrinsics, indexed from finalized blocks and
+  # cross-checked against direct RPC reads on all 25 v1 endpoints; it fails, not
+  # skips, when no node answers) moved to e2e/indexer/:
+  # `npm run test:live:indexer -w e2e`.
   # node 22 is required: the store uses node:sqlite (package.json engines).
   indexer:
     name: indexer
@@ -249,20 +253,20 @@ jobs:
       - name: npm run typecheck
         if: needs.changes.outputs.indexer == 'true'
         run: npm run typecheck -w indexer
-      - name: npm test (offline suites only — see header)
+      - name: npm test
         if: needs.changes.outputs.indexer == 'true'
-        run: npm test -w indexer -- --exclude 'tests/live.test.ts'
+        run: npm test -w indexer
       - name: Not selected
         if: needs.changes.outputs.indexer != 'true'
         run: echo "indexer/ unchanged — nothing to check."
 
   # ── explorer ───────────────────────────────────────────────────────────────
-  # Gate: npm ci && npm run typecheck && npm test, minus tests/*.live.test.ts.
-  # typecheck also covers the test files (tsconfig.test.json).
+  # Gate: npm ci && npm run typecheck && npm test. typecheck also covers the
+  # test files (tsconfig.test.json). Every file in explorer/tests is offline.
   #
-  # EXCLUDED FROM CI: tests/explorer.live.test.ts. It renders pages from a live
-  # devnet RPC and signs one real transfer; it fails (does not skip) when the
-  # node is unreachable. The remaining files are offline unit tests.
+  # The live suite (pages rendered from a devnet RPC and one real transfer
+  # signed; it fails, not skips, when the node is unreachable) moved to
+  # e2e/explorer/: `npm run test:live:explorer -w e2e`.
   explorer:
     name: explorer
     needs: changes
@@ -283,9 +287,9 @@ jobs:
       - name: npm run typecheck
         if: needs.changes.outputs.explorer == 'true'
         run: npm run typecheck -w explorer
-      - name: npm test (offline suites only — see header)
+      - name: npm test
         if: needs.changes.outputs.explorer == 'true'
-        run: npm test -w explorer -- --exclude 'tests/*.live.test.ts'
+        run: npm test -w explorer
       - name: Not selected
         if: needs.changes.outputs.explorer != 'true'
         run: echo "explorer/ unchanged — nothing to check."
@@ -414,3 +418,32 @@ jobs:
       - name: Not selected
         if: needs.changes.outputs.agent != 'true'
         run: echo "agent/ and sdk/ unchanged — nothing to check."
+
+  # ── e2e ───────────────────────────────────────────────────────────────────
+  # Gate: npm ci && npm run typecheck -w e2e. Typecheck ONLY: every suite in
+  # e2e/ needs a live chain, so none of them runs here. The typecheck keeps the
+  # live suites compiling against the faucet, indexer and explorer sources they
+  # import, so a refactor there cannot silently break them between devnet runs.
+  e2e:
+    name: e2e
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.e2e == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.e2e == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: npm ci
+        if: needs.changes.outputs.e2e == 'true'
+        run: npm ci
+      - name: npm run typecheck
+        if: needs.changes.outputs.e2e == 'true'
+        run: npm run typecheck -w e2e
+      - name: Not selected
+        if: needs.changes.outputs.e2e != 'true'
+        run: echo "e2e/ and the app sources it imports unchanged — nothing to check."

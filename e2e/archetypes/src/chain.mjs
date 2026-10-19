@@ -14,7 +14,7 @@ import { dirname, resolve as pathResolve } from 'node:path';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 function load(pkg) {
-  const req = createRequire(pathResolve(HERE, '../package.json'));
+  const req = createRequire(pathResolve(HERE, '../../package.json'));
   return import(pathToFileURL(req.resolve(pkg)).href);
 }
 const { ApiPromise, WsProvider } = await load('@polkadot/api');

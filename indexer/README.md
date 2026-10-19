@@ -146,8 +146,9 @@ npm ci && npm test
 Seven suites are chain-free (the agent-activity classifier and feed query, paging rules, identifier and account extraction,
 value translation, the SQLite store, path routing and era-event shaping, and the
 one decode guard no live chain can trigger — an `AgreementStatus` variant this
-build does not know). One — `tests/live.test.ts` — is end-to-end against the node
-at `INDEXER_RPC_URL`:
+build does not know). The end-to-end suite lives in
+[`e2e/indexer/live.test.ts`](../e2e/indexer/live.test.ts) and runs against the node at
+`INDEXER_RPC_URL` (`npm run test:live:indexer -w e2e` from the repository root):
 
 1. submits real extrinsics (`agents.heartbeat`, `balances.transferKeepAlive`,
    `escrow.createAgreement`) from devnet dev accounts;

@@ -1,7 +1,7 @@
 /**
  * pallet-emissions lifecycle checks against a live node (#183).
  *
- *   SCALAR_WS=ws://127.0.0.1:9955 npm test
+ *   SCALAR_WS=ws://127.0.0.1:9955 npm run test:live:lifecycle -w e2e
  *
  * These run on a real-constants chain (EraDuration = 3600 blocks), so a full settle cannot
  * be reached in a test run; what CAN be asserted here is that the guards hold on the real

@@ -19,7 +19,7 @@ import type { ActivityView, ChainInfo } from '../src/types.js';
  * cannot compute from a node per request. What is under test here is the
  * explorer's half: the route, the shaping of what the indexer answered (loudly
  * refusing anything it does not recognise), and the page. The indexer's half is
- * covered against a live node in `indexer/tests/live.test.ts`.
+ * covered against a live node in `e2e/indexer/live.test.ts`.
  */
 
 const ALICE = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';

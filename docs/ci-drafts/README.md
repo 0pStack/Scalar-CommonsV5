@@ -6,8 +6,8 @@ changing CI. Nothing in this directory is required by branch protection.
 
 | Draft | What it does |
 |---|---|
-| `ci-devnode.yml` | Builds `scalar-node` (pinned toolchain, rust-cache), starts `--dev --tmp`, waits for RPC, runs `npm test --prefix testkit` with `SCALAR_WS=ws://127.0.0.1:9944`. Uploads the node log. |
-| `test-guard.yml` | Fails a PR if the `#[test]` count falls or the `#[ignore]` count rises in `pallets/**` or `testkit/**` (TS `it(`/`test(` and `.skip(`/`.todo(` are counted in `testkit/**/*.ts`), unless the PR carries the label `tests-intentionally-changed`. |
+| `ci-devnode.yml` | Builds `scalar-node` (pinned toolchain, rust-cache), starts `--dev --tmp`, waits for RPC, runs `npm run test:live:lifecycle -w e2e` with `SCALAR_WS=ws://127.0.0.1:9944`. Uploads the node log. |
+| `test-guard.yml` | Fails a PR if the `#[test]` count falls or the `#[ignore]` count rises in `pallets/**` or `e2e/lifecycle/**` (TS `it(`/`test(` and `.skip(`/`.todo(` are counted in `e2e/lifecycle/**/*.ts`), unless the PR carries the label `tests-intentionally-changed`. |
 
 ## Enabling
 
@@ -21,16 +21,15 @@ changing CI. Nothing in this directory is required by branch protection.
 
 ## Known caveats
 
-- **`testkit/` is not on master yet.** `ci-devnode` fails at `npm ci` until the
-  testkit is merged (its `package.json`, an entry in the root workspace's
-  `package-lock.json` and an `npm test` script). `test-guard` works now, counting only `pallets/**` until then.
+- The lifecycles live in `e2e/lifecycle/` (formerly `testkit/`), part of the `e2e`
+  workspace; see `e2e/README.md`.
 - Counting is textual: a `#[test]` inside a comment or a renamed/moved test is
   miscounted. Moving tests between files under the covered paths is neutral;
   moving them out is a drop and needs the label.
 - Adding a test and removing another in the same PR nets zero and passes. The
   guard is a tripwire, not a proof.
 - The dev node's timing constants (e.g. era duration) come from the `--dev`
-  chain spec; testkit lifecycles that assume other values need `dev-fast` or
+  chain spec; lifecycles that assume other values need `dev-fast` or
   a different `--chain`.
 - The `ci-devnode` job uses the default `--rpc-port 9944`; adjust `SCALAR_WS`
   together with it.

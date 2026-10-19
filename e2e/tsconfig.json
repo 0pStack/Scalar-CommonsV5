@@ -1,0 +1,17 @@
+{
+  // Typechecks the app live suites together with the app sources they import
+  // (faucet/, indexer/ and explorer/ src, by relative path). indexer/src uses
+  // `.ts` import specifiers, hence allowImportingTsExtensions. The pallet
+  // lifecycles have their own config in lifecycle/; the archetype runner is
+  // plain JavaScript.
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2023"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": ["faucet/**/*.ts", "indexer/**/*.ts", "explorer/**/*.ts", "vitest.config.ts"]
+}

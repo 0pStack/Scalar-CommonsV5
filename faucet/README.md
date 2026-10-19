@@ -87,8 +87,10 @@ overwrites that header.
 npm test
 ```
 
-`tests/rateLimiter.test.ts` and `tests/amount.test.ts` are pure unit tests with
-an injected clock. `tests/faucet.live.test.ts` runs against the **live devnet RPC**
+Every file in `tests/` is offline: `tests/rateLimiter.test.ts` and
+`tests/amount.test.ts` are pure unit tests with an injected clock. The live suite,
+[`e2e/faucet/faucet.live.test.ts`](../e2e/faucet/faucet.live.test.ts), runs against
+the **live devnet RPC** (`npm run test:live:faucet -w e2e` from the repository root)
 and is intentionally not mocked and not skippable — it asserts real balance
 changes, real rate-limit rejections that move no funds, and type shapes read from
 real runtime metadata. **If the node is not reachable the suite fails rather than

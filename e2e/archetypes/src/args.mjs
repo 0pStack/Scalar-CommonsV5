@@ -37,7 +37,7 @@ export function parseArgs(argv) {
 }
 
 export const USAGE = `
-experiments/live — run the ENDGOAL §3.4 attacker archetypes against a live chain
+e2e/archetypes — run the ENDGOAL §3.4 attacker archetypes against a live chain
 
   node run.mjs [--archetype <name|all>] [--eras N] [--rounds N]
                [--endpoint ws://...] [--wait-minutes N] [--json out.json]

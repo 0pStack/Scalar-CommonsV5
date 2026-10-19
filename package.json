@@ -11,8 +11,7 @@
     "agent",
     "landing",
     "docs",
-    "testkit",
-    "experiments/live"
+    "e2e"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

@@ -5,11 +5,11 @@ import type { Server } from 'node:http';
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
 
-import { connectChain, type ChainClient } from '../src/chain.js';
-import { FaucetService } from '../src/faucet.js';
-import { SlidingWindowRateLimiter } from '../src/rateLimiter.js';
-import { createFaucetServer } from '../src/server.js';
-import { PLANCKS_PER_CMN } from '../src/amount.js';
+import { connectChain, type ChainClient } from '../../faucet/src/chain.js';
+import { FaucetService } from '../../faucet/src/faucet.js';
+import { SlidingWindowRateLimiter } from '../../faucet/src/rateLimiter.js';
+import { createFaucetServer } from '../../faucet/src/server.js';
+import { PLANCKS_PER_CMN } from '../../faucet/src/amount.js';
 
 /**
  * These tests run against the LIVE devnet RPC. They are not mocked and they are
@@ -420,7 +420,7 @@ describe('POST /drip — input validation', () => {
         body: '{not json',
       });
       expect(res.status).toBe(400);
-      expect((await res.json()).code).toBe('BAD_REQUEST');
+      expect(((await res.json()) as Record<string, unknown>).code).toBe('BAD_REQUEST');
     } finally {
       await h.close();
     }
@@ -486,7 +486,7 @@ describe('GET /balance/:address', () => {
     try {
       const res = await fetch(`${h.url}/balance/nonsense`);
       expect(res.status).toBe(400);
-      expect((await res.json()).code).toBe('INVALID_ADDRESS');
+      expect(((await res.json()) as Record<string, unknown>).code).toBe('INVALID_ADDRESS');
     } finally {
       await h.close();
     }

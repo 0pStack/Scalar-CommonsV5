@@ -8,9 +8,9 @@ import type { KeyringPair } from '@polkadot/keyring/types';
 import type { AccountInfo, EventRecord } from '@polkadot/types/interfaces';
 import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
 
-import { createIndexerClient } from '../src/activity.js';
-import { connectExplorerChain, type ExplorerChain } from '../src/chain.js';
-import { createExplorerServer } from '../src/server.js';
+import { createIndexerClient } from '../../explorer/src/activity.js';
+import { connectExplorerChain, type ExplorerChain } from '../../explorer/src/chain.js';
+import { createExplorerServer } from '../../explorer/src/server.js';
 
 /**
  * These tests run against the LIVE devnet RPC. Nothing here is mocked and
