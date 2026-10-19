@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, it, expect } from 'vitest';
@@ -105,15 +105,39 @@ function installedPackages(nodeModules: string): string[] {
   });
 }
 
+/**
+ * The node_modules directories Node searches from explorer/, nearest first. In
+ * the npm workspace the packages are hoisted to the repo root, so explorer's
+ * own node_modules may not exist at all; the search stops at the workspace root.
+ */
+function nodeModulesChain(): string[] {
+  const chain: string[] = [];
+  for (let dir = root; ; dir = dirname(dir)) {
+    const candidate = join(dir, 'node_modules');
+    if (existsSync(candidate)) {
+      chain.push(candidate);
+    }
+    const manifestPath = join(dir, 'package.json');
+    const isWorkspaceRoot =
+      existsSync(manifestPath) && 'workspaces' in (JSON.parse(readFileSync(manifestPath, 'utf8')) as object);
+    if (isWorkspaceRoot || dirname(dir) === dir) {
+      return chain;
+    }
+  }
+}
+
 describe('installed dependencies', () => {
   it('installs exactly one copy of @polkadot/types, so instanceof stays sound', () => {
     // A nested copy is how the class identity check silently starts returning
     // false, so the invariant is checked against what npm actually laid down,
     // not just against what package.json asks for.
-    const nested = installedPackages(join(root, 'node_modules'))
+    const chain = nodeModulesChain();
+    const nested = chain
+      .flatMap(installedPackages)
       .map((path) => join(path, 'node_modules', '@polkadot', 'types'))
       .filter((path) => existsSync(path));
     expect(nested).toEqual([]);
-    expect(existsSync(join(root, 'node_modules', '@polkadot', 'types'))).toBe(true);
+    const visible = chain.map((dir) => join(dir, '@polkadot', 'types')).filter((path) => existsSync(path));
+    expect(visible).toHaveLength(1);
   });
 });

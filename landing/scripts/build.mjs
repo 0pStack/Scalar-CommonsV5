@@ -14,6 +14,7 @@
 // way into its own one script, with force-graph and gsap, which no other
 // page loads. The landing page itself still ships no script at all.
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build, transform } from 'esbuild';
@@ -26,6 +27,9 @@ import { FONTS, observatoryCss } from '../src/observatory-assets.mjs';
 
 const here = (relative) => fileURLToPath(new URL(relative, import.meta.url));
 const readJson = (relative) => JSON.parse(readFileSync(here(relative), 'utf8'));
+// Font packages are resolved the way Node resolves them, not at a fixed
+// ../node_modules path: in the npm workspace they are hoisted to the repo root.
+const resolvePackageFile = createRequire(import.meta.url).resolve;
 
 const facts = readJson('../chain-facts.json');
 
@@ -61,7 +65,7 @@ writeFileSync(join(outDir, 'pulse.css'), pulseCss);
 
 mkdirSync(join(outDir, 'fonts'), { recursive: true });
 for (const [source, name] of FONTS) {
-  copyFileSync(here(`../node_modules/${source}`), join(outDir, 'fonts', name));
+  copyFileSync(resolvePackageFile(source), join(outDir, 'fonts', name));
 }
 
 const common = {

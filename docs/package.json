@@ -13,11 +13,11 @@
     "snapshot:chain": "node scripts/snapshot-chain.mjs"
   },
   "devDependencies": {
-    "@polkadot/api": "^15.9.2",
+    "@polkadot/api": "^16.5.0",
     "markdownlint-cli2": "^0.18.1",
     "vitepress": "^1.6.3"
   },
   "engines": {
-    "node": ">=20.19"
+    "node": ">=22"
   }
 }

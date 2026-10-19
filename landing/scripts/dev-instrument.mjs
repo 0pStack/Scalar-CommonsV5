@@ -12,6 +12,7 @@
 // src/observatory/instruments/<file>.js.
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -54,7 +55,8 @@ const posture = readJson('../public/posture.json');
 const css = observatoryCss();
 writeFileSync(join(outDir, 'index.html'), renderHarness(name, { history, posture, css }));
 writeFileSync(join(outDir, 'observatory.css'), css);
-for (const [source, file] of FONTS) copyFileSync(here(`../node_modules/${source}`), join(outDir, 'fonts', file));
+const resolvePackageFile = createRequire(import.meta.url).resolve;
+for (const [source, file] of FONTS) copyFileSync(resolvePackageFile(source), join(outDir, 'fonts', file));
 
 await build({
   entryPoints: [here('../src/observatory/harness.js')],

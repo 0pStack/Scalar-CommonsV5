@@ -1,0 +1,26 @@
+{
+  "name": "scalar-commons",
+  "private": true,
+  "description": "npm workspace root for the Scalar Commons JS/TS packages. One lockfile, one Node major, one @polkadot version.",
+  "license": "Apache-2.0",
+  "workspaces": [
+    "sdk",
+    "faucet",
+    "indexer",
+    "explorer",
+    "agent",
+    "landing",
+    "docs",
+    "testkit",
+    "examples/reference-agent",
+    "experiments/live"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
