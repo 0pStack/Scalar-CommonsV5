@@ -8,13 +8,9 @@
 # not compile or run a single line of the code those PRs add. A check that never
 # looks at the change is not a check.
 #
-# ONE JOB PER SUBPROJECT, on purpose. A single job running all four would let one
-# project's red hide another's, and would make the branch-protection contexts
-# useless for telling you *what* broke. Four jobs, four stable names.
-#
-# indexer/ deliberately has NO job here. On master it contains one Python file
-# (reconcile.py) and no package.json, so an indexer job could only ever be a
-# no-op that reads as coverage. It gets a job when PR #93 lands a manifest.
+# ONE JOB PER SUBPROJECT, on purpose. A single job running them all would let
+# one project's red hide another's, and would make the branch-protection
+# contexts useless for telling you *what* broke. One job, one stable name each.
 #
 # NOTHING HERE REQUIRES A LIVE CHAIN. Every command below runs against committed
 # fixtures or mocks. The suites that genuinely need the devnet are NOT deleted
@@ -45,9 +41,9 @@ jobs:
   # and the PR sits "Expected — waiting for status" forever with no way to
   # clear it.
   #
-  # So: the four jobs below ALWAYS run and ALWAYS report. This job computes what
+  # So: the jobs below ALWAYS run and ALWAYS report. This job computes what
   # changed, and each job's real work is gated on that. A PR touching only Rust
-  # gets four green checks in a few seconds each, having correctly done nothing.
+  # gets green checks in a few seconds each, having correctly done nothing.
   #
   # Implemented with plain `git diff` rather than a third-party paths-filter
   # action: it is auditable in place and adds no supply-chain surface to a
@@ -63,6 +59,8 @@ jobs:
       sdk: ${{ steps.filter.outputs.sdk }}
       reference_agent: ${{ steps.filter.outputs.reference_agent }}
       agent: ${{ steps.filter.outputs.agent }}
+      indexer: ${{ steps.filter.outputs.indexer }}
+      explorer: ${{ steps.filter.outputs.explorer }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -93,7 +91,7 @@ jobs:
           # thing under test, and scoping it to nothing would let a broken gate
           # merge green.
           if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^\.github/workflows/ci-node\.yml$'; then
-            for p in landing faucet docs sdk reference_agent agent; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
+            for p in landing faucet docs sdk reference_agent agent indexer explorer; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
             echo "→ all subprojects selected"
             exit 0
           fi
@@ -118,7 +116,7 @@ jobs:
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
 
-          for p in faucet docs sdk; do
+          for p in faucet docs sdk indexer explorer; do
             if selected "^$p/"; then echo "$p=true" >> "$GITHUB_OUTPUT"; else echo "$p=false" >> "$GITHUB_OUTPUT"; fi
           done
 
@@ -184,14 +182,15 @@ jobs:
   # from a genesis-endowed account and asserts the balance moved on chain; its
   # own header states it is deliberately NOT skippable, because "an unreachable
   # node is a blocking finding". That is the right call for a devnet gate and
-  # the wrong one for a hosted runner with no chain, so CI selects the two
-  # offline files by path instead.
+  # the wrong one for a hosted runner with no chain, so CI runs every test file
+  # except tests/*.live.test.ts. Excluding by glob rather than listing the
+  # offline files means a new offline test is picked up without editing this.
   #
   # The file is NOT deleted, NOT skipped, and NOT modified. `npm test` with no
-  # arguments still runs all 55 tests, and that is still the gate a human or the
-  # factory runs against the devnet. Measured 2026-08-19 against the live
-  # 5-validator devnet: 55/55 pass. The live tests are excluded for environment,
-  # not for health.
+  # arguments still runs every file, live included, and that is still the gate a
+  # human or the factory runs against the devnet. Measured 2026-08-19 against
+  # the live 5-validator devnet: 55/55 pass. The live tests are excluded for
+  # environment, not for health.
   faucet:
     name: faucet
     needs: changes
@@ -217,10 +216,85 @@ jobs:
       - name: npm test (offline suites only — see header)
         if: needs.changes.outputs.faucet == 'true'
         working-directory: faucet
-        run: npm test -- tests/amount.test.ts tests/rateLimiter.test.ts
+        run: npm test -- --exclude 'tests/*.live.test.ts'
       - name: Not selected
         if: needs.changes.outputs.faucet != 'true'
         run: echo "faucet/ unchanged — nothing to check."
+
+  # ── indexer ────────────────────────────────────────────────────────────────
+  # Gate: npm ci && npm run typecheck && npm test, minus tests/live.test.ts.
+  #
+  # EXCLUDED FROM CI: tests/live.test.ts. It submits real extrinsics, indexes
+  # the finalized blocks they land in and cross-checks all 25 v1 endpoints
+  # against direct RPC reads; it fails (does not skip) when no node answers.
+  # Every other file is offline (in-memory SQLite, constructed inputs).
+  # node 22 is required: the store uses node:sqlite (package.json engines).
+  indexer:
+    name: indexer
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.indexer == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.indexer == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: indexer/package-lock.json
+      - name: npm ci
+        if: needs.changes.outputs.indexer == 'true'
+        working-directory: indexer
+        run: npm ci
+      - name: npm run typecheck
+        if: needs.changes.outputs.indexer == 'true'
+        working-directory: indexer
+        run: npm run typecheck
+      - name: npm test (offline suites only — see header)
+        if: needs.changes.outputs.indexer == 'true'
+        working-directory: indexer
+        run: npm test -- --exclude 'tests/live.test.ts'
+      - name: Not selected
+        if: needs.changes.outputs.indexer != 'true'
+        run: echo "indexer/ unchanged — nothing to check."
+
+  # ── explorer ───────────────────────────────────────────────────────────────
+  # Gate: npm ci && npm run typecheck && npm test, minus tests/*.live.test.ts.
+  # typecheck also covers the test files (tsconfig.test.json).
+  #
+  # EXCLUDED FROM CI: tests/explorer.live.test.ts. It renders pages from a live
+  # devnet RPC and signs one real transfer; it fails (does not skip) when the
+  # node is unreachable. The remaining files are offline unit tests.
+  explorer:
+    name: explorer
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.explorer == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.explorer == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: explorer/package-lock.json
+      - name: npm ci
+        if: needs.changes.outputs.explorer == 'true'
+        working-directory: explorer
+        run: npm ci
+      - name: npm run typecheck
+        if: needs.changes.outputs.explorer == 'true'
+        working-directory: explorer
+        run: npm run typecheck
+      - name: npm test (offline suites only — see header)
+        if: needs.changes.outputs.explorer == 'true'
+        working-directory: explorer
+        run: npm test -- --exclude 'tests/*.live.test.ts'
+      - name: Not selected
+        if: needs.changes.outputs.explorer != 'true'
+        run: echo "explorer/ unchanged — nothing to check."
 
   # ── docs ───────────────────────────────────────────────────────────────────
   # Gate: npm ci && npm run lint && npm run build. docs/ defines no `test`
