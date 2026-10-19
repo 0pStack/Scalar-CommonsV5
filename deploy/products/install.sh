@@ -49,13 +49,14 @@ for product in "${PRODUCTS[@]}"; do
     if [[ ! -f "${entry}" ]]; then
         echo "ERROR: ${entry} missing."
         if [[ "${product}" == "explorer" || "${product}" == "faucet" ]]; then
-            echo "       ${product} is compiled ahead of time. Run: (cd ${REPO}/${product} && npm ci && npm run build)"
+            echo "       ${product} is compiled ahead of time. Run: (cd ${REPO} && npm ci && npm run build -w ${product})"
         else
-            echo "       Run: (cd ${REPO}/${product} && npm ci)"
+            echo "       Run: (cd ${REPO} && npm ci)"
         fi
         exit 1
     fi
-    [[ -d "${REPO}/${product}/node_modules" ]] || echo "WARNING: ${product}/node_modules missing — run 'npm ci' in ${REPO}/${product}"
+    # One npm workspace: dependencies are installed once, hoisted to the root.
+    [[ -d "${REPO}/node_modules" ]] || echo "WARNING: ${REPO}/node_modules missing — run 'npm ci' in ${REPO}"
 done
 
 # The units hardcode their WorkingDirectory, exactly as deploy/systemd/*.service

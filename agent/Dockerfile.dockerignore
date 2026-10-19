@@ -9,6 +9,12 @@ indexer
 explorer
 landing
 docs
+# The workspace lockfile is checked against every workspace manifest, so the
+# directories above still contribute their package.json (and nothing else).
+!indexer/package.json
+!explorer/package.json
+!landing/package.json
+!docs/package.json
 agent.env
 *.env
 state

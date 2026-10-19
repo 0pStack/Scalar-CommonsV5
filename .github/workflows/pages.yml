@@ -66,28 +66,22 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: |
-            landing/package-lock.json
-            docs/package-lock.json
+          cache-dependency-path: package-lock.json
+
+      # One install at the workspace root covers both sites (one lockfile).
+      - name: npm ci
+        run: npm ci
 
       # ── landing → _site/ ────────────────────────────────────────────────────
-      - name: landing — npm ci
-        working-directory: landing
-        run: npm ci
 
       # build.mjs honours LANDING_OUT_DIR and mkdir -p's it, so the landing page
       # is written straight to the artifact root instead of being copied twice.
       - name: landing — build to site root
-        working-directory: landing
         env:
           LANDING_OUT_DIR: ${{ github.workspace }}/_site
-        run: npm run build
+        run: npm run build -w landing
 
       # ── docs → _site/docs/ ──────────────────────────────────────────────────
-      - name: docs — npm ci
-        working-directory: docs
-        run: npm ci
-
       # See the header: `base_path` is `/` on a user/org site and `/<repo>` on a
       # project site, so strip any trailing slash before appending `/docs/`.
       - name: docs — compute base path
@@ -100,8 +94,7 @@ jobs:
           echo "docs will be built for base ${base}/docs/"
 
       - name: docs — build under /docs
-        working-directory: docs
-        run: npm run build
+        run: npm run build -w docs
 
       - name: Assemble single Pages artifact
         run: |

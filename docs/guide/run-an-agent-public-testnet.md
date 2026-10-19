@@ -177,13 +177,14 @@ Every extrinsic is logged as one JSON line with its hash, block and explorer URL
 ### Build it
 
 ```bash
-cd scalar-commons-v4/sdk && npm ci && npm run build        # the agent packs dist/ from here
-cd ../examples/reference-agent && npm ci && npm run build
+cd scalar-commons-v4 && npm ci                 # one install for the repo's npm workspace
+npm run build -w sdk                           # the agent imports dist/ from here
+npm run build -w examples/reference-agent
 ```
 
-`examples/reference-agent/.npmrc` sets `install-links=true`, which makes npm install
-`../../sdk` as a packed copy rather than a symlink — the same one-copy-of-polkadot rule as §1.
-Build the SDK first: a pack of an unbuilt `sdk/` has no `dist/` in it.
+The JS packages are one npm workspace with one lockfile, so `sdk/` is linked rather than
+copied and every package resolves the same single hoisted `@polkadot/*` — the
+one-copy-of-polkadot rule as §1. Build the SDK first: the agent imports its `dist/`.
 
 ### Configure it
 

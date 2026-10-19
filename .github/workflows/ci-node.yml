@@ -12,6 +12,12 @@
 # one project's red hide another's, and would make the branch-protection
 # contexts useless for telling you *what* broke. One job, one stable name each.
 #
+# ONE INSTALL PER JOB, AT THE ROOT. The JS/TS packages are one npm workspace
+# with one package-lock.json, so every job runs `npm ci` at the repository root
+# and then that package's scripts with `npm run <script> -w <package>`. Do not
+# `npm ci` inside a package directory: npm resolves the workspace root and
+# prunes node_modules down to that one package's dependencies.
+#
 # NOTHING HERE REQUIRES A LIVE CHAIN. Every command below runs against committed
 # fixtures or mocks. The suites that genuinely need the devnet are NOT deleted
 # and NOT skipped — they are simply not selected by the CI invocation, and each
@@ -89,8 +95,10 @@ jobs:
 
           # A change to this workflow re-runs everything: the gate itself is the
           # thing under test, and scoping it to nothing would let a broken gate
-          # merge green.
-          if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^\.github/workflows/ci-node\.yml$'; then
+          # merge green. So does a change to the workspace root: every job
+          # installs from the one root lockfile, so a dependency bump there can
+          # break any package without touching a file under it.
+          if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^(\.github/workflows/ci-node\.yml|package\.json|package-lock\.json|\.nvmrc)$'; then
             for p in landing faucet docs sdk reference_agent agent indexer explorer; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
             echo "→ all subprojects selected"
             exit 0
@@ -120,16 +128,16 @@ jobs:
             if selected "^$p/"; then echo "$p=true" >> "$GITHUB_OUTPUT"; else echo "$p=false" >> "$GITHUB_OUTPUT"; fi
           done
 
-          # The reference agent installs sdk/ as a packed copy, so an SDK change
-          # can break it; both paths select it.
+          # The reference agent imports the workspace sdk/ (its built dist/), so
+          # an SDK change can break it; both paths select it.
           if selected '^examples/reference-agent/' || selected '^sdk/'; then
             echo "reference_agent=true" >> "$GITHUB_OUTPUT"
           else
             echo "reference_agent=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # agent/ vendors a built copy of sdk/ (scripts/vendor-sdk.mjs), so an
-          # SDK change can break it too; both paths select it.
+          # agent/ imports the workspace sdk/ (its built dist/) too, so an SDK
+          # change can break it; both paths select it.
           if selected '^agent/' || selected '^sdk/'; then
             echo "agent=true" >> "$GITHUB_OUTPUT"
           else
@@ -158,19 +166,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: landing/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.landing == 'true'
-        working-directory: landing
         run: npm ci
       - name: npm run build
         if: needs.changes.outputs.landing == 'true'
-        working-directory: landing
-        run: npm run build
+        run: npm run build -w landing
       - name: npm test
         if: needs.changes.outputs.landing == 'true'
-        working-directory: landing
-        run: npm test
+        run: npm test -w landing
       - name: Not selected
         if: needs.changes.outputs.landing != 'true'
         run: echo "landing/ unchanged — nothing to check."
@@ -204,19 +209,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: faucet/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.faucet == 'true'
-        working-directory: faucet
         run: npm ci
       - name: npm run typecheck
         if: needs.changes.outputs.faucet == 'true'
-        working-directory: faucet
-        run: npm run typecheck
+        run: npm run typecheck -w faucet
       - name: npm test (offline suites only — see header)
         if: needs.changes.outputs.faucet == 'true'
-        working-directory: faucet
-        run: npm test -- --exclude 'tests/*.live.test.ts'
+        run: npm test -w faucet -- --exclude 'tests/*.live.test.ts'
       - name: Not selected
         if: needs.changes.outputs.faucet != 'true'
         run: echo "faucet/ unchanged — nothing to check."
@@ -242,19 +244,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: indexer/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.indexer == 'true'
-        working-directory: indexer
         run: npm ci
       - name: npm run typecheck
         if: needs.changes.outputs.indexer == 'true'
-        working-directory: indexer
-        run: npm run typecheck
+        run: npm run typecheck -w indexer
       - name: npm test (offline suites only — see header)
         if: needs.changes.outputs.indexer == 'true'
-        working-directory: indexer
-        run: npm test -- --exclude 'tests/live.test.ts'
+        run: npm test -w indexer -- --exclude 'tests/live.test.ts'
       - name: Not selected
         if: needs.changes.outputs.indexer != 'true'
         run: echo "indexer/ unchanged — nothing to check."
@@ -279,19 +278,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: explorer/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.explorer == 'true'
-        working-directory: explorer
         run: npm ci
       - name: npm run typecheck
         if: needs.changes.outputs.explorer == 'true'
-        working-directory: explorer
-        run: npm run typecheck
+        run: npm run typecheck -w explorer
       - name: npm test (offline suites only — see header)
         if: needs.changes.outputs.explorer == 'true'
-        working-directory: explorer
-        run: npm test -- --exclude 'tests/*.live.test.ts'
+        run: npm test -w explorer -- --exclude 'tests/*.live.test.ts'
       - name: Not selected
         if: needs.changes.outputs.explorer != 'true'
         run: echo "explorer/ unchanged — nothing to check."
@@ -320,19 +316,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: docs/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.docs == 'true'
-        working-directory: docs
         run: npm ci
       - name: npm run lint
         if: needs.changes.outputs.docs == 'true'
-        working-directory: docs
-        run: npm run lint
+        run: npm run lint -w docs
       - name: npm run build
         if: needs.changes.outputs.docs == 'true'
-        working-directory: docs
-        run: npm run build
+        run: npm run build -w docs
       - name: Not selected
         if: needs.changes.outputs.docs != 'true'
         run: echo "docs/ unchanged — nothing to check."
@@ -359,10 +352,9 @@ jobs:
   # lockfile and its txEntry/queryEntry/constEntry guards clear all 47 errors —
   # verified against origin/task/72, which typechecks clean).
   #
-  # Deliberately NO `cache: npm` on this job: setup-node's npm cache requires a
-  # lockfile and would fail during setup, burying the actual EUSAGE error from
-  # `npm ci` behind a less informative one. sdk/package-lock.json is now
-  # tracked, so the cache line can be restored.
+  # This job once ran without `cache: npm`, because sdk/ had no lockfile and the
+  # cache setup would have buried the EUSAGE error. The root package-lock.json
+  # now covers sdk/, so it caches like every other job.
   sdk:
     name: sdk
     needs: changes
@@ -375,26 +367,24 @@ jobs:
         if: needs.changes.outputs.sdk == 'true'
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.sdk == 'true'
-        working-directory: sdk
         run: npm ci
       - name: npm run typecheck
         if: needs.changes.outputs.sdk == 'true'
-        working-directory: sdk
-        run: npm run typecheck
+        run: npm run typecheck -w sdk
       - name: npm test
         if: needs.changes.outputs.sdk == 'true'
-        working-directory: sdk
-        run: npm test
+        run: npm test -w sdk
       - name: Not selected
         if: needs.changes.outputs.sdk != 'true'
         run: echo "sdk/ unchanged — nothing to check."
 
   # ── reference-agent ───────────────────────────────────────────────────────
-  # Gate: build sdk/ (the agent installs it as a packed copy via
-  # install-links=true, which needs sdk/dist), then npm ci && typecheck && test
-  # in examples/reference-agent. Offline: the unit tests cover config parsing
+  # Gate: npm ci at the root, build sdk/ (the agent imports the workspace SDK's
+  # dist/), then typecheck && test examples/reference-agent. Offline: the unit tests cover config parsing
   # and work selection; the live run is recorded in docs/guide/run-an-agent.md.
   reference-agent:
     name: reference-agent
@@ -408,30 +398,28 @@ jobs:
         if: needs.changes.outputs.reference_agent == 'true'
         with:
           node-version: 22
-      - name: build sdk
-        if: needs.changes.outputs.reference_agent == 'true'
-        working-directory: sdk
-        run: npm ci && npm run build
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.reference_agent == 'true'
-        working-directory: examples/reference-agent
         run: npm ci
+      - name: build sdk
+        if: needs.changes.outputs.reference_agent == 'true'
+        run: npm run build -w sdk
       - name: npm run typecheck
         if: needs.changes.outputs.reference_agent == 'true'
-        working-directory: examples/reference-agent
-        run: npm run typecheck
+        run: npm run typecheck -w examples/reference-agent
       - name: npm test
         if: needs.changes.outputs.reference_agent == 'true'
-        working-directory: examples/reference-agent
-        run: npm test
+        run: npm test -w examples/reference-agent
       - name: Not selected
         if: needs.changes.outputs.reference_agent != 'true'
         run: echo "examples/reference-agent/ and sdk/ unchanged — nothing to check."
 
   # ── agent ─────────────────────────────────────────────────────────────────
-  # Gate: npm ci in agent/, then `npm run setup:sdk` (sdk/ npm ci + build, and
-  # vendor the built SDK into agent/node_modules as a real copy), then
-  # typecheck and test. Offline: the suite drives the agent loop against a fake
+  # Gate: npm ci at the root, build sdk/ (the agent imports the workspace SDK's
+  # dist/; one hoisted @polkadot copy, so nothing is vendored), then typecheck
+  # and test agent/. Offline: the suite drives the agent loop against a fake
   # chain and runs the messaging worked example with dev keys; no node needed.
   agent:
     name: agent
@@ -445,22 +433,20 @@ jobs:
         if: needs.changes.outputs.agent == 'true'
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
       - name: npm ci
         if: needs.changes.outputs.agent == 'true'
-        working-directory: agent
         run: npm ci
-      - name: build and vendor sdk
+      - name: build sdk
         if: needs.changes.outputs.agent == 'true'
-        working-directory: agent
-        run: npm run setup:sdk
+        run: npm run build -w sdk
       - name: npm run typecheck
         if: needs.changes.outputs.agent == 'true'
-        working-directory: agent
-        run: npm run typecheck
+        run: npm run typecheck -w agent
       - name: npm test
         if: needs.changes.outputs.agent == 'true'
-        working-directory: agent
-        run: npm test
+        run: npm test -w agent
       - name: Not selected
         if: needs.changes.outputs.agent != 'true'
         run: echo "agent/ and sdk/ unchanged — nothing to check."

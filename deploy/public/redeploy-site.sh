@@ -42,11 +42,20 @@ for d in "$LANDING_DEST" "$DOCS_DEST"; do
     [ -w "$d" ] || die "destination not writable by $(id -un): $d"
 done
 
+# --- dependencies -----------------------------------------------------------
+# landing/ and docs/ are members of the repo's npm workspace: one install at the
+# root, from the one package-lock.json. NOT `npm ci` inside landing/ or docs/:
+# npm resolves the workspace root and prunes the shared node_modules down to
+# that one package, which in a checkout that also runs the products would strip
+# the indexer's, faucet's and explorer's dependencies.
+say "installing workspace dependencies"
+( cd "$REPO" && npm ci --silent )
+
 # ===========================================================================
 #  landing
 # ===========================================================================
 say "building landing -> $LANDING_DEST"
-( cd "$REPO/landing" && npm ci --silent && LANDING_OUT_DIR="$LANDING_DEST" npm run build )
+( cd "$REPO" && LANDING_OUT_DIR="$LANDING_DEST" npm run build -w landing )
 
 [ -f "$LANDING_DEST/index.html" ] || die "no index.html at $LANDING_DEST — the landing build published nothing"
 [ -s "$LANDING_DEST/index.html" ] || die "$LANDING_DEST/index.html is empty"
@@ -56,7 +65,7 @@ say "building landing -> $LANDING_DEST"
 #  docs
 # ===========================================================================
 say "building docs (DOCS_BASE=/docs/) -> $DOCS_DEST"
-( cd "$REPO/docs" && npm ci --silent && DOCS_BASE=/docs/ npm run build )
+( cd "$REPO" && DOCS_BASE=/docs/ npm run build -w docs )
 
 DOCS_DIST="$REPO/docs/.vitepress/dist"
 [ -f "$DOCS_DIST/index.html" ] || die "no index.html in $DOCS_DIST — the docs build produced nothing to publish"

@@ -56,10 +56,11 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: testkit/package-lock.json
+          cache-dependency-path: package-lock.json
 
+      # testkit/ is a member of the root npm workspace (one package-lock.json).
       - name: Install testkit dependencies
-        run: npm ci --prefix testkit
+        run: npm ci -w testkit
 
       - name: Start dev node
         run: |

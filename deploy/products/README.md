@@ -27,10 +27,13 @@ of them means putting a reverse proxy in front of it first, not flipping the
 ## Install
 
 ```bash
-# the products are Node services; install their deps first
-(cd indexer  && npm ci)
-(cd faucet   && npm ci)
-(cd explorer && npm ci && npm run build)   # explorer's unit runs compiled output
+# the products are Node services in the repo's npm workspace: one install at
+# the repo root (one package-lock.json) covers all three. Do not run `npm ci`
+# inside a product directory — npm prunes the shared node_modules to that one
+# product's dependencies.
+npm ci
+npm run build -w faucet     # faucet's unit runs compiled output
+npm run build -w explorer   # so does explorer's
 
 ./deploy/products/install.sh
 systemctl --user start scalar-indexer.service scalar-explorer.service scalar-faucet.service

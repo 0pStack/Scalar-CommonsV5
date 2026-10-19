@@ -18,13 +18,14 @@ Every extrinsic is logged as one JSON line with hash, block and explorer URL.
 ## Build
 
 ```bash
-cd ../../sdk && npm ci && npm run build      # the agent packs sdk/dist
-cd ../examples/reference-agent && npm ci && npm run build
-npm test                                     # config + work-selection unit tests, offline
+cd ../.. && npm ci                           # one install for the repo's npm workspace
+npm run build -w sdk                         # the agent imports sdk/dist
+npm run build -w examples/reference-agent
+npm test -w examples/reference-agent         # config + work-selection unit tests, offline
 ```
 
-`.npmrc` sets `install-links=true` so the SDK is installed as a packed copy rather than a
-symlink — one copy of `@polkadot/*`, no duplicate-instance warnings.
+The SDK is linked from the workspace, and every package resolves the same single hoisted
+copy of `@polkadot/*`, so there are no duplicate-instance warnings.
 
 ## Run
 

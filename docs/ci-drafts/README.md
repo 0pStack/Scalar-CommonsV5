@@ -22,8 +22,8 @@ changing CI. Nothing in this directory is required by branch protection.
 ## Known caveats
 
 - **`testkit/` is not on master yet.** `ci-devnode` fails at `npm ci` until the
-  testkit is merged (its `package.json`, `package-lock.json` and an `npm test`
-  script). `test-guard` works now, counting only `pallets/**` until then.
+  testkit is merged (its `package.json`, an entry in the root workspace's
+  `package-lock.json` and an `npm test` script). `test-guard` works now, counting only `pallets/**` until then.
 - Counting is textual: a `#[test]` inside a comment or a renamed/moved test is
   miscounted. Moving tests between files under the covered paths is neutral;
   moving them out is a drop and needs the label.

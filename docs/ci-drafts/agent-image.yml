@@ -50,7 +50,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: cd agent && npm ci && npm test
+      # agent/ is a member of the root npm workspace and imports the built sdk/.
+      - run: npm ci && npm run build -w sdk && npm test -w agent
 
       - uses: docker/setup-buildx-action@v3
 
