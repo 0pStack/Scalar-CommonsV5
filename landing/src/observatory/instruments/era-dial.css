@@ -1,0 +1,47 @@
+/* 02 · Economy, the era dial — the graduations, the captions and the states the design
+   system's .dial rules do not cover. Tokens only. */
+
+.dial .dial-mark {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.dial .dial-mark-major {
+  stroke: var(--text-dim);
+}
+
+/* The face has room for its captions to be read on a projector. */
+#economy .dial .dial-caption {
+  font-size: var(--t-eyebrow);
+}
+
+/* The percentage is a live figure, so it takes the accent while the era runs. */
+.dial .dial-percent {
+  fill: var(--live);
+}
+
+.dial .dial-settles {
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* Complete: the caption becomes two lines, and "era complete" is a state word,
+   not a live figure, so it is set in ink. The settlement mark stays a hairline. */
+.dial[data-state="due"] .dial-percent {
+  fill: var(--text);
+}
+
+.dial[data-state="due"] .dial-word {
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
+/* Waiting or unavailable: no accent anywhere, since there is no live figure. */
+.dial[data-state="waiting"] .dial-percent,
+.dial[data-state="unavailable"] .dial-percent {
+  fill: var(--text-dim);
+}
+
+.dial[data-state="unavailable"] .dial-settles {
+  fill: var(--slashed);
+}

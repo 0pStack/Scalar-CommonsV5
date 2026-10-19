@@ -1,0 +1,178 @@
+==============================================================================
+PART 0 — ANCHOR (must be bit-exact before anything below is trustworthy)
+==============================================================================
+  OK   RUN-A gini             mine=0.5260849509298967     published=0.5260849509298967
+  OK   RUN-C sybil net        mine=-30.0                  published=-30.0
+  OK   RUN-D wash net/era     mine=1556.4082243577097     published=1556.4082243577097
+  OK   RUN-D wash gross/era   mine=1696.4082243577097     published=1696.4082243577097
+  OK   RUN-A pool             mine=1000000.0              published=1000000.0
+  --> ANCHOR PASSES BIT-EXACTLY. Proceeding.
+
+==============================================================================
+PART 1 — pool pinning
+==============================================================================
+  ceiling/slope = 1,000,000 / 10,000 = n* = 100
+  smallest n with P == ceiling (by run): 100
+    n=1         P=     100,000  
+    n=10        P=     100,000  
+    n=50        P=     500,000  
+    n=99        P=     990,000  
+    n=100       P=   1,000,000  CEILING
+    n=101       P=   1,000,000  CEILING
+    n=200       P=   1,000,000  CEILING
+    n=202       P=   1,000,000  CEILING
+    n=1,000     P=   1,000,000  CEILING
+    n=10,000    P=   1,000,000  CEILING
+    n=1,000,000 P=   1,000,000  CEILING
+  P pinned for all tested n >= 100: True
+    [V_min = k*P (pool-indexed)] NO-OP for n>=100: P is the constant 1e6, so k*P is a constant. Re-parameterised flat guard, not a scaling one.
+    [V_min = k*P/active_agents (per-capita)] NOT a no-op: 1e6/n DECREASES in n, so the guard WEAKENS as the chain grows — the opposite of the OD-4 design intent.
+    [V_min = k*median_honest_volume] NOT a no-op (tracks a live quantity), but it is not pool-indexed at all; it is a different mechanism wearing Mechanism A's name, and OD-4 3.3 already flags it as cartel-gameable.
+
+==============================================================================
+PART 2 — baseline wash-trader profitability
+==============================================================================
+  pool P = 1,000,000 CMN/era (202 agents -> ceiling)
+  marginal washer net by era: era0=1818.26 era1=1892.19 era5=1536.91 era9=1135.52
+  steady state (era 15-29, onboarding exhausted): 1135.5205 CMN/era
+  10-era cumulative mean (the RUN-D published stat): 1556.4082 CMN/era
+  20-era cumulative mean: 1345.9644 CMN/era
+  30-era cumulative mean: 1275.8164 CMN/era
+  ~+1,301 claim -> nearest quantity found: steady-state net = 1135.52
+  search for a window/population producing ~1,301 (5 closest):
+    n_wash=2,eras=25         ->  1303.8756   (delta +2.88)
+    n_wash=5,eras=25         ->  1297.4500   (delta -3.55)
+    n_wash=1,eras=25         ->  1306.0307   (delta +5.03)
+    n_wash=10,eras=25        ->  1286.8711   (delta -14.13)
+    n_wash=1,eras=30         ->  1277.8838   (delta -23.12)
+
+==============================================================================
+PART 3 — THE CRUX: rational washer vs MinQualifyingVol
+==============================================================================
+  Sigma_honest (steady state, 200 agents) = 11,277.6000
+
+  (a) 1 counterparty (pure self-ring), sweep MinQualifyingVol -- REAL chain fee (F-3)
+      V_min |    best V  qual?    weight     reward     cost        NET
+          0 |    10,000   True    85.800   7,550.56   265.00  +7,285.56
+         50 |    10,000   True    85.800   7,550.56   265.00  +7,285.56
+        100 |    10,000   True    85.800   7,550.56   265.00  +7,285.56
+        500 |    10,000   True    85.800   7,550.56   265.00  +7,285.56
+      1,000 |    10,000   True    85.800   7,550.56   265.00  +7,285.56
+      5,000 |    10,000   True    85.800   7,550.56   265.00  +7,285.56
+     10,000 |    10,000   True    85.800   7,550.56   265.00  +7,285.56
+     50,000 |    50,000   True    85.800   7,550.56   365.00  +7,185.56
+    100,000 |   100,000   True    85.800   7,550.56   490.00  +7,060.56
+  1,000,000 |    10,000  False    70.200   6,186.22   265.00  +5,921.22
+
+  (b) same, but the v2 sim's MA'-7 flat-fee model (100 CMN per 100-CMN slice)
+      V_min |    best V  qual?    weight     reward     cost        NET
+          0 |       160   True    63.302   5,581.78   340.00  +5,241.78
+         50 |       160   True    63.302   5,581.78   340.00  +5,241.78
+        100 |       160   True    63.302   5,581.78   340.00  +5,241.78
+        500 |       500   True    65.163   5,744.90   860.00  +4,884.90
+      1,000 |     1,000   True    66.744   5,883.46 1,510.00  +4,373.46
+      5,000 |       160  False    51.245   4,523.39   340.00  +4,183.39
+     10,000 |       160  False    51.245   4,523.39   340.00  +4,183.39
+     50,000 |       160  False    51.245   4,523.39   340.00  +4,183.39
+    100,000 |       160  False    51.245   4,523.39   340.00  +4,183.39
+  1,000,000 |       160  False    51.245   4,523.39   340.00  +4,183.39
+
+  (c) 5 counterparties (diversity gate fully defeated), REAL chain fee
+      V_min |    best V  qual?    weight     reward     cost        NET
+          0 |    10,000   True   156.000  13,644.00   385.00 +13,259.00
+         50 |    10,000   True   156.000  13,644.00   385.00 +13,259.00
+      5,000 |    10,000   True   156.000  13,644.00   385.00 +13,259.00
+    100,000 |   100,000   True   156.000  13,644.00   610.00 +13,034.00
+  1,000,000 |    10,000  False   140.400  12,296.37   385.00 +11,911.37
+
+  (d) THE DECISION-RELEVANT COMPARISON — wash vs HONEST work at equal capital
+      (a pure staker earns exactly 0, so 'net > 0' is nearly tautological here)
+  strategy                                   weight     reward        net   capital  net/1k cap
+  honest worker, vol=100, 5 real buyers       90.27      7,941     +7,701    10,000      +770.1
+  honest worker, vol=5000, 5 real buyers     138.00     12,089    +11,836    10,000    +1,183.6
+  washer, 1 sybil cp, NO gov                  23.40      2,071     +2,006    11,000      +182.3
+  washer, 1 sybil cp, votes gov               85.80      7,551     +7,286    11,000      +662.3
+  washer, 5 sybil cps, votes gov             156.00     13,644    +13,259    15,000      +883.9
+
+  does the 5-sybil gov-voting ring BEAT honest work per unit capital? True
+
+  rational washer ABANDONS the V_min floor at V_min >= 1000000
+  net > 0 at EVERY V_min tested (real chain fee, 1 counterparty): True
+  net > 0 at EVERY V_min tested (sim flat fee, 1 counterparty): True
+  V_min -> 1e9 (floor unreachable): best V=10,000, NET=+5,921.22 CMN/era  <-- the floor-free plateau
+
+  CLOSED FORM — the structural ceiling on Mechanism A:
+    washer activity when qualifying   = 5,500 bps
+    washer activity when NOT qualifying = 4,500 bps
+    max weight removable by ANY V_min = 18.2%
+    -> V_min -> infinity still leaves +5,921 CMN/era. Mechanism A cannot reach zero at any parameter value.
+
+==============================================================================
+PART 4 — counterparty cost as the binding surface
+==============================================================================
+  observed on-chain counterparty cost today (escrow/src/lib.rs:290-293 BuyerNotAgent):
+    one-time BaseRegistrationFee = 50 CMN (spent)
+    MinStake locked              = 1,000 CMN (opportunity cost, recoverable)
+    amortised at    5% APR opportunity cost:   0.0342 CMN/era
+    amortised at   20% APR opportunity cost:   0.1370 CMN/era
+    amortised at  100% APR opportunity cost:   0.6849 CMN/era
+    BaseRegistrationFee spread over 1 year: 0.0342 CMN/era
+    => realistic TODAY, incl. 2 tx/era: ~20.17 CMN/era per counterparty
+
+  washer's best net vs per-counterparty-era cost c (V_min = 50, chain fee)
+   c (CMN/era) |   k         V     reward       cost         NET
+             0 |   5    10,000  13,644.00     385.00  +13,259.00
+             1 |   5    10,000  13,644.00     390.00  +13,254.00
+            10 |   5    10,000  13,644.00     435.00  +13,209.00
+            50 |   5    10,000  13,644.00     635.00  +13,009.00
+           100 |   5    10,000  13,644.00     885.00  +12,759.00
+           200 |   5    10,000  13,644.00   1,385.00  +12,259.00
+           500 |   5    10,000  13,644.00   2,885.00  +10,759.00
+         1,000 |   5    10,000  13,644.00   5,385.00   +8,259.00
+         1,200 |   5    10,000  13,644.00   6,385.00   +7,259.00
+         1,500 |   3    10,000  10,945.06   4,825.00   +6,120.06
+         2,000 |   1    10,000   7,550.56   2,265.00   +5,285.56
+         5,000 |   1    10,000   7,550.56   5,265.00   +2,285.56
+        10,000 |   1    10,000   7,550.56  10,265.00   -2,714.44
+
+  c* (V_min=50, chain fee, stake=10k)              = 7,285.56 CMN/era
+  c* (V_min=50, sim MA'-7 flat fee)                = 5,241.78 CMN/era
+  c* (V_min unreachable -> floor abandoned)        = 5,921.22 CMN/era
+  c* at washer stake     1,000 CMN                 = 1,714.83 CMN/era
+  c* at washer stake    10,000 CMN                 = 7,285.56 CMN/era
+  c* at washer stake   100,000 CMN                 = 22,986.87 CMN/era
+  c* at washer stake 1,000,000 CMN                 = 56,361.82 CMN/era
+
+  ROUND11 cross-check — isolate the two attacker-weakening modelling choices:
+    c* with gov farming ON,  real chain fee (F-3)  =   7,285.56  <-- ROUND12
+    c* with gov farming OFF, real chain fee (F-3)  =   2,005.61
+    c* with gov farming ON,  sim MA'-7 flat fee    =   5,241.78
+    c* with gov farming OFF, sim MA'-7 flat fee    =   1,194.67  <-- reproduces ROUND11's ~1,200
+
+  feasibility of c* as a MONETARY counterparty cost (bond at opportunity cost r):
+    at    5% APR, bond required per counterparty =        212,738,266 CMN   (   212.7x MaxStakePerAgent)
+    at   20% APR, bond required per counterparty =         53,184,566 CMN   (    53.2x MaxStakePerAgent)
+    at  100% APR, bond required per counterparty =         10,636,913 CMN   (    10.6x MaxStakePerAgent)
+    MaxStakePerAgent = 1,000,000 CMN -> a bond that large is NOT expressible under the current stake cap.
+    c* as a flat per-era FEE = 7,286 CMN/era = 29,142 CMN/day per counterparty relationship,
+    which would also be charged to every HONEST 5-counterparty agent.
+
+  GAP: required c* / actual today = 361.2x
+
+==============================================================================
+PART 5 — replication of ROUND11's published numbers
+==============================================================================
+  ROUND11 2.1 population = 272 agents (published: 272), P=1,000,000
+  cohort        ROUND12 repro   ROUND11 published   match
+  A-4 WASH            1,301.5             1,301.5     YES
+  A-1 honest          7,339.3             7,339.3     YES
+  A-2 staker            -10.0               -10.0     YES
+  A-3 sybil             -10.0               -10.0     YES
+  A-5 oracle          7,183.8             7,183.8     YES
+
+  ROUND11 3.5 context — c* measured with div_bps(1)=0 AND V_min=10,000 applied:
+    c* in ROUND11's conditional setup, gov OFF =     621.16   (ROUND11 published ~1,200)
+    c* in ROUND11's conditional setup, gov ON  =   2,373.90
+    c* at GENESIS params (nothing else changed) =   7,285.56  <-- ROUND12
+
+wrote experiments/sc-e1/scratchpad/round12_results.json

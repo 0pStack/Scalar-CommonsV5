@@ -1,0 +1,122 @@
+You are an autonomous worker in a bounded factory loop on the Scalar Commons
+repository (Substrate / Polkadot SDK chain, native token CMN).
+
+TRACK B — TASK: build the event indexer and its 24-endpoint REST API.
+
+################  ABSOLUTE RULE — NON-NEGOTIABLE  ################
+NEVER make a check pass by weakening code. Specifically forbidden:
+  - deleting, skipping, or commenting out tests; weakening assertions
+  - stubbing endpoints to return hardcoded/fake data to satisfy a test
+  - adding eslint-disable or #[allow(...)] to silence a lint instead of fixing it
+  - relaxing or narrowing the gate command itself
+  - writing a test that asserts nothing meaningful
+A PostToolUse hook rejects stub patterns at write time, and a fresh-context
+adversarial reviewer re-checks the diff. If the task cannot be done honestly,
+STOP and say why — BLOCKED is an acceptable outcome; faking is not.
+###################################################################
+
+## Starting state — read this carefully, it is not what CLAUDE.md implies
+
+CLAUDE.md claims: "Node.js event indexer (indexer/) exposes a 24-endpoint REST
+API over chain events" and gives the test command "cd indexer && npm test".
+
+That is AS-DESIGNED INTENT, NOT REALITY. The actual current state of indexer/ is
+a single Python file, reconcile.py. There is no package.json, no server, no
+routes, no JS test suite. You are building this component from nothing.
+
+Do not treat the CLAUDE.md claim as evidence that code exists somewhere. Verify
+the tree yourself first (ls indexer/) and work from what is actually there.
+
+## What to build
+
+A Node.js service in indexer/ that subscribes to the chain over RPC, persists
+the events it sees, and exposes them as a versioned REST API.
+
+Chain connection: ws://127.0.0.1:9944 (a stock substrate node may be running
+there; if nothing is listening, your tests must NOT require a live chain — see
+"Testing strategy" below).
+
+### Step 1 — write the API spec BEFORE any implementation
+
+There is no written 24-endpoint spec anywhere in this repo; the number 24 is
+asserted in CLAUDE.md without an enumeration. Your first deliverable is
+indexer/API.md enumerating exactly 24 endpoints, derived from the events and
+storage the chain ACTUALLY emits. Read the real sources to build this list:
+
+  - pallets/*/src/lib.rs  -> every #[pallet::event] variant, every storage item
+  - runtime/src/lib.rs    -> construct_runtime pallet set
+  - pallets: agents, escrow, oracle, emissions, auto-params, orchestrator,
+    constitution
+
+Group the endpoints coherently, e.g.:
+  - health/meta:      GET /health, GET /v1/meta/chain, GET /v1/meta/sync
+  - blocks:           GET /v1/blocks, GET /v1/blocks/:number
+  - events:           GET /v1/events (filter by pallet/type/range), by-pallet
+  - agents:           list, by-id, registrations, rank history
+  - escrow:           agreements, by-id, releases, disputes
+  - oracle:           requests, submissions, accuracy per agent
+  - emissions:        eras, era detail, rewards per agent, claims, supply
+  - orchestrator:     links, sub-agent relations
+  - governance:       referenda/votes as indexed, constitution state
+
+For each endpoint document: method, path, path/query params, response shape
+(with field types), error responses, and pagination. Commit API.md before you
+write implementation code, and keep the endpoint count at exactly 24 — if your
+event survey suggests a different natural number, still deliver 24 and record in
+API.md which groupings you merged or split to land there, and why.
+
+### Step 2 — tests from the spec
+
+Create the Node project (package.json with a real "test" script) and write the
+test suite from API.md, before implementing routes. Cover, per endpoint:
+  - 200 happy path with a correct response SHAPE (assert field names and types,
+    not just a 200 status)
+  - 404 for unknown ids, 400 for malformed params
+  - pagination bounds (limit/offset behaviour, and the cap on limit)
+Plus decoding tests: feed recorded/synthetic event payloads through the decoder
+and assert the persisted rows are correct.
+
+### Step 3 — implementation
+
+Subscriber (polkadot-js/api over the ws endpoint), a persistence layer (SQLite
+is fine; document the choice), decoders per pallet event, and the HTTP layer
+serving exactly the endpoints in API.md.
+
+## Testing strategy — this matters
+
+The gate must pass WITHOUT a live chain, because there may be no node running at
+ws://127.0.0.1:9944 when the gate runs. So:
+  - Unit/route/decoder tests: run against fixtures and an injected/in-memory
+    store. These are the gate.
+  - Live-chain tests: gate them behind an env var (e.g. RUN_INTEGRATION=1), the
+    way sdk/ already does with test:integration. They must be skipped by
+    default, and skipping them must be visible in the output, not silent.
+This is NOT permission to fake the API. Fixtures stand in for the chain; the
+decoding and serving logic under test must be the real logic.
+
+## Repo conventions
+
+  - Match the existing sdk/ project layout and tooling style where sensible.
+  - No silent retries (see sdk/README.md); surface errors.
+  - Balance values are u128 plancks (1 CMN = 10^12); never use JS floats for
+    them. Use BigInt or strings end to end, and test a value above 2^53.
+
+## THE GATE (the only definition of success)
+
+    cd indexer && npm test
+
+It is run in the repository root's worktree after you stop. Exit 0 is the only
+success. Run it yourself first. The suite must contain real assertions over real
+logic — a passing suite that tests nothing is a failure of this task, and the
+reviewer will catch it.
+
+Additional requirement the gate cannot see, which the reviewer WILL check:
+indexer/API.md must exist, enumerate 24 endpoints, and match the routes you
+actually implemented.
+
+Commit in small scoped steps ("indexer: add escrow event decoder"). Do not push
+and do not open a PR — the factory handles that.
+## TRIAGE HINT (2026-08-01)
+The gate runs `npm ci`, which REQUIRES indexer/package-lock.json. Run `npm
+install` once inside indexer/ to generate it, COMMIT package.json AND
+package-lock.json, then make `npm test` genuinely pass.

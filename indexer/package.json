@@ -1,0 +1,27 @@
+{
+  "name": "@scalar-commons/indexer",
+  "version": "0.1.0",
+  "description": "Event indexer and versioned REST API for Scalar Commons. Subscribes to finalized blocks on a live node, persists blocks/extrinsics/events, and serves them over a 24-endpoint v1 REST surface.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node --experimental-strip-types --disable-warning=ExperimentalWarning src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@polkadot/api": "^15.0.0",
+    "@polkadot/util": "^13.0.0",
+    "@polkadot/util-crypto": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.4.0",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

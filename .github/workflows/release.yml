@@ -1,0 +1,116 @@
+# release — publish a prebuilt node binary for outside validators.
+#
+# WHY THIS EXISTS: the validator guide (docs/guide/run-a-validator.md) asks an
+# outsider to run `scalar-node`. Until this workflow the only way to get one was
+# a from-source build on the pinned 1.85.0 toolchain against polkadot-stable2503
+# — tens of minutes and ~30 GB of disk before a node even starts. A release
+# turns that into a download plus a checksum check, and the source build stays
+# documented as the fallback.
+#
+# WHAT IT PUBLISHES, for a tag `v*`:
+#   scalar-node-linux-x86_64         the release binary, built by `cargo build --release`
+#   scalar-node-linux-x86_64.sha256  `sha256sum` line for it, verifiable with `sha256sum -c`
+#
+# Built on ubuntu-22.04 rather than ubuntu-latest on purpose: a binary links
+# against the glibc of the machine that built it and runs on that glibc or
+# newer, never older. The older runner makes the one artifact usable on more
+# operator hosts (22.04, 24.04, Debian 12/13) at no cost to anyone.
+#
+# The toolchain is read from rust-toolchain.toml exactly as ci-full.yml does,
+# so a release can never be built with a different rustc than CI verified.
+name: release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  node-linux-x86_64:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    env:
+      # The release binary carries no debuginfo either way; this only keeps
+      # build-script and proc-macro artifacts small. See ci-full.yml for the
+      # disk measurements behind it.
+      CARGO_PROFILE_DEV_DEBUG: "0"
+    steps:
+      - name: Free runner disk
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          docker image prune -af || true
+          df -h /
+
+      - uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      - name: Resolve pinned toolchain
+        id: toolchain
+        run: echo "channel=$(grep -oP 'channel\s*=\s*"\K[^"]+' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+          targets: wasm32v1-none
+          components: rust-src
+      - name: Assert the pinned toolchain is what we got
+        run: |
+          rustc --version
+          rustc --version | grep -q '${{ steps.toolchain.outputs.channel }}'
+
+      - name: Build release (runtime WASM + node binary)
+        run: cargo build --release
+
+      # The same anti-stub check ci-full.yml runs: a binary that cannot print
+      # its version and build a raw spec from its own runtime is not shipped.
+      - name: The binary must actually be a node
+        run: |
+          ./target/release/scalar-node --version
+          ./target/release/scalar-node build-spec --chain dev --raw > /dev/null
+
+      - name: Package with checksum
+        run: |
+          mkdir dist
+          cp target/release/scalar-node dist/scalar-node-linux-x86_64
+          strip dist/scalar-node-linux-x86_64
+          cd dist
+          sha256sum scalar-node-linux-x86_64 > scalar-node-linux-x86_64.sha256
+          cat scalar-node-linux-x86_64.sha256
+          ldd scalar-node-linux-x86_64 || true
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          CHANNEL: ${{ steps.toolchain.outputs.channel }}
+        run: |
+          VERSION="$(./target/release/scalar-node --version)"
+          {
+            echo "Prebuilt \`scalar-node\` for Linux x86_64 (glibc >= 2.35), built by"
+            echo "\`.github/workflows/release.yml\` from \`${GITHUB_SHA}\` on the pinned"
+            echo "toolchain (rust ${CHANNEL}, polkadot-stable2503)."
+            echo
+            echo "\`${VERSION}\`"
+            echo
+            echo "Verify before running:"
+            echo
+            echo '```sh'
+            echo 'sha256sum -c scalar-node-linux-x86_64.sha256'
+            echo '```'
+            echo
+            echo "Operator guide: https://scalarnet.io/docs/guide/run-a-validator"
+          } > notes.md
+          gh release create "$TAG" \
+            dist/scalar-node-linux-x86_64 \
+            dist/scalar-node-linux-x86_64.sha256 \
+            --title "$TAG" \
+            --notes-file notes.md

@@ -1,0 +1,43 @@
+[Unit]
+Description=Scalar Commons indexer — REST API on 127.0.0.1:8080
+Documentation=file:///home/dev/scalar-commons-v4/deploy/products/README.md
+# The indexer is a follower of a node, not a peer of one: it subscribes to
+# finalized blocks over RPC. Ordering only — `After=` with no `Requires=` and no
+# `Wants=` on alice — because alice going down must not take the API down: the
+# RPC client reconnects on its own and the already-indexed history stays
+# queryable while she is away. Startup is the exception: the indexer connects
+# before it binds, so it exits if alice is down at start and systemd retries it.
+After=network-online.target scalar-alice.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=/home/dev/scalar-commons-v4/indexer
+
+# Defaults first, EnvironmentFile second: systemd applies these in file order,
+# so anything the operator sets in the env file wins over what is baked here.
+# The baked values are the ones that must hold even on a machine where the env
+# file was never created — in particular the port, because all three products
+# default to 8080 in code and would collide.
+Environment=INDEXER_HOST=127.0.0.1
+Environment=INDEXER_PORT=8080
+Environment=INDEXER_RPC_URL=ws://127.0.0.1:9944
+Environment=INDEXER_DB=%h/scalar-products/indexer/indexer.sqlite
+EnvironmentFile=-%h/.config/scalar-commons/indexer.env
+
+# Relative to WorkingDirectory. --experimental-strip-types runs the TypeScript
+# sources directly, which is what `npm start` does — the indexer has no build
+# step, so there is no dist/ to drift out of date with src/.
+ExecStart=/usr/bin/node --experimental-strip-types --disable-warning=ExperimentalWarning src/index.ts
+
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-indexer
+
+[Install]
+# Pulled in by default.target, which the user manager reaches at boot because
+# `loginctl enable-linger dev` is set — same mechanism the validators use.
+WantedBy=default.target

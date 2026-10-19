@@ -1,0 +1,23 @@
+{
+  "name": "@scalar-commons/docs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Developer and user documentation for the Scalar Commons chain.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vitepress dev .",
+    "build": "vitepress build .",
+    "preview": "vitepress preview .",
+    "lint": "markdownlint-cli2 \"index.md\" \"guide/**/*.md\" \"reference/**/*.md\" && node scripts/check-chain-values.mjs",
+    "snapshot:chain": "node scripts/snapshot-chain.mjs"
+  },
+  "devDependencies": {
+    "@polkadot/api": "^15.9.2",
+    "markdownlint-cli2": "^0.18.1",
+    "vitepress": "^1.6.3"
+  },
+  "engines": {
+    "node": ">=20.19"
+  }
+}

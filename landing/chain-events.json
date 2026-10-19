@@ -1,0 +1,339 @@
+{
+  "provenance": {
+    "endpoint": "https://rpc.scalarnet.io",
+    "specName": "scalar-commons",
+    "specVersion": 309,
+    "genesisHash": "0xff6882b49ad61dd3128a6e834b4f81704a3824ce358f2f69fe765ca07cf803d1",
+    "readAtBlock": 920067,
+    "readAtHash": "0xc290ee94ad5f888ed7d57372b6620b153c34ff1a01284369a6b77116be8426d2",
+    "readAt": "2026-10-06T14:55:29.676Z",
+    "metadataVersion": 14
+  },
+  "pallets": {
+    "system": [
+      "CodeUpdated",
+      "ExtrinsicFailed",
+      "ExtrinsicSuccess",
+      "KilledAccount",
+      "NewAccount",
+      "RejectedInvalidAuthorizedUpgrade",
+      "Remarked",
+      "UpgradeAuthorized"
+    ],
+    "balances": [
+      "BalanceSet",
+      "Burned",
+      "Deposit",
+      "DustLost",
+      "Endowed",
+      "Frozen",
+      "Issued",
+      "Locked",
+      "Minted",
+      "Rescinded",
+      "ReserveRepatriated",
+      "Reserved",
+      "Restored",
+      "Slashed",
+      "Suspended",
+      "Thawed",
+      "TotalIssuanceForced",
+      "Transfer",
+      "Unlocked",
+      "Unreserved",
+      "Upgraded",
+      "Withdraw"
+    ],
+    "offences": [
+      "Offence"
+    ],
+    "voterList": [
+      "Rebagged",
+      "ScoreUpdated"
+    ],
+    "transactionPayment": [
+      "TransactionFeePaid"
+    ],
+    "vesting": [
+      "VestingCompleted",
+      "VestingUpdated"
+    ],
+    "treasury": [
+      "AssetSpendApproved",
+      "AssetSpendVoided",
+      "Awarded",
+      "Burnt",
+      "Deposit",
+      "Paid",
+      "PaymentFailed",
+      "Rollover",
+      "SpendApproved",
+      "SpendProcessed",
+      "Spending",
+      "UpdatedInactive"
+    ],
+    "sudo": [
+      "KeyChanged",
+      "KeyRemoved",
+      "Sudid",
+      "SudoAsDone"
+    ],
+    "utility": [
+      "BatchCompleted",
+      "BatchCompletedWithErrors",
+      "BatchInterrupted",
+      "DispatchedAs",
+      "IfElseFallbackCalled",
+      "IfElseMainSuccess",
+      "ItemCompleted",
+      "ItemFailed"
+    ],
+    "multisig": [
+      "DepositPoked",
+      "MultisigApproval",
+      "MultisigCancelled",
+      "MultisigExecuted",
+      "NewMultisig"
+    ],
+    "scheduler": [
+      "AgendaIncomplete",
+      "CallUnavailable",
+      "Canceled",
+      "Dispatched",
+      "PeriodicFailed",
+      "PermanentlyOverweight",
+      "RetryCancelled",
+      "RetryFailed",
+      "RetrySet",
+      "Scheduled"
+    ],
+    "preimage": [
+      "Cleared",
+      "Noted",
+      "Requested"
+    ],
+    "referenda": [
+      "Approved",
+      "Cancelled",
+      "ConfirmAborted",
+      "ConfirmStarted",
+      "Confirmed",
+      "DecisionDepositPlaced",
+      "DecisionDepositRefunded",
+      "DecisionStarted",
+      "DepositSlashed",
+      "Killed",
+      "MetadataCleared",
+      "MetadataSet",
+      "Rejected",
+      "SubmissionDepositRefunded",
+      "Submitted",
+      "TimedOut"
+    ],
+    "convictionVoting": [
+      "Delegated",
+      "Undelegated",
+      "VoteRemoved",
+      "VoteUnlocked",
+      "Voted"
+    ],
+    "rankedCollective": [
+      "MemberAdded",
+      "MemberExchanged",
+      "MemberRemoved",
+      "RankChanged",
+      "Voted"
+    ],
+    "identity": [
+      "AuthorityAdded",
+      "AuthorityRemoved",
+      "DanglingUsernameRemoved",
+      "IdentityCleared",
+      "IdentityKilled",
+      "IdentitySet",
+      "JudgementGiven",
+      "JudgementRequested",
+      "JudgementUnrequested",
+      "PreapprovalExpired",
+      "PrimaryUsernameSet",
+      "RegistrarAdded",
+      "SubIdentitiesSet",
+      "SubIdentityAdded",
+      "SubIdentityRemoved",
+      "SubIdentityRenamed",
+      "SubIdentityRevoked",
+      "UsernameKilled",
+      "UsernameQueued",
+      "UsernameRemoved",
+      "UsernameSet",
+      "UsernameUnbound"
+    ],
+    "agents": [
+      "AgentRegistered",
+      "CapabilitySet",
+      "EraMapsCleared",
+      "EraVolumeAdded",
+      "FundingLineageLinked",
+      "FundingLineageUnlinked",
+      "GovVoteRecorded",
+      "HeartbeatBackfilled",
+      "HeartbeatSent",
+      "MessagingKeyCleared",
+      "MessagingKeySet",
+      "MetadataUpdated",
+      "SlashAppealWithdrawn",
+      "SlashAppealed",
+      "SlashExecuted",
+      "StakeAdded",
+      "UnstakeCompleted",
+      "UnstakeRequested",
+      "VotingDelegated",
+      "VotingDelegationRemoved"
+    ],
+    "escrow": [
+      "AgreementAccepted",
+      "AgreementCreated",
+      "AgreementExpired",
+      "AgreementRejected",
+      "DeadlineExtended",
+      "DeliveryConfirmed",
+      "DeliveryRecorded",
+      "DisputeOpened",
+      "DisputeResolved",
+      "PendingCancelled",
+      "RefundClaimed"
+    ],
+    "oracle": [
+      "BatchResponseSubmitted",
+      "OracleRequestCreated",
+      "OracleRequestExpired",
+      "OracleRequestFinalised",
+      "OracleResponseSubmitted",
+      "ScoreUpdated"
+    ],
+    "emissions": [
+      "CapReached",
+      "EmissionCappedByVolume",
+      "EmissionOverrideSet",
+      "EraSettled",
+      "NextEraScheduled",
+      "RewardClaimed"
+    ],
+    "autoParams": [
+      "BoundsUpdated",
+      "ParamAutoAdjusted",
+      "ParamSetByGovernance"
+    ],
+    "orchestrator": [
+      "LinkAccepted",
+      "LinkProposalCancelled",
+      "LinkProposalDeclined",
+      "LinkProposed",
+      "LinkRemoved",
+      "OrchestratorDeregistered",
+      "OrchestratorRegistered",
+      "OrchestratorRewardClaimed"
+    ],
+    "nominationPools": [
+      "Bonded",
+      "Created",
+      "Destroyed",
+      "GlobalParamsUpdated",
+      "MemberClaimPermissionUpdated",
+      "MemberRemoved",
+      "MetadataUpdated",
+      "MinBalanceDeficitAdjusted",
+      "MinBalanceExcessAdjusted",
+      "PaidOut",
+      "PoolCommissionChangeRateUpdated",
+      "PoolCommissionClaimPermissionUpdated",
+      "PoolCommissionClaimed",
+      "PoolCommissionUpdated",
+      "PoolMaxCommissionUpdated",
+      "PoolNominationMade",
+      "PoolNominatorChilled",
+      "PoolSlashed",
+      "RolesUpdated",
+      "StateChanged",
+      "Unbonded",
+      "UnbondingPoolSlashed",
+      "Withdrawn"
+    ],
+    "whitelist": [
+      "CallWhitelisted",
+      "WhitelistedCallDispatched",
+      "WhitelistedCallRemoved"
+    ],
+    "staking": [
+      "Bonded",
+      "Chilled",
+      "ControllerBatchDeprecated",
+      "CurrencyMigrated",
+      "EraPaid",
+      "ForceEra",
+      "Kicked",
+      "OldSlashingReportDiscarded",
+      "PayoutStarted",
+      "Rewarded",
+      "SlashReported",
+      "Slashed",
+      "SnapshotTargetsSizeExceeded",
+      "SnapshotVotersSizeExceeded",
+      "StakersElected",
+      "StakingElectionFailed",
+      "Unbonded",
+      "ValidatorPrefsSet",
+      "Withdrawn"
+    ],
+    "grandpa": [
+      "NewAuthorities",
+      "Paused",
+      "Resumed"
+    ],
+    "session": [
+      "NewSession",
+      "ValidatorDisabled",
+      "ValidatorReenabled"
+    ],
+    "safeMode": [
+      "CannotDeposit",
+      "CannotRelease",
+      "DepositPlaced",
+      "DepositReleased",
+      "DepositSlashed",
+      "Entered",
+      "Exited",
+      "Extended"
+    ],
+    "txPause": [
+      "CallPaused",
+      "CallUnpaused"
+    ],
+    "constitution": [
+      "InvariantsHealthy",
+      "SupplyCapApproaching",
+      "SupplyCapBreachBlocked"
+    ],
+    "rankedPolls": [
+      "Approved",
+      "Cancelled",
+      "ConfirmAborted",
+      "ConfirmStarted",
+      "Confirmed",
+      "DecisionDepositPlaced",
+      "DecisionDepositRefunded",
+      "DecisionStarted",
+      "DepositSlashed",
+      "Killed",
+      "MetadataCleared",
+      "MetadataSet",
+      "Rejected",
+      "SubmissionDepositRefunded",
+      "Submitted",
+      "TimedOut"
+    ],
+    "messages": [
+      "MessageSent"
+    ]
+  }
+}

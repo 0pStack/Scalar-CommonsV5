@@ -1,0 +1,83 @@
+{
+ "RUN-A": {
+  "ratio": [
+   -887.1899999999998,
+   -887.1899999999998,
+   -887.1899999999998
+  ],
+  "rho": [
+   -0.5879069343496006,
+   -0.5879069343496006,
+   -0.5879069343496006
+  ],
+  "gini": [
+   0.5260849509298967,
+   0.5260849509298967,
+   0.5260849509298967
+  ],
+  "top1": [
+   0.011796315117764638,
+   0.011796315117764638,
+   0.011796315117764638
+  ],
+  "pool_used": [
+   1000000.0,
+   1000000.0,
+   1000000.0
+  ],
+  "staker_earn_mean": [
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "RUN-B": {
+  "note": "NO ANALOGUE under verified formula: single weight, no work:stake split (F-1). A pure staker earns 0 regardless (weight=0 without escrow work)."
+ },
+ "NC-3": {
+  "observed": -0.5879069343496006,
+  "perm95": 0.1913147148862659
+ },
+ "RUN-C": {
+  "net_at_capped_pool": [
+   -30.0,
+   -30.0,
+   -30.0
+  ],
+  "sybil_earn_mean": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "pool_used": 1000000.0,
+  "break_even_pool_exact": "infinite (weight=0 for zero-work agents; no stake pool, F-1)"
+ },
+ "RUN-D": {
+  "net_per_era_at_capped_pool": [
+   1556.4082243577097,
+   1556.4082243577097,
+   1556.4082243577097
+  ],
+  "gross_per_era": [
+   1696.4082243577097,
+   1696.4082243577097,
+   1696.4082243577097
+  ],
+  "pool_used": 1000000.0
+ },
+ "RUN-E": {
+  "uplift": [
+   -6.9390847079464635e-06,
+   6.9390847079464635e-06,
+   -6.939036557351841e-06
+  ],
+  "note": "oracle score bonus inert on-chain (OracleScoreProvider=(), best_score=0, F-5); any residual delta is fee-model noise vs the 500-vol worker reference."
+ },
+ "RUN-F": {
+  "settled": 100,
+  "p95_lag_frac": 0.006499369185706572
+ },
+ "NC-2": {
+  "worker_metric": "undefined (no A-1 cohort)"
+ }
+}

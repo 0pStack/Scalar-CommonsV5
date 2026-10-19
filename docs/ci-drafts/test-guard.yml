@@ -1,0 +1,78 @@
+# test-guard — DRAFT. Not enabled: this file lives under docs/ci-drafts/, not .github/workflows/.
+#
+# WHY: a check that quietly loses its tests still goes green. This fails a PR
+# that lowers the #[test] count or raises the #[ignore] count under pallets/**
+# or testkit/**, unless a maintainer applies the label `tests-intentionally-changed`
+# (the label is the explicit, reviewable acknowledgement).
+#
+# Counting is textual (grep), deliberately dumb and auditable. Rust `#[test]`
+# and `#[ignore]` lines are counted in *.rs; testkit TypeScript `it(`/`test(`
+# calls are counted as tests and `.skip(`/`.todo(` as ignores.
+name: test-guard
+
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare test counts against the base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          set -euo pipefail
+
+          count() { # count <rev|WORKTREE> <extended-regex> <pathspec...>
+            local rev="$1" re="$2"; shift 2
+            if [ "$rev" = WORKTREE ]; then
+              git grep -hE "$re" -- "$@" | wc -l
+            else
+              git grep -hE "$re" "$rev" -- "$@" | wc -l
+            fi
+          }
+
+          RUST_TEST='^[[:space:]]*#\[(tokio::)?test([[:space:]]*\(.*\))?\]'
+          RUST_IGN='^[[:space:]]*#\[ignore([[:space:]]*[=(].*)?\]'
+          TS_TEST='^[[:space:]]*(it|test)(\.each\(.*\))?\('
+          TS_IGN='^[[:space:]]*(it|test|describe)\.(skip|todo)\('
+
+          P_RS=('pallets/**/*.rs' 'testkit/**/*.rs')
+          P_TS=('testkit/**/*.ts')
+
+          tests_of() { echo $(( $(count "$1" "$RUST_TEST" "${P_RS[@]}") + $(count "$1" "$TS_TEST" "${P_TS[@]}") )); }
+          ign_of()   { echo $(( $(count "$1" "$RUST_IGN"  "${P_RS[@]}") + $(count "$1" "$TS_IGN"  "${P_TS[@]}") )); }
+
+          base_tests=$(tests_of "$BASE_SHA"); head_tests=$(tests_of WORKTREE)
+          base_ign=$(ign_of "$BASE_SHA");     head_ign=$(ign_of WORKTREE)
+
+          echo "tests:   base=$base_tests head=$head_tests"
+          echo "ignored: base=$base_ign head=$head_ign"
+
+          fail=0
+          if [ "$head_tests" -lt "$base_tests" ]; then
+            echo "::error::test count dropped from $base_tests to $head_tests"; fail=1
+          fi
+          if [ "$head_ign" -gt "$base_ign" ]; then
+            echo "::error::ignored-test count rose from $base_ign to $head_ign"; fail=1
+          fi
+
+          if [ "$fail" -eq 1 ]; then
+            case ",$LABELS," in
+              *,tests-intentionally-changed,*)
+                echo "Label 'tests-intentionally-changed' present: allowing."; exit 0 ;;
+            esac
+            echo "Add the label 'tests-intentionally-changed' if this is deliberate, and explain why in the PR body."
+            exit 1
+          fi

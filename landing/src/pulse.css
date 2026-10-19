@@ -1,0 +1,397 @@
+/* /pulse — one screen, in the observatory's design system. The tokens, the
+   top bar, the button, the tooltip and the reading come from observatory.css,
+   inlined ahead of this file; nothing here restates them. The stage is the
+   whole viewport under the bar: the constellation on the left, the ticker in
+   a 320 px column on the right, the three live figures and the legend in a
+   strip across the top. One colour is added: green, for a payment that
+   settled — the observatory has no event that deserves it; this page does.
+   No gradients, no glow layers beyond the canvas's own soft halo, nothing
+   decorative: the page is calm until the chain does something. */
+:root {
+  --paid: #4fc37a;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --paid: #1d7a3f;
+  }
+}
+html,
+body {
+  height: 100%;
+}
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+.pulse {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+/* ── the strip: three figures, one caption, the legend ───────────────────── */
+.pulse-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-5);
+  align-items: end;
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+.pulse-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+}
+.pulse-figure {
+  /* A fixed width in every state: three figures sit in one row at any width
+     above the phone break, and an "unavailable" figure never widens its row. */
+  flex: 0 0 13rem;
+  width: 13rem;
+}
+.pulse-figure .reading-value .error {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pulse-figure .reading-value {
+  /* One figure-line tall whatever it holds — the skeleton, the number or
+     "unavailable" — so the strip never changes height and the stage never
+     moves (the observatory holds CLS under 0.02; so does this page). */
+  display: flex;
+  align-items: flex-end;
+  height: var(--t-figure-l);
+  font-family: var(--font-serif);
+  font-size: var(--t-figure-l);
+  line-height: var(--lh-figure-l);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums lining-nums;
+  margin: 0;
+  overflow: hidden;
+}
+.pulse-figure .reading-value.is-error {
+  flex-wrap: wrap;
+  align-content: flex-end;
+  font-family: var(--font-sans);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  font-weight: 500;
+}
+.pulse-figure .reading-label {
+  margin: var(--space-1) 0 0;
+}
+.pulse-caption {
+  grid-column: 1;
+  margin: 0;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+.pulse-legend {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+  align-self: center;
+}
+.pulse-legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  white-space: nowrap;
+}
+/* The six symbols, each the shape the canvas draws for that event. */
+.sym {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  position: relative;
+  flex: none;
+}
+.sym::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+.sym-thread::before {
+  width: 16px;
+  height: 2px;
+  background: var(--live);
+}
+.sym-particle::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--live);
+}
+.sym-paid::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--paid);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--paid);
+}
+.sym-dispute::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--disputed);
+}
+.sym-spark::before {
+  width: 2px;
+  height: 12px;
+  background: var(--live);
+  transform: rotate(45deg);
+}
+.sym-agent::before {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text-dim);
+}
+
+/* ── the stage: the constellation and the ticker ─────────────────────────── */
+.pulse-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  min-height: 0;
+}
+.pulse-stage[data-ticker="closed"] {
+  grid-template-columns: minmax(0, 1fr) 40px;
+}
+.pulse-field {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+.pulse-graph {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+  cursor: grab;
+}
+.pulse-graph:active {
+  cursor: grabbing;
+}
+.pulse-graph canvas {
+  display: block;
+}
+.pulse-tip {
+  position: absolute;
+  pointer-events: none;
+  max-width: 20rem;
+  z-index: 2;
+}
+.pulse-banner {
+  position: absolute;
+  top: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  white-space: nowrap;
+}
+.pulse-fallback {
+  position: absolute;
+  inset: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  background: var(--bg);
+}
+.pulse-fallback ol {
+  columns: 16rem;
+  column-gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  padding-left: var(--space-4);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+}
+
+/* ── the ticker ──────────────────────────────────────────────────────────── */
+.ticker {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--surface);
+}
+.ticker-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.ticker-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--t-eyebrow);
+  line-height: var(--lh-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.ticker-following[hidden] {
+  display: none;
+}
+.ticker-following {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+.ticker-lines {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: auto;
+}
+.ticker-lines li {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  box-shadow: inset 2px 0 var(--live);
+  animation: ticker-in 300ms ease-out 1;
+}
+.ticker-lines li[data-kind="settled"] {
+  box-shadow: inset 2px 0 var(--paid);
+}
+.ticker-lines li[data-kind="dispute"] {
+  box-shadow: inset 2px 0 var(--disputed);
+}
+.ticker-lines li[data-kind="registered"] {
+  box-shadow: inset 2px 0 var(--text-dim);
+}
+.ticker-lines a {
+  color: var(--text);
+  text-decoration: none;
+}
+.ticker-lines a:hover,
+.ticker-lines a:focus-visible {
+  text-decoration: underline;
+}
+.ticker-age {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.ticker-empty {
+  margin: 0;
+  padding: var(--space-3);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+.pulse-stage[data-ticker="closed"] .ticker-title,
+.pulse-stage[data-ticker="closed"] .ticker-following,
+.pulse-stage[data-ticker="closed"] .ticker-lines,
+.pulse-stage[data-ticker="closed"] .ticker-empty {
+  display: none;
+}
+.pulse-stage[data-ticker="closed"] .ticker-head {
+  justify-content: center;
+  padding: var(--space-2) 0;
+}
+@keyframes ticker-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── small screens: the ticker becomes a sheet along the bottom ──────────── */
+@media (max-width: 720px) {
+  .pulse-strip {
+    grid-template-columns: minmax(0, 1fr);
+    padding-inline: var(--space-3);
+  }
+  .pulse-figures {
+    gap: var(--space-2) var(--space-4);
+  }
+  .pulse-figure {
+    flex-basis: 10rem;
+    width: 10rem;
+  }
+  .pulse-figure .reading-value {
+    font-size: var(--t-h3);
+    line-height: var(--lh-h3);
+  }
+  .pulse-caption,
+  .pulse-legend {
+    grid-column: 1;
+    grid-row: auto;
+  }
+  .pulse-legend {
+    grid-template-columns: repeat(2, auto);
+    justify-content: start;
+  }
+  .pulse-stage {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 40vh;
+  }
+  .pulse-stage[data-ticker="closed"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 40px;
+  }
+  .ticker {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+  }
+  .pulse-banner {
+    white-space: normal;
+    max-width: calc(100% - 2 * var(--space-3));
+  }
+}
+
+/* Reduced motion: the canvas draws a still layout (main.js asks the graph
+   for no effects and no drift); the ticker's lines appear without a fade. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-lines li {
+    animation: none;
+  }
+}
+
+/* The bar's dot while the feed is not live: amber for a feed that is down or
+   behind the chain (the observatory's dispute colour: something is wrong, not
+   dangerous), the plate's grey while connecting. */
+.pulse-bar[data-state="connecting"] .pulse-dot {
+  background: var(--text-dim);
+}
+.pulse-bar[data-state="stale"] .pulse-dot,
+.pulse-bar[data-state="unavailable"] .pulse-dot {
+  background: var(--disputed);
+}

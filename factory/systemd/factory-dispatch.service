@@ -1,0 +1,18 @@
+[Unit]
+Description=Scalar Commons factory dispatcher (STAGE 2 — issue-driven autonomous work)
+Documentation=file:///home/dev/scalar-commons-v4/factory/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/dev/scalar-commons-v4
+# dispatch.sh refuses to run unless ENABLE_DISPATCH=true in factory/config.env,
+# so enabling this timer is not sufficient to start autonomous work — the config
+# flag is a second, independent switch. Both are required, on purpose.
+ExecStart=/home/dev/scalar-commons-v4/factory/dispatch.sh
+# Workers source ~/.factory/env themselves (loop.sh -> load_billing_env), which
+# is why no API key is referenced here. Keeping the key out of unit files means
+# it never lands in journald or systemctl show output.
+TimeoutStartSec=6h
+Nice=10
+StandardOutput=append:/home/dev/scalar-commons-v4/factory/logs/dispatch.systemd.log
+StandardError=append:/home/dev/scalar-commons-v4/factory/logs/dispatch.systemd.log

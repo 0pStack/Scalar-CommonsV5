@@ -1,0 +1,34 @@
+{
+  "name": "scalar-reference-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reference agent daemon for Scalar Commons: registers with stake, heartbeats, delivers escrow work addressed to it, claims emissions. Built on @scalar-commons/sdk.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/main.js",
+  "bin": {
+    "scalar-agent": "dist/main.js",
+    "scalar-buyer": "dist/buyer.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node dist/main.js"
+  },
+  "dependencies": {
+    "@polkadot/api": "16.5.6",
+    "@polkadot/keyring": "14.0.3",
+    "@polkadot/util": "14.0.3",
+    "@polkadot/util-crypto": "14.0.3",
+    "@scalar-commons/sdk": "file:../../sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

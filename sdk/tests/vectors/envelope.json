@@ -1,0 +1,136 @@
+{
+  "description": "Scalar Commons spec-308 signed message envelope v1 test vectors. See docs/reference/messaging.md.",
+  "generator": "sdk/scripts/gen-envelope-vectors.mjs",
+  "signingDomain": "ScalarMsg/v1|",
+  "genesisHash": "0x1111111111111111111111111111111111111111111111111111111111111111",
+  "ss58Format": 42,
+  "messages": [
+    {
+      "name": "rust-reference-offer",
+      "input": {
+        "fromUri": "//Alice",
+        "from": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "toUri": "//Bob",
+        "to": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "kind": "Offer",
+        "agreement": {
+          "account": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+          "seq": 3
+        },
+        "nonce": "1",
+        "expiresAtBlock": 1200000,
+        "plaintext": "0x6f666665723a20323520434d4e20666f72207265706f72742023372c2064656c6976657220627920626c6f636b2031323030303030",
+        "body": "Plain"
+      },
+      "expected": {
+        "payloadHash": "0xd9fa590db58b192d3e27054e3210b8e905fc0f1c043dfce81ec6bd3bbaad55ec",
+        "scaleEnvelope": "0x01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4800018eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48030000000100000000000000804f1200d9fa590db58b192d3e27054e3210b8e905fc0f1c043dfce81ec6bd3bbaad55ec",
+        "signingHash": "0xe5bba61ef4d05553662760a8ae8ff35576c165b88e4441ea5a96f9f9fd99d421",
+        "scaleBody": "0x01d46f666665723a20323520434d4e20666f72207265706f72742023372c2064656c6976657220627920626c6f636b2031323030303030"
+      },
+      "sample": {
+        "signature": "0x2699750bf1f6bb015621e00f0ebece8b7eb0d5537ae56f44efa5e36547363164fa4d8262c6a6536d53da2a6417a46a17ace904d96fe9ef713d8b6d1f623c6e85",
+        "signedMessage": "0x01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4800018eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48030000000100000000000000804f1200d9fa590db58b192d3e27054e3210b8e905fc0f1c043dfce81ec6bd3bbaad55ec2699750bf1f6bb015621e00f0ebece8b7eb0d5537ae56f44efa5e36547363164fa4d8262c6a6536d53da2a6417a46a17ace904d96fe9ef713d8b6d1f623c6e8501d46f666665723a20323520434d4e20666f72207265706f72742023372c2064656c6976657220627920626c6f636b2031323030303030"
+      }
+    },
+    {
+      "name": "accept-sealed",
+      "input": {
+        "fromUri": "//Bob",
+        "from": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "toUri": "//Alice",
+        "to": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "kind": "Accept",
+        "agreement": {
+          "account": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "seq": 3
+        },
+        "nonce": "1700000000000000",
+        "expiresAtBlock": 4294967295,
+        "plaintext": "0x7b22616363657074223a747275657d",
+        "body": "Sealed",
+        "boxNonce": "0x010101010101010101010101010101010101010101010101"
+      },
+      "expected": {
+        "payloadHash": "0xce8bffcfba50596a325ff8067b6b0cb880dbbfa50c2503598eb0cc71a8aeb1cf",
+        "scaleEnvelope": "0x018eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0201d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0300000000401e18240a0600ffffffffce8bffcfba50596a325ff8067b6b0cb880dbbfa50c2503598eb0cc71a8aeb1cf",
+        "signingHash": "0x66420b5b6276c0c5ccddc52b6055a50982b9686c45c17a954bd011e5312d66b5",
+        "scaleBody": "0x028dc20b28afe80c2fd626899c93284eea3771af4dd9ed62d0bc1dc23ce197ad3a0101010101010101010101010101010101010101010101017c0698b896c46a510eab3675454c3c8c7adec1bd49e19018565886ec6708d35e"
+      },
+      "sample": {
+        "signature": "0x5c7f1313dcd4b874a8ac72da95443edfcb609633b57f9c7dadfcff58091c734d5c509cb3c8611fe25113e1cecfe3a87fb9ef82da04af72458bd2e5c4c619fa88",
+        "signedMessage": "0x018eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0201d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0300000000401e18240a0600ffffffffce8bffcfba50596a325ff8067b6b0cb880dbbfa50c2503598eb0cc71a8aeb1cf5c7f1313dcd4b874a8ac72da95443edfcb609633b57f9c7dadfcff58091c734d5c509cb3c8611fe25113e1cecfe3a87fb9ef82da04af72458bd2e5c4c619fa88028dc20b28afe80c2fd626899c93284eea3771af4dd9ed62d0bc1dc23ce197ad3a0101010101010101010101010101010101010101010101017c0698b896c46a510eab3675454c3c8c7adec1bd49e19018565886ec6708d35e"
+      }
+    },
+    {
+      "name": "delivery-notice-hash-only",
+      "input": {
+        "fromUri": "//Alice",
+        "from": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "toUri": "//Bob",
+        "to": "5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty",
+        "kind": "DeliveryNotice",
+        "agreement": {
+          "account": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+          "seq": 0
+        },
+        "nonce": "2",
+        "expiresAtBlock": 1200,
+        "plaintext": "0x7b227265706f7274223a2230783131227d",
+        "body": "None"
+      },
+      "expected": {
+        "payloadHash": "0x276f3393ee7661ff1f617ebee627eae90ddf8fcbb17d7f68c1baf6c5fdb2bfa9",
+        "scaleEnvelope": "0x01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480401d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d000000000200000000000000b0040000276f3393ee7661ff1f617ebee627eae90ddf8fcbb17d7f68c1baf6c5fdb2bfa9",
+        "signingHash": "0x248db41930a51f1e98de5c6e1ca7241b8ceb40777aa3874ef6e9f24248987968",
+        "scaleBody": "0x00"
+      },
+      "sample": {
+        "signature": "0xee41b02261a1157d9de5c7c13f381500bb101214dbd522d09290f7b805ccc172eab54e7814511c0a64a4101ad7cd0c5393f10b45663d52fb1f30223ae85e308e",
+        "signedMessage": "0x01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a480401d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d000000000200000000000000b0040000276f3393ee7661ff1f617ebee627eae90ddf8fcbb17d7f68c1baf6c5fdb2bfa9ee41b02261a1157d9de5c7c13f381500bb101214dbd522d09290f7b805ccc172eab54e7814511c0a64a4101ad7cd0c5393f10b45663d52fb1f30223ae85e308e00"
+      }
+    },
+    {
+      "name": "ping-empty",
+      "input": {
+        "fromUri": "//Charlie",
+        "from": "5FLSigC9HGRKVhB9FiEo4Y3koPsNmBmLJbpXg2mp1hXcS59Y",
+        "toUri": "//Alice",
+        "to": "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+        "kind": "Ping",
+        "agreement": null,
+        "nonce": "18446744073709551615",
+        "expiresAtBlock": 0,
+        "plaintext": "0x",
+        "body": "Plain"
+      },
+      "expected": {
+        "payloadHash": "0x0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8",
+        "scaleEnvelope": "0x0190b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0700ffffffffffffffff000000000e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8",
+        "signingHash": "0x01ada1f85e050e12331bc74118648905d140a576ec0f05d400a5906593b0ffa7",
+        "scaleBody": "0x0100"
+      },
+      "sample": {
+        "signature": "0x76f6e0277947c294abad620ee57714085a98c5261b08b9e5285588a55710157f148b5ffb93ee843cd57f210ce0076ea8d90fb0b6e253c2c4d6c0f581f3315b85",
+        "signedMessage": "0x0190b5ab205c6974c9ea841be688864633dc9ca8a357843eeacf2314649965fe22d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d0700ffffffffffffffff000000000e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a876f6e0277947c294abad620ee57714085a98c5261b08b9e5285588a55710157f148b5ffb93ee843cd57f210ce0076ea8d90fb0b6e253c2c4d6c0f581f3315b850100"
+      }
+    }
+  ],
+  "messagingKeys": [
+    {
+      "suri": "//Alice",
+      "rotation": 0,
+      "publicKey": "0x3b03602806a0f5e831b0688d6a2e263a2772a797603f18ea6b1694efb60e6b31"
+    },
+    {
+      "suri": "//Bob",
+      "rotation": 0,
+      "publicKey": "0x8dc20b28afe80c2fd626899c93284eea3771af4dd9ed62d0bc1dc23ce197ad3a"
+    },
+    {
+      "suri": "//Bob",
+      "rotation": 1,
+      "publicKey": "0xd0cd6a4ea70f83e14b15248dacd63bae44870315276700ba80e09f9c6456c47d"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+/* 04 · history strips — what the design system's .plot-* rules do not cover,
+   and where this instrument departs from them. Tokens only.
+
+   Everything in these strips is history, polled once a minute: none of it is
+   live data, so none of it takes the live accent. Emphasis is by ink weight. */
+
+/* Every strip is drawn from zero, and its zero line is a clear mark in the
+   dim ink (3:1 against the plate); the other hairlines stay quieter. */
+.strip-plot .plot-zero {
+  stroke: var(--text-dim);
+  stroke-width: 1;
+}
+
+.strip-plot .plot-tick {
+  stroke: var(--text-dim);
+}
+
+/* The era still open: an outline, not a filled bar, since its count is not final. */
+.strip-plot .plot-bar.is-open {
+  fill: var(--grid);
+  stroke: var(--text-dim);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+/* A note inside a plot keeps legible where a line crosses it: a plate-coloured halo of ink, not a shadow. */
+.strip-plot .plot-note {
+  letter-spacing: 0.02em;
+  paint-order: stroke;
+  stroke: var(--bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
+
+/* The block-time target band: a tint the line is read against, with hairline
+   edges. Inside the band is on target; a flat line inside it is precision. */
+.strip-plot .plot-band {
+  fill: var(--settled);
+  opacity: 0.16;
+}
+
+.strip-plot .plot-band-edge {
+  stroke: var(--border);
+}
+
+/* The per-era figure under a running total: thinner and dimmer than the total. */
+.strip-plot .plot-line-secondary {
+  stroke: var(--text-dim);
+  stroke-width: 1;
+  opacity: 0.8;
+}
+
+/* The running total's continuation into the era still open: provisional, so dashed. */
+.strip-plot .plot-line-open {
+  stroke: var(--text-dim);
+  stroke-dasharray: 3 3;
+}

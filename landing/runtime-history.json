@@ -1,0 +1,70 @@
+{
+  "note": "Checked-in historical record of runtime upgrades applied to the public testnet, rendered as the upgrade table on /observatory. This is the only source of figures on that page that is not fetched live. Every applied row was cross-checked when it was written: wasm.sha256 and wasm.blake2_256 are digests of the on-chain :code read from the archive node at blockHash (state_getStorage(\"0x3a636f6465\", blockHash) on rpc.scalarnet.io), blake2_256 is the digest the upgrade record in recordFile states, and date is the timestamp.now of that block. The page re-confirms each block against the indexer's system.CodeUpdated events at load time.",
+  "upgrades": [
+    {
+      "specVersion": 305,
+      "status": "applied",
+      "date": "2026-09-09",
+      "appliedAtBlock": 527277,
+      "blockHash": "0x0d951e7493a16e18a19ea34ebd88f2d9a67f1afef172a1a7ec4e44f133965795",
+      "summary": "Stopped staking from minting outside the supply cap: the validator era payout is set to zero.",
+      "wasm": {
+        "bytes": 1153409,
+        "sha256": "9b67d2f14ce062442f6d6abe158fa2bf95d47b9ac7b45e2901f3e065ae60ed2a",
+        "blake2_256": "0xdc0855f41037a8dbc681d4c26e34ff854b8f0509a166ade5fce4b5542025e058"
+      },
+      "recordFile": "UPGRADE-305.md"
+    },
+    {
+      "specVersion": 306,
+      "status": "applied",
+      "date": "2026-09-10",
+      "appliedAtBlock": 543472,
+      "blockHash": "0x8b6938cbfe56130f4377534dde030581eba2abaaf9cdffef6cfc0925b70378d4",
+      "summary": "Bounded each era's emission by the escrow work actually settled, and started an agent's heartbeat clock at registration.",
+      "wasm": {
+        "bytes": 1163692,
+        "sha256": "d57f3cd78cebbf408793cddd081593c45576425eacf5014c38a57b01a4b0a73d",
+        "blake2_256": "0xd5a37c1b5ded9369e821c63ae1683ed5a2cecfe76a78b49a529505d2a6880005"
+      },
+      "recordFile": "UPGRADE-306.md"
+    },
+    {
+      "specVersion": 307,
+      "status": "applied",
+      "date": "2026-09-29",
+      "appliedAtBlock": 813625,
+      "blockHash": "0x9f887c425ba3f0535bd3e5fa8ba8a40d3f0ab780477d33c2958a45efe4d57559",
+      "summary": "Escrow enforces the required capability and the maximum span; slash appeals need a slash record; oracle batches respect the cap.",
+      "wasm": {
+        "bytes": 1172067,
+        "sha256": "0b515ea41bb3b1134072dc696b95d2ce85cf671bf89fc460d8fb20b7cd196d6c",
+        "blake2_256": "0x36fbc7889b2b6b3fc34bfbafd497b9efd37b7d0f422569567f372d2df25e3bf7"
+      },
+      "recordFile": null,
+      "summarySource": "pallets/escrow/src/lib.rs",
+      "summaryNote": "Checked against the runtime's own metadata at spec 307 on 2026-09-29: it carries MaxAgreementSpan, SpanTooLong and NoSuchSlash, and no accept_agreement or expire_agreement. The provider-consent and expiry calls the tester guide describes as 'from spec 307' were deferred (issue #180, pull request #204) and are not on chain at 307. They were added to the runtime's source on 2026-10-01 (pull request #233) for a later runtime; this record is about what the chain ran at 307 and does not claim them."
+    },
+    {
+      "specVersion": 309,
+      "status": "applied",
+      "date": "2026-10-05",
+      "appliedAtBlock": 907929,
+      "blockHash": "0x4e4740eee241dbcb704d6a2aae204ef5a3754cfff2ca6a7569907f66f07763e4",
+      "summary": "Agent messaging; escrow provider consent and expiry.",
+      "wasm": {
+        "sha256": "699238c48e7b5fc7af0eda967a29a71cf10fefa1920a40e501e0e9509f7590c2",
+        "blake2_256": "0x52a404fd85f4996734fe284cad00de70f6debbf03210cd434669f765df9e6292"
+      },
+      "recordFile": "evidence/day5/309-apply.md",
+      "summarySource": "runtime/src/lib.rs",
+      "introduces": [
+        "messages",
+        "escrow.accept_agreement",
+        "escrow.reject_agreement",
+        "escrow.cancel_pending",
+        "escrow.expire_agreement"
+      ]
+    }
+  ]
+}

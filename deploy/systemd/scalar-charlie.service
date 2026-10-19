@@ -1,0 +1,38 @@
+[Unit]
+Description=Scalar Commons devnet validator — charlie
+Documentation=file:///home/dev/scalar-commons-v4/deploy/README.md
+After=network-online.target scalar-alice.service
+Wants=network-online.target
+PartOf=scalar-devnet.target
+
+[Service]
+Type=exec
+WorkingDirectory=%h
+# Only alice is given as a bootnode — see scalar-bob.service.
+ExecStart=/home/dev/scalar-commons-v4/target/release/scalar-node \
+    --chain /home/dev/scalar-commons-v4/deploy/scalar-local-raw.json \
+    --base-path %h/scalar-testnet/charlie \
+    --name scalar-charlie \
+    --validator \
+    --charlie \
+    --node-key-file %h/scalar-testnet/charlie/node-key \
+    --port 30335 \
+    --rpc-port 9946 \
+    --rpc-methods safe \
+    --rpc-rate-limit 300 \
+    --rpc-max-connections 100 \
+    --rpc-max-subscriptions-per-connection 64 \
+    --rpc-max-batch-request-len 16 \
+    --rpc-max-request-size 10 \
+    --rpc-message-buffer-capacity-per-connection 32 \
+    --prometheus-port 9617 \
+    --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-charlie
+
+[Install]
+WantedBy=scalar-devnet.target

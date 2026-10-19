@@ -1,0 +1,1 @@
+{"run_id":"sc-e1-phase0-v2","indexer_export_path":"indexer_export.jsonl","thresholds":{"M1":1,"M2":0,"M3":1.0,"M4":1.0,"M5":0,"M6":0,"M7":0,"M8":0},"computed":{"wash_breakeven_volume":50000,"sybil_breakeven_pool":2000000,"eras_settled":100,"eras_expected":100}}

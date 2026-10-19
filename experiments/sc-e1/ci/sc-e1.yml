@@ -1,0 +1,119 @@
+# SC-E1 — Zombienet smoke test (protocol §8.1).
+#
+# INSTALL: this file must live at `.github/workflows/sc-e1.yml` to run. The
+# authoring GitHub App lacks `workflows` permission, so it is checked in here;
+# copy it into place:  cp experiments/sc-e1/ci/sc-e1.yml .github/workflows/sc-e1.yml
+#
+# Proves the ephemeral-network path end-to-end BEFORE any pre-registration-locked
+# counted run: spawn a 3-validator zombienet on the sc-e1 fast-era spec, run 5
+# fast eras with a tiny synthetic population via the SDK, extract the indexer
+# measurement export, and upload it as an artifact. The job is red unless a real,
+# non-empty export comes out the other end.
+#
+# Trigger is manual-only for now: this build+spawn path is expensive and its
+# dependencies (P0-2 #4, P0-3 #5, P0-5 #7) are not merged, so it must not gate
+# every PR yet. Once those land, add `pull_request:` / a `schedule:` here.
+name: sc-e1-smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      eras:
+        description: "Number of fast eras to run"
+        default: "5"
+      population:
+        description: "Synthetic agent population size (tiny)"
+        default: "8"
+
+# Zombienet version is pinned for reproducibility (§10). Bump deliberately.
+env:
+  ZOMBIENET_VERSION: v1.3.116
+  RPC_URL: ws://127.0.0.1:9944
+  EXPORT_DIR: experiments/sc-e1/export
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      # ── Build the node ──────────────────────────────────────────────────────
+      # TODO: unblock after PR #4 merges (P0-2) — the node crate currently ships
+      # only chain_spec.rs (no Cargo.toml/main.rs) and has no `sc-e1` preset, so
+      # there is no binary to build yet. This step is expected to fail until #4.
+      - name: Build node (release)
+        run: cargo build --release -p scalar-commons-node
+
+      # ── Install the pinned zombienet binary ─────────────────────────────────
+      - name: Install zombienet
+        run: |
+          set -euo pipefail
+          curl -fsSL -o zombienet \
+            "https://github.com/paritytech/zombienet/releases/download/${ZOMBIENET_VERSION}/zombienet-linux-x64"
+          chmod +x zombienet
+          sudo mv zombienet /usr/local/bin/zombienet
+          zombienet version
+
+      # ── Spawn the 3-validator ephemeral network ─────────────────────────────
+      # `--dir` keeps node logs where the artifact upload can grab them on failure.
+      - name: Spawn 3-validator zombienet
+        run: |
+          set -euo pipefail
+          mkdir -p experiments/sc-e1/zombienet-logs
+          # Detached spawn; the SDK run drives it, then we tear it down.
+          zombienet spawn experiments/sc-e1/zombienet.toml \
+            --provider native \
+            --dir experiments/sc-e1/zombienet-logs &
+          echo "ZOMBIENET_PID=$!" >> "$GITHUB_ENV"
+          # Give the network a moment to produce blocks before agents attach.
+          sleep 60
+
+      # ── Run 5 fast eras via the SDK ─────────────────────────────────────────
+      # TODO: unblock after PR #5 merges (P0-3) — run-eras.sh fails until sdk/ exists.
+      - name: Run fast eras (SDK)
+        run: |
+          bash experiments/sc-e1/scripts/run-eras.sh \
+            "${{ github.event.inputs.eras || '5' }}" \
+            "${{ github.event.inputs.population || '8' }}" \
+            "$RPC_URL"
+
+      # ── Extract the indexer measurement export ──────────────────────────────
+      # TODO: unblock after PR #7 merges (P0-5) — extract-export.sh fails until indexer/ exists.
+      - name: Extract indexer export
+        run: |
+          bash experiments/sc-e1/scripts/extract-export.sh "$RPC_URL" "$EXPORT_DIR"
+
+      # ── Guard: empty or missing export is a FAILED smoke test ───────────────
+      - name: Assert export is non-empty
+        run: bash experiments/sc-e1/scripts/check-export.sh "$EXPORT_DIR"
+
+      # ── Upload the export as the run artifact ───────────────────────────────
+      - name: Upload export artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-e1-export
+          path: ${{ env.EXPORT_DIR }}
+          if-no-files-found: error
+
+      # ── Always capture node logs for post-mortem ────────────────────────────
+      - name: Upload zombienet logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sc-e1-zombienet-logs
+          path: experiments/sc-e1/zombienet-logs
+          if-no-files-found: ignore
+
+      # ── Tear down the ephemeral network ─────────────────────────────────────
+      - name: Tear down network
+        if: always()
+        run: |
+          if [ -n "${ZOMBIENET_PID:-}" ]; then
+            kill "${ZOMBIENET_PID}" 2>/dev/null || true
+          fi
+          pkill -f scalar-commons-node 2>/dev/null || true

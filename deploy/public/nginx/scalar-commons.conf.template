@@ -1,0 +1,393 @@
+# ---------------------------------------------------------------------------
+# Scalar Commons — public edge for <DOMAIN>. Terminates TLS, proxies to
+# loopback services. Nothing here binds a service to a public interface: every
+# upstream stays on 127.0.0.1 and nginx is the only listener on 80/443.
+#
+# Derived from deploy/public/nginx/scalar-commons.conf.template rendered with
+# DOMAIN=<DOMAIN>, then corrected to the launch requirements. Deltas from
+# the template are marked "LAUNCH:" below.
+#
+# Threat model note (read before changing anything):
+#   The wss endpoint is protected by TWO independent layers.
+#     1. The node itself runs with `--rpc-methods safe` (deploy/systemd/
+#        scalar-alice.service). This is what actually refuses author_insertKey,
+#        author_rotateKeys and every other unsafe method.
+#     2. nginx below adds transport-level rate and concurrent-connection
+#        limits per source IP, and TLS. That is ALL it adds.
+#   nginx does NOT filter JSON-RPC method names — it cannot see inside
+#   WebSocket frames, and $request_body is unavailable in the rewrite phase.
+#   Layer 1 is the only thing refusing unsafe methods. Do not drop
+#   `--rpc-methods safe` on the assumption the proxy is filtering; it is not.
+#
+# add_header inheritance, since it bites every edit to this file:
+#   a location (or an `if` inside one) that declares ANY add_header discards
+#   every add_header inherited from the server block. Wherever a CORS header is
+#   added below, the three security headers are therefore repeated verbatim in
+#   the same context. Never add a lone add_header to a block here.
+# ---------------------------------------------------------------------------
+
+# --- WebSocket upgrade plumbing -------------------------------------------
+# Maps a missing/empty Upgrade header to "close" so non-ws requests to the RPC
+# vhost don't get a bogus keep-alive upgrade.
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+# --- Rate limiting zones ---------------------------------------------------
+# rate=10r/s per source IP. For the wss vhost this bounds *connection
+# establishment* (one HTTP request per socket), not messages sent inside an
+# open socket; message-rate control is the node's job.
+limit_req_zone  $binary_remote_addr zone=rpc_req:10m  rate=10r/s;
+limit_conn_zone $binary_remote_addr zone=rpc_conn:10m;
+
+# Ordinary web/product vhosts: 20r/s, burst 40.
+limit_req_zone  $binary_remote_addr zone=web_req:10m  rate=20r/s;
+limit_conn_zone $binary_remote_addr zone=web_conn:10m;
+
+# LAUNCH: the faucet mints real balance, so it gets its own much slower bucket
+# — 10 requests per MINUTE per source IP, burst 5. The template put the faucet
+# on rpc_req (10r/s), which is 60x too generous for a dispenser.
+limit_req_zone  $binary_remote_addr zone=faucet_req:10m rate=10r/m;
+
+# 429 rather than nginx's default 503 — a rate limit is a client-side signal
+# and 429 is what SDK backoff logic looks for.
+limit_req_status  429;
+limit_conn_status 429;
+
+# ===========================================================================
+#  (a) HTTP -> HTTPS redirect for all five names
+# ===========================================================================
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <DOMAIN> rpc.<DOMAIN> api.<DOMAIN> explorer.<DOMAIN> faucet.<DOMAIN>;
+
+    # Keep the ACME path on :80 so `certbot renew` works unattended.
+    location ^~ /.well-known/acme-challenge/ {
+        root <ACME_WEBROOT>;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# ===========================================================================
+#  (d) rpc.<DOMAIN>  ->  wss://127.0.0.1:9944
+# ===========================================================================
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name rpc.<DOMAIN>;
+
+    ssl_certificate     /etc/letsencrypt/live/<DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<DOMAIN>/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache   shared:ScalarTLS:10m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "no-referrer" always;
+
+    # --- Rate limits (per source IP) --------------------------------------
+    # burst=20 absorbs a client opening a few subscriptions back to back.
+    # nodelay: burst requests are served immediately, then the 10r/s refill
+    # applies — a slow drip is never queued into a timeout.
+    limit_req  zone=rpc_req burst=20 nodelay;
+    # LAUNCH: 20 concurrent sockets per IP (template had 5). A single browser
+    # tab running polkadot-js opens several subscriptions; 5 was too tight for
+    # a public endpoint, 20 still bounds a socket-exhaustion attempt.
+    limit_conn rpc_conn 20;
+
+    # LAUNCH: 1m. Bodies are JSON-RPC envelopes; batch calls from the SDK can
+    # exceed 256k. Still a hard cap on memory abuse.
+    client_max_body_size 1m;
+    client_body_timeout  15s;
+
+    access_log /var/log/nginx/scalar-rpc.access.log;
+    error_log  /var/log/nginx/scalar-rpc.error.log warn;
+
+    location / {
+        # ---- Why there is no method-name denylist here ---------------------
+        # Two nginx limitations, both real, neither worth pretending around:
+        #   * WebSocket frames are opaque to nginx once the socket is upgraded,
+        #     so ws JSON-RPC method names cannot be inspected at all.
+        #   * For plain HTTP POST, $request_body is empty during the rewrite
+        #     phase, so an `if ($request_body ~ "author_insertKey")` rule
+        #     silently matches nothing and yields false confidence.
+        # `--rpc-methods safe` on the node is therefore the ONE authoritative
+        # control refusing author_insertKey / author_rotateKeys. It is verified
+        # end-to-end in VERIFY.md check (b). Never remove that flag.
+
+        # LAUNCH: CORS. Browser dapps load from arbitrary origins; a read-only
+        # safe-mode RPC endpoint is public by design, so `*` is the honest
+        # value. The security headers are repeated because this block declares
+        # add_header and would otherwise drop the server-level set.
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options    "nosniff" always;
+        add_header X-Frame-Options           "DENY" always;
+        add_header Referrer-Policy           "no-referrer" always;
+        add_header Access-Control-Allow-Origin  "*" always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, Accept" always;
+
+        # LAUNCH: preflight short-circuit. Answer OPTIONS at the edge with 204
+        # instead of forwarding it to a node that has no CORS opinion.
+        if ($request_method = OPTIONS) {
+            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+            add_header X-Content-Type-Options    "nosniff" always;
+            add_header X-Frame-Options           "DENY" always;
+            add_header Referrer-Policy           "no-referrer" always;
+            add_header Access-Control-Allow-Origin  "*" always;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Content-Type, Accept" always;
+            add_header Access-Control-Max-Age       "86400" always;
+            add_header Content-Length 0;
+            return 204;
+        }
+
+        proxy_pass http://127.0.0.1:9944;
+
+        # --- WebSocket upgrade ---------------------------------------------
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+
+        # LAUNCH: the node's own host filter sees the Host header. Send it the
+        # loopback authority it is listening on rather than $host, so the
+        # upstream accepts the request regardless of --rpc-external settings.
+        proxy_set_header Host   127.0.0.1:9944;
+        # LAUNCH: strip the browser Origin. Substrate rejects an unknown Origin
+        # on ws upgrade; CORS is enforced by nginx above, not by the node.
+        proxy_set_header Origin "";
+
+        proxy_set_header X-Real-IP         $remote_addr;
+        # OVERWRITE, never append. nginx's stock appending variable adds the
+        # real peer to whatever the caller sent, leaving the caller in control
+        # of every entry but the last. Applied to every vhost, not just the
+        # faucet: nothing here sits behind another trusted proxy, so an
+        # inherited XFF is always forged. TESTNETAUDIT.md §6 I-6, issue #123.
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Long-lived subscriptions: don't cut an idle socket that is legitimately
+        # waiting on a new finalized head.
+        proxy_read_timeout  3600s;
+        proxy_send_timeout  3600s;
+        proxy_connect_timeout 10s;
+        proxy_buffering off;
+    }
+}
+
+# ===========================================================================
+#  (c) <DOMAIN>  ->  landing at /, docs at /docs/
+# ===========================================================================
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name <DOMAIN>;
+
+    ssl_certificate     /etc/letsencrypt/live/<DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<DOMAIN>/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache   shared:ScalarTLS:10m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    # LAUNCH: DENY, not SAMEORIGIN. Neither the landing page nor the docs frame
+    # themselves, so there is no reason to leave any framing allowed.
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+
+    limit_req  zone=web_req burst=40 nodelay;
+    limit_conn web_conn 20;
+
+    access_log /var/log/nginx/scalar-web.access.log;
+    error_log  /var/log/nginx/scalar-web.error.log warn;
+
+    # ---- docs at /docs/ ---------------------------------------------------
+    # The vitepress dist here was built with DOCS_BASE=/docs/, so every asset
+    # URL it emits already carries the prefix.
+    location /docs/ {
+        alias <DOCS_DIST>/;
+        index index.html;
+        try_files $uri $uri/ $uri.html /docs/index.html;
+    }
+    location = /docs {
+        return 301 https://$host/docs/;
+    }
+
+    # ---- landing at / ----------------------------------------------------
+    location / {
+        root <LANDING_DIST>;
+        index index.html;
+        try_files $uri $uri/ $uri.html =404;
+    }
+}
+
+# ===========================================================================
+#  (g) faucet.<DOMAIN>  ->  127.0.0.1:8082
+# ===========================================================================
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name faucet.<DOMAIN>;
+
+    ssl_certificate     /etc/letsencrypt/live/<DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<DOMAIN>/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache   shared:ScalarTLS:10m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "no-referrer" always;
+
+    # LAUNCH: 10r/m burst 5 — a dispenser, not an API.
+    limit_req  zone=faucet_req burst=5 nodelay;
+    limit_conn rpc_conn 20;
+    # LAUNCH: 16k. A drip request is one address; nothing legitimate is larger.
+    client_max_body_size 16k;
+    client_body_timeout  15s;
+
+    access_log /var/log/nginx/scalar-faucet.access.log;
+    error_log  /var/log/nginx/scalar-faucet.error.log warn;
+
+    # There is exactly ONE location on this vhost, deliberately: the faucet
+    # trusts X-Forwarded-For, so every path that reaches it must arrive with
+    # that header overwritten. A second location added later without the
+    # proxy_set_header line below would hand the per-IP limit back to the
+    # attacker. If you add one, copy the whole proxy block.
+    location / {
+        proxy_pass http://127.0.0.1:8082;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        # OVERWRITE, never append ($proxy_add_x_forwarded_for). The faucet
+        # reads this header to enforce its per-IP drip limit; the appending
+        # variable would let a caller prepend a fake chain and rotate through
+        # invented IPs. TESTNETAUDIT.md §6 I-6, issue #123.
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    60s;
+    }
+}
+
+# ===========================================================================
+#  (f) explorer.<DOMAIN>  ->  127.0.0.1:8081
+# ===========================================================================
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name explorer.<DOMAIN>;
+
+    ssl_certificate     /etc/letsencrypt/live/<DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<DOMAIN>/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache   shared:ScalarTLS:10m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "strict-origin-when-cross-origin" always;
+
+    limit_req  zone=web_req burst=40 nodelay;
+    limit_conn web_conn 20;
+    client_max_body_size 1m;
+
+    access_log /var/log/nginx/scalar-explorer.access.log;
+    error_log  /var/log/nginx/scalar-explorer.error.log warn;
+
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade    $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    120s;
+    }
+}
+
+# ===========================================================================
+#  (e) api.<DOMAIN>  ->  127.0.0.1:8080  (indexer REST)
+# ===========================================================================
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name api.<DOMAIN>;
+
+    ssl_certificate     /etc/letsencrypt/live/<DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<DOMAIN>/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout 1d;
+    ssl_session_cache   shared:ScalarTLS:10m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options    "nosniff" always;
+    add_header X-Frame-Options           "DENY" always;
+    add_header Referrer-Policy           "no-referrer" always;
+
+    # Indexer is read-only over HTTP GET; 20r/s with burst 40.
+    limit_req  zone=web_req burst=40 nodelay;
+    limit_conn web_conn 20;
+    client_max_body_size 1m;
+
+    access_log /var/log/nginx/scalar-api.access.log;
+    error_log  /var/log/nginx/scalar-api.error.log warn;
+
+    location / {
+        # LAUNCH: CORS for browser clients. Security headers repeated because
+        # this block declares add_header — see the note at the top of the file.
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Content-Type-Options    "nosniff" always;
+        add_header X-Frame-Options           "DENY" always;
+        add_header Referrer-Policy           "no-referrer" always;
+        add_header Access-Control-Allow-Origin  "*" always;
+        add_header Access-Control-Allow-Methods "GET, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Content-Type, Accept" always;
+
+        if ($request_method = OPTIONS) {
+            add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+            add_header X-Content-Type-Options    "nosniff" always;
+            add_header X-Frame-Options           "DENY" always;
+            add_header Referrer-Policy           "no-referrer" always;
+            add_header Access-Control-Allow-Origin  "*" always;
+            add_header Access-Control-Allow-Methods "GET, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Content-Type, Accept" always;
+            add_header Access-Control-Max-Age       "86400" always;
+            add_header Content-Length 0;
+            return 204;
+        }
+
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 10s;
+        proxy_read_timeout    60s;
+    }
+}

@@ -1,0 +1,1 @@
+test "$(/usr/sbin/sshd -G 2>/dev/null | grep -cE '^(passwordauthentication|permitrootlogin|kbdinteractiveauthentication) no$')" = 3

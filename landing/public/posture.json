@@ -1,0 +1,30 @@
+{
+  "note": "Security posture, shown on /observatory under 'Record, not live'. These values are written by the operators, never read from the chain, and the page renders a null value as 'not yet recorded'. Fill each `value` from a document in this repository, name it in `source`, set `asOf` to the date the value was true, and set `updated` at the top. A `todo` that starts with TODO(owner) marks an entry still to be recorded. Do not put a number here that a reader cannot trace to a document in this repository.",
+  "updated": "2026-10-06",
+  "fields": {
+    "findingsExamined": {
+      "value": 382,
+      "asOf": "2026-09-08",
+      "source": "TESTNETAUDIT.md §2 — 382 findings from 17 auditors over the runtime, the products and the host; every CRITICAL and HIGH (73) adversarially verified, 34 severities corrected.",
+      "todo": "recorded"
+    },
+    "fixedIn307": {
+      "value": 4,
+      "asOf": "2026-09-26",
+      "source": "Runtime 307's integration record (pull request #211, merged 2026-09-26; escrow guards in pallets/escrow/src/lib.rs, commits 1c39c0b and c5ed79a): findings E1, E21, E22 and E25 from the overnight lab sprint that began on 26 September (label `lab`, issues #177–#179) closed in code, each with a test that was red before and green after. A fifth item, #161, was closed by evidence rather than a change. These are the lab sprint's findings, not four of the 382 above: the audit of 8 September and the sprint of 26 September are separate reviews.",
+      "todo": "recorded"
+    },
+    "redTeamStatus": {
+      "value": "Phase 1 (propose-only) completed 2026-09-29; nothing submitted",
+      "asOf": "2026-09-29",
+      "source": "docs/internal/RED-AGENT-PHASE1.md \u2014 three runs, 180 steps, 0 transactions submitted. The agent identified the privileged calls in step 1 of every run and refused them unprompted. This is a finding about one model's behaviour, NOT about the chain's defences: no guard was exercised, because the agent declined before reaching one.",
+      "todo": "recorded"
+    },
+    "lastRehearsal": {
+      "value": "Runtime 309 rehearsed 2026-10-05, by the operators",
+      "asOf": "2026-10-05",
+      "source": "evidence/day5/309-apply.md, section: the blob on prod is byte-identical to the one that was rehearsed \u2014 runtime 309 was applied to a chopsticks fork of live 307 state and run on the released validator binary before the prod apply, with control runs on an unupgraded fork to establish which behaviour the upgrade caused. Run by the operators (this lab), NOT by an outside party: no independent rehearsal has taken place. The earlier team rehearsals are in UPGRADE-305.md and UPGRADE-306.md.",
+      "todo": "recorded. TODO(owner): an INDEPENDENT rehearsal, by someone outside the core team, is still outstanding \u2014 this entry deliberately does not claim one."
+    }
+  }
+}

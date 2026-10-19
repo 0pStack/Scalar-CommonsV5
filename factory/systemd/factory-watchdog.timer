@@ -1,0 +1,14 @@
+[Unit]
+Description=Run the factory watchdog every 30 minutes
+Documentation=file:///home/dev/scalar-commons-v4/factory/README.md
+
+[Timer]
+# Every 30 minutes, and shortly after boot so a reboot mid-run gets supervised.
+OnBootSec=5min
+OnUnitActiveSec=30min
+AccuracySec=1min
+Persistent=true
+Unit=factory-watchdog.service
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,38 @@
+[Unit]
+Description=Scalar Commons emissions keeper — submits settle_era when an era is due
+Documentation=file:///home/dev/scalar-commons-v4/deploy/products/README.md
+# settle_era is permissionless by design (CLAUDE.md first principle #3: no
+# economically essential function may depend on a privileged caller). The cost
+# of that design is that if nobody calls it, it never happens — and nobody did.
+# For ~512 000 blocks, about 142 elapsed eras, LastSettledEra was null and no
+# CMN had ever been emitted by the mechanism this project is about. See
+# TESTNETAUDIT.md §6 I-8 and issue #125.
+#
+# This keeper holds NO privilege. It is an ordinary signed account calling an
+# extrinsic any agent could call. If it stops, settlement is not blocked —
+# anyone can still call settle_era. That property is the point; do not "fix"
+# this by giving the keeper a privileged origin.
+After=network-online.target scalar-alice.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/dev/scalar-commons-v4
+
+Environment=KEEPER_RPC_ENDPOINT=ws://127.0.0.1:9944
+# The seed is NOT set here: this unit is world-readable in ~/.config/systemd/user.
+# The key file is 0600 and lives outside the repository. There is no in-code
+# default and the script refuses to run without it — a keeper that silently fell
+# back to a published dev seed would be the //Ferdie faucet defect again.
+Environment=KEEPER_KEY_FILE=%h/.config/scalar-commons/keeper.key
+
+ExecStart=/usr/bin/node /home/dev/scalar-commons-v4/scripts/keeper-settle-era.mjs
+
+# oneshot + timer, so a hung RPC cannot wedge a long-lived process. The script
+# is idempotent: it re-reads the chain's guards every run and exits 0 without
+# submitting when settlement is not due.
+TimeoutStartSec=300
+NoNewPrivileges=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-keeper

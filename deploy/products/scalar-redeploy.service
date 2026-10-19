@@ -1,0 +1,28 @@
+[Unit]
+Description=Scalar Commons site redeploy — rebuild scalarnet.io when master changes landing/ or docs/
+Documentation=file:///home/dev/scalar-commons-v4/deploy/products/README.md
+# Issue #158. deploy/public/redeploy-site.sh was the reproducible path from a
+# repo state to the live site, and nothing ran it. This runs it, only when the
+# commits since the last deploy touch landing/ or docs/, from a dedicated clone
+# under ~/scalar-products/site-src (never the working checkout), building into
+# staging and swapping atomically so a failed build leaves the live site as it
+# was. The last deployed SHA lives in ~/scalar-products/redeploy/.
+#
+# It holds no privilege and no credential: it fetches a public repository and
+# writes two webroots the dev user owns.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# The script runs from the checkout that installed it; the SITE it builds comes
+# from the dedicated clone. Installing from a worktree would run that worktree's
+# copy of this script, exactly as with the other deploy/products units.
+ExecStart=/home/dev/scalar-commons-v4/deploy/products/redeploy-on-merge.sh
+# A full rebuild (npm ci + two builds) takes a minute or two; a hung fetch or
+# build must not wedge the timer forever.
+TimeoutStartSec=900
+NoNewPrivileges=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-redeploy

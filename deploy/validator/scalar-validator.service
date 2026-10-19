@@ -1,0 +1,47 @@
+# scalar-validator — an outside operator's Scalar Commons validator, as a
+# systemd USER service. No root needed at any point.
+#
+#   install -D -m 644 scalar-validator.service ~/.config/systemd/user/scalar-validator.service
+#   install -D -m 600 validator.env.example    ~/.config/scalar-validator/validator.env   # then edit
+#   systemctl --user daemon-reload && systemctl --user enable --now scalar-validator
+#   loginctl enable-linger "$USER"       # keep it running after you log out
+#   journalctl --user -u scalar-validator -f
+#
+# Everything operator-specific lives in the env file; this unit only wires it
+# into the command line. See docs/guide/run-a-validator.md.
+#
+# RPC is loopback-only because --rpc-external / --unsafe-rpc-external are never
+# passed: the node binds 127.0.0.1:${RPC_PORT} and nothing else. Only p2p
+# (${P2P_PORT}) should be reachable from outside. RPC_METHODS is `safe` in normal
+# operation; the guide flips it to `unsafe` for the one-off author_rotateKeys and
+# back again.
+
+[Unit]
+Description=Scalar Commons validator (%u)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+EnvironmentFile=%h/.config/scalar-validator/validator.env
+ExecStart=/bin/sh -c 'exec "$NODE_BIN" \
+    --chain "$CHAIN_SPEC" \
+    --base-path "$BASE_PATH" \
+    --name "$NODE_NAME" \
+    --validator \
+    --port "$P2P_PORT" \
+    --rpc-port "$RPC_PORT" \
+    --rpc-methods "$RPC_METHODS" \
+    --prometheus-port "$PROMETHEUS_PORT" \
+    --no-mdns \
+    $EXTRA_ARGS'
+Restart=on-failure
+RestartSec=10s
+LimitNOFILE=65536
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-validator
+
+[Install]
+WantedBy=default.target

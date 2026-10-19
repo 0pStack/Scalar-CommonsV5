@@ -1,0 +1,392 @@
+# ci-node — the gate for the JS/TS subprojects.
+#
+# WHY THIS EXISTS: until this workflow, `.github/workflows/ci-fast.yml` and
+# `ci-full.yml` contained zero npm/node steps. landing/, faucet/, docs/ and sdk/
+# all ship real test suites that no automated gate ever executed. The visible
+# consequence: PRs #91, #92 and #93 are entirely TypeScript and all three report
+# "2 checks passed" — those two checks are the Rust workspace gates, which did
+# not compile or run a single line of the code those PRs add. A check that never
+# looks at the change is not a check.
+#
+# ONE JOB PER SUBPROJECT, on purpose. A single job running all four would let one
+# project's red hide another's, and would make the branch-protection contexts
+# useless for telling you *what* broke. Four jobs, four stable names.
+#
+# indexer/ deliberately has NO job here. On master it contains one Python file
+# (reconcile.py) and no package.json, so an indexer job could only ever be a
+# no-op that reads as coverage. It gets a job when PR #93 lands a manifest.
+#
+# NOTHING HERE REQUIRES A LIVE CHAIN. Every command below runs against committed
+# fixtures or mocks. The suites that genuinely need the devnet are NOT deleted
+# and NOT skipped — they are simply not selected by the CI invocation, and each
+# omission is named in CI-NODE.md with its reason. See the per-job comments.
+name: ci-node
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-node-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Which subprojects does this change actually touch? ──────────────────────
+  #
+  # The obvious implementation — a workflow-level `paths:` filter — is a trap
+  # when the resulting checks are REQUIRED by branch protection. If `paths:`
+  # excludes a PR the workflow never runs, the required context never reports,
+  # and the PR sits "Expected — waiting for status" forever with no way to
+  # clear it.
+  #
+  # So: the four jobs below ALWAYS run and ALWAYS report. This job computes what
+  # changed, and each job's real work is gated on that. A PR touching only Rust
+  # gets four green checks in a few seconds each, having correctly done nothing.
+  #
+  # Implemented with plain `git diff` rather than a third-party paths-filter
+  # action: it is auditable in place and adds no supply-chain surface to a
+  # workflow that gates the trunk.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      landing: ${{ steps.filter.outputs.landing }}
+      faucet: ${{ steps.filter.outputs.faucet }}
+      docs: ${{ steps.filter.outputs.docs }}
+      sdk: ${{ steps.filter.outputs.sdk }}
+      reference_agent: ${{ steps.filter.outputs.reference_agent }}
+      agent: ${{ steps.filter.outputs.agent }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the merge-base against the PR's target actually exists.
+          fetch-depth: 0
+
+      - name: Determine changed subprojects
+        id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT" = "pull_request" ]; then
+            git fetch --no-tags origin "$BASE_REF"
+            CHANGED="$(git diff --name-only "origin/$BASE_REF...HEAD")"
+            echo "── files changed vs origin/$BASE_REF ──"
+            printf '%s\n' "$CHANGED"
+          else
+            # push to master / manual dispatch: there is no "the change" to scope
+            # to, and master's true status is the thing we want to know. Run all.
+            CHANGED=""
+            echo "event=$EVENT — running every subproject job"
+          fi
+
+          # A change to this workflow re-runs everything: the gate itself is the
+          # thing under test, and scoping it to nothing would let a broken gate
+          # merge green.
+          if [ -z "$CHANGED" ] || printf '%s\n' "$CHANGED" | grep -qE '^\.github/workflows/ci-node\.yml$'; then
+            for p in landing faucet docs sdk reference_agent agent; do echo "$p=true" >> "$GITHUB_OUTPUT"; done
+            echo "→ all subprojects selected"
+            exit 0
+          fi
+
+          selected() { printf '%s\n' "$CHANGED" | grep -qE "$1"; }
+
+          # landing's suite is NOT self-contained: landing/test/claims.test.mjs
+          # asserts that every marketing claim still quotes a snippet that is
+          # literally present in the Rust source (landing/src/source-claims.mjs
+          # cites pallets/emissions, pallets/orchestrator and runtime), and it
+          # asserts the oracle caveat stays on the page for as long as
+          # `type OracleScoreProvider = ();` is still in runtime/src/lib.rs.
+          # Editing those Rust files can therefore turn the landing gate red, so
+          # they belong in its filter. Without this, a runtime change would break
+          # landing on master with no PR having ever run the check.
+          if selected '^landing/' \
+            || selected '^runtime/src/lib\.rs$' \
+            || selected '^pallets/emissions/src/lib\.rs$' \
+            || selected '^pallets/orchestrator/src/lib\.rs$'; then
+            echo "landing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "landing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          for p in faucet docs sdk; do
+            if selected "^$p/"; then echo "$p=true" >> "$GITHUB_OUTPUT"; else echo "$p=false" >> "$GITHUB_OUTPUT"; fi
+          done
+
+          # The reference agent installs sdk/ as a packed copy, so an SDK change
+          # can break it; both paths select it.
+          if selected '^examples/reference-agent/' || selected '^sdk/'; then
+            echo "reference_agent=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "reference_agent=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # agent/ vendors a built copy of sdk/ (scripts/vendor-sdk.mjs), so an
+          # SDK change can break it too; both paths select it.
+          if selected '^agent/' || selected '^sdk/'; then
+            echo "agent=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "agent=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "── selection ──"; cat "$GITHUB_OUTPUT"
+
+  # ── landing ────────────────────────────────────────────────────────────────
+  # Gate: npm ci && npm run build && npm test — exactly the scripts landing's
+  # package.json defines ("build": node scripts/build.mjs, "test": node --test).
+  #
+  # EXCLUDED, both because they need a live node and because neither is a
+  # test/lint/build script: `verify:chain` and `fetch:chain-facts`. The build
+  # reads the COMMITTED landing/chain-facts.json, so it is fully offline.
+  landing:
+    name: landing
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.landing == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.landing == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - name: npm ci
+        if: needs.changes.outputs.landing == 'true'
+        working-directory: landing
+        run: npm ci
+      - name: npm run build
+        if: needs.changes.outputs.landing == 'true'
+        working-directory: landing
+        run: npm run build
+      - name: npm test
+        if: needs.changes.outputs.landing == 'true'
+        working-directory: landing
+        run: npm test
+      - name: Not selected
+        if: needs.changes.outputs.landing != 'true'
+        run: echo "landing/ unchanged — nothing to check."
+
+  # ── faucet ─────────────────────────────────────────────────────────────────
+  # Gate: npm ci && npm run typecheck && npm test <offline files>
+  #
+  # EXCLUDED FROM CI: tests/faucet.live.test.ts (25 tests). It drips real CMN
+  # from a genesis-endowed account and asserts the balance moved on chain; its
+  # own header states it is deliberately NOT skippable, because "an unreachable
+  # node is a blocking finding". That is the right call for a devnet gate and
+  # the wrong one for a hosted runner with no chain, so CI selects the two
+  # offline files by path instead.
+  #
+  # The file is NOT deleted, NOT skipped, and NOT modified. `npm test` with no
+  # arguments still runs all 55 tests, and that is still the gate a human or the
+  # factory runs against the devnet. Measured 2026-08-19 against the live
+  # 5-validator devnet: 55/55 pass. The live tests are excluded for environment,
+  # not for health.
+  faucet:
+    name: faucet
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.faucet == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.faucet == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: faucet/package-lock.json
+      - name: npm ci
+        if: needs.changes.outputs.faucet == 'true'
+        working-directory: faucet
+        run: npm ci
+      - name: npm run typecheck
+        if: needs.changes.outputs.faucet == 'true'
+        working-directory: faucet
+        run: npm run typecheck
+      - name: npm test (offline suites only — see header)
+        if: needs.changes.outputs.faucet == 'true'
+        working-directory: faucet
+        run: npm test -- tests/amount.test.ts tests/rateLimiter.test.ts
+      - name: Not selected
+        if: needs.changes.outputs.faucet != 'true'
+        run: echo "faucet/ unchanged — nothing to check."
+
+  # ── docs ───────────────────────────────────────────────────────────────────
+  # Gate: npm ci && npm run lint && npm run build. docs/ defines no `test`
+  # script; `lint` is its real check — markdownlint plus check-chain-values.mjs,
+  # which cross-checks every documented constant, pallet index, invariant and
+  # extrinsic against docs/.chain/snapshot.json.
+  #
+  # EXCLUDED: `snapshot:chain`, the only docs script that opens a WS connection.
+  # It REGENERATES the snapshot from a live node, so running it in CI would
+  # overwrite the very fixture the lint asserts against — a gate that rewrites
+  # its own expected values checks nothing. Refreshing the snapshot stays a
+  # deliberate, reviewable commit.
+  docs:
+    name: docs
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.docs == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.docs == 'true'
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - name: npm ci
+        if: needs.changes.outputs.docs == 'true'
+        working-directory: docs
+        run: npm ci
+      - name: npm run lint
+        if: needs.changes.outputs.docs == 'true'
+        working-directory: docs
+        run: npm run lint
+      - name: npm run build
+        if: needs.changes.outputs.docs == 'true'
+        working-directory: docs
+        run: npm run build
+      - name: Not selected
+        if: needs.changes.outputs.docs != 'true'
+        run: echo "docs/ unchanged — nothing to check."
+
+  # ── sdk ────────────────────────────────────────────────────────────────────
+  # Gate: npm ci && npm run typecheck && npm test.
+  #
+  # NO live-test exclusion is needed here and none is applied. sdk's chain-
+  # dependent block already gates itself — tests/integration.test.ts:237 is
+  # `describe.skipIf(!runReal)` behind RUN_INTEGRATION=1 — so a plain `npm test`
+  # is offline by construction (9 passed, 1 skipped).
+  #
+  # THIS JOB IS RED ON MASTER TODAY, and that is the point of adding it. Two
+  # real defects, both measured 2026-08-19 and reported verbatim in CI-NODE.md:
+  #
+  #   1. `npm ci` FAILS — sdk/ has no package-lock.json on master at all, so the
+  #      gate cannot even install. (npm error code EUSAGE.)
+  #   2. `npm run typecheck` FAILS with 47 errors in src/index.ts (TS2532/TS2722
+  #      under noUncheckedIndexedAccess).
+  #
+  # Neither is fixed or worked around in this round, per the standing rule: a
+  # failure is a finding, not something to route around. No `continue-on-error`,
+  # no `|| true`, no narrowed command. PR #91 already fixes both (it adds the
+  # lockfile and its txEntry/queryEntry/constEntry guards clear all 47 errors —
+  # verified against origin/task/72, which typechecks clean).
+  #
+  # Deliberately NO `cache: npm` on this job: setup-node's npm cache requires a
+  # lockfile and would fail during setup, burying the actual EUSAGE error from
+  # `npm ci` behind a less informative one. Restore the cache line when the
+  # lockfile lands.
+  sdk:
+    name: sdk
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.sdk == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.sdk == 'true'
+        with:
+          node-version: 22
+      - name: npm ci
+        if: needs.changes.outputs.sdk == 'true'
+        working-directory: sdk
+        run: npm ci
+      - name: npm run typecheck
+        if: needs.changes.outputs.sdk == 'true'
+        working-directory: sdk
+        run: npm run typecheck
+      - name: npm test
+        if: needs.changes.outputs.sdk == 'true'
+        working-directory: sdk
+        run: npm test
+      - name: Not selected
+        if: needs.changes.outputs.sdk != 'true'
+        run: echo "sdk/ unchanged — nothing to check."
+
+  # ── reference-agent ───────────────────────────────────────────────────────
+  # Gate: build sdk/ (the agent installs it as a packed copy via
+  # install-links=true, which needs sdk/dist), then npm ci && typecheck && test
+  # in examples/reference-agent. Offline: the unit tests cover config parsing
+  # and work selection; the live run is recorded in docs/guide/run-an-agent.md.
+  reference-agent:
+    name: reference-agent
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.reference_agent == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.reference_agent == 'true'
+        with:
+          node-version: 22
+      - name: build sdk
+        if: needs.changes.outputs.reference_agent == 'true'
+        working-directory: sdk
+        run: npm ci && npm run build
+      - name: npm ci
+        if: needs.changes.outputs.reference_agent == 'true'
+        working-directory: examples/reference-agent
+        run: npm ci
+      - name: npm run typecheck
+        if: needs.changes.outputs.reference_agent == 'true'
+        working-directory: examples/reference-agent
+        run: npm run typecheck
+      - name: npm test
+        if: needs.changes.outputs.reference_agent == 'true'
+        working-directory: examples/reference-agent
+        run: npm test
+      - name: Not selected
+        if: needs.changes.outputs.reference_agent != 'true'
+        run: echo "examples/reference-agent/ and sdk/ unchanged — nothing to check."
+
+  # ── agent ─────────────────────────────────────────────────────────────────
+  # Gate: npm ci in agent/, then `npm run setup:sdk` (sdk/ npm ci + build, and
+  # vendor the built SDK into agent/node_modules as a real copy), then
+  # typecheck and test. Offline: the suite drives the agent loop against a fake
+  # chain and runs the messaging worked example with dev keys; no node needed.
+  agent:
+    name: agent
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        if: needs.changes.outputs.agent == 'true'
+      - uses: actions/setup-node@v4
+        if: needs.changes.outputs.agent == 'true'
+        with:
+          node-version: 22
+      - name: npm ci
+        if: needs.changes.outputs.agent == 'true'
+        working-directory: agent
+        run: npm ci
+      - name: build and vendor sdk
+        if: needs.changes.outputs.agent == 'true'
+        working-directory: agent
+        run: npm run setup:sdk
+      - name: npm run typecheck
+        if: needs.changes.outputs.agent == 'true'
+        working-directory: agent
+        run: npm run typecheck
+      - name: npm test
+        if: needs.changes.outputs.agent == 'true'
+        working-directory: agent
+        run: npm test
+      - name: Not selected
+        if: needs.changes.outputs.agent != 'true'
+        run: echo "agent/ and sdk/ unchanged — nothing to check."

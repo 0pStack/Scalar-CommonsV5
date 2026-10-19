@@ -1,0 +1,158 @@
+/* 03 · validator ring — the hairline ticks, the mono caption under the count,
+   the per-validator vote ticks, the mark on the point that sealed the latest
+   block, and the states the design system's .ring rules do not cover. Tokens
+   only. */
+
+/* Text on the ring is drawn at a constant rendered size whatever the ring's
+   scale: the instrument sets --ring-scale (rendered px per SVG unit) on the
+   svg, and every font size is divided by it. */
+.ring .ring-label {
+  font-family: var(--font-sans);
+  font-size: calc(var(--t-eyebrow) / var(--ring-scale, 1));
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.ring .ring-label-index {
+  fill: var(--text);
+  font-weight: 600;
+}
+
+/* Only a queued validator carries a second word under its label; the
+   address is a tooltip on the point (a <title>) and a link in the list. */
+.ring .ring-label-addr {
+  font-size: calc(var(--t-eyebrow) / var(--ring-scale, 1));
+  fill: var(--text-dim);
+  font-style: italic;
+}
+
+.ring .ring-node {
+  cursor: help;
+  outline: none;
+}
+
+/* The words that travel with the sealing mark, inside the ring beside the lit point. */
+.ring .ring-sealing {
+  font-family: var(--font-sans);
+  font-size: calc(var(--t-eyebrow) / var(--ring-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--live);
+  pointer-events: none;
+}
+
+.ring .ring-caption {
+  font-family: var(--font-sans);
+  font-size: calc(var(--t-eyebrow) / var(--ring-scale, 1));
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  fill: var(--text-dim);
+  text-anchor: middle;
+}
+
+.ring .ring-tick {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+/* Vote ticks: one hairline per sampled round, lit where the vote was seen. */
+.ring .ring-vote-tick {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.ring .ring-vote-tick.is-seen {
+  stroke: var(--live);
+}
+
+/* The point that sealed the latest block: a 1 px circle in the text colour,
+   so the state has a form that is not only its colour. */
+.ring .ring-latest {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1;
+  opacity: 0;
+}
+
+.ring .ring-node.is-authoring .ring-latest {
+  opacity: 1;
+}
+
+.ring .ring-halo {
+  pointer-events: none;
+}
+
+/* The count is drawn dim until a set is read; the accent is for live points only. */
+.ring[data-state="unavailable"] .ring-centre {
+  fill: var(--text-dim);
+}
+
+.ring-key {
+  margin: 8px 0 0;
+  font-size: var(--t-label);
+  line-height: 1.5;
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+.ring-list-head {
+  margin: 16px 0 0;
+}
+
+.ring-list-head + .validator-list {
+  margin-top: 8px;
+}
+
+.validator-list .v-addr {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.validator-list .v-addr a {
+  color: var(--text);
+  text-decoration-color: var(--border);
+}
+
+.validator-list .v-addr a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.validator-list .v-mark {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.validator-list li.is-queued .v-index,
+.validator-list li.is-unmapped .v-index {
+  color: var(--text-dim);
+}
+
+.validator-list li.is-unmapped .v-addr {
+  color: var(--text-dim);
+}
+
+.validator-list li.v-unavailable .v-meta {
+  color: var(--text-dim);
+}
+
+.ring-status {
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.ring-status-line {
+  display: block;
+}
+
+.ring-status a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--border);
+}
+
+.ring-status a:hover {
+  text-decoration-color: var(--accent);
+}

@@ -1,0 +1,20 @@
+{
+  "name": "@scalar-commons/live-archetypes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Executes the ENDGOAL §3.4 attacker archetypes against a live chain and measures net CMN per archetype.",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@polkadot/api": "^15.9.2",
+    "@polkadot/keyring": "^13.4.3",
+    "@polkadot/util": "^13.4.3",
+    "@polkadot/util-crypto": "^13.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^1.6.1"
+  }
+}

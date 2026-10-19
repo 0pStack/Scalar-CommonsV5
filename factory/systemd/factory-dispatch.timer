@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the factory dispatcher hourly during the night window (STAGE 2)
+Documentation=file:///home/dev/scalar-commons-v4/factory/README.md
+
+[Timer]
+# Hourly inside the night window only. Loops are allowed 24/7, but heavy
+# parallel dispatch is confined to 22:00-07:00 UTC so days stay interactive.
+# dispatch.sh independently throttles to DAY_MAX_PARALLEL outside the window, so
+# this schedule and that clamp agree rather than fighting.
+OnCalendar=*-*-* 22,23,00,01,02,03,04,05,06:00:00 UTC
+AccuracySec=5min
+Persistent=false
+Unit=factory-dispatch.service
+
+[Install]
+WantedBy=timers.target

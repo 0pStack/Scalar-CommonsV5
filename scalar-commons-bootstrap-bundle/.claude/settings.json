@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cargo build*)", "Bash(cargo test*)", "Bash(cargo check*)",
+      "Bash(cargo fmt*)", "Bash(cargo clippy*)", "Bash(cargo bench*)",
+      "Bash(git status*)", "Bash(git diff*)", "Bash(git log*)", "Bash(git add*)",
+      "Bash(git commit*)", "Bash(git checkout*)", "Bash(git branch*)",
+      "Bash(npm test*)", "Bash(npm run*)", "Bash(node *)", "Bash(python3 *)",
+      "Bash(gh issue*)", "Bash(gh pr*)", "Bash(just *)", "Bash(jq *)"
+    ],
+    "deny": [
+      "Bash(git push --force*)", "Bash(git push -f*)",
+      "Bash(rm -rf /*)", "Bash(curl * | sh)", "Bash(curl * | bash)",
+      "Read(**/.env*)", "Read(**/secrets/**)", "Read(**/*.key)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "bash .claude/hooks/post-edit.sh" }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+/* The agent field (the first screen's panel) — rules beyond the design system's base for this instrument.
+   Tokens only; nothing here redefines :root. */
+
+.field-canvas {
+  cursor: default;
+}
+
+/* The two tips on the plates: an agent or a bucket in the field, an agent in
+   the network graph. Beside the cell, or below or above it on a phone's
+   plate, and never wider than the plate. */
+.field-tip,
+.constellation-tip {
+  max-width: min(18rem, calc(100% - 8px));
+}
+
+.field-tip strong,
+.field-tip span,
+.constellation-tip strong,
+.constellation-tip span {
+  display: block;
+  color: var(--text);
+}
+
+.field-tip span,
+.constellation-tip span {
+  color: var(--text-dim);
+}
+
+.field-tip strong,
+.constellation-tip strong {
+  margin-bottom: var(--space-1);
+}
+
+.agents-list .agent-list a {
+  color: var(--text);
+  text-decoration-color: var(--border);
+}
+
+.agents-list .agent-list a:hover {
+  text-decoration-color: var(--accent);
+}
+
+.agent-list .dim {
+  color: var(--text-dim);
+}
+
+@media (max-width: 39.99rem) {
+  .agent-list {
+    columns: 1;
+  }
+}

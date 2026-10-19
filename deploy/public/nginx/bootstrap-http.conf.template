@@ -1,0 +1,27 @@
+# ---------------------------------------------------------------------------
+# Scalar Commons — BOOTSTRAP config (stage 1 of 2).
+#
+# Purpose: exists only so certbot can complete the ACME http-01 challenge
+# BEFORE any certificate exists on disk. The full config references
+# /etc/letsencrypt/live/... paths, so `nginx -t` would fail if it were
+# installed first. Install this, get certs, then swap to the full config.
+#
+# Generated from a template — do not edit in place. Edit deploy/public/domain.env
+# and re-run deploy/public/render-config.sh.
+# ---------------------------------------------------------------------------
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <DOMAIN> rpc.<DOMAIN> api.<DOMAIN> explorer.<DOMAIN> faucet.<DOMAIN>;
+
+    # ACME http-01 challenge. This is the only thing served over plaintext.
+    location ^~ /.well-known/acme-challenge/ {
+        root <ACME_WEBROOT>;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 404;
+    }
+}

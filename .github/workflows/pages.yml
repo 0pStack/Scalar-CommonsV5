@@ -1,0 +1,133 @@
+# pages — publishes the public site: landing page at `/`, documentation at `/docs`.
+#
+# WHY A SEPARATE WORKFLOW. `ci-node.yml` already builds landing/ and docs/, but
+# it builds them to prove they compile — it is a gate, it runs on pull requests,
+# it has `permissions: contents: read`, and it throws the output away. Publishing
+# needs the opposite shape: master only, `pages: write` + `id-token: write`, and
+# a single artifact that outlives the job. Bolting deployment onto a PR gate
+# would either hand write-scoped Pages credentials to every pull request or make
+# the required PR contexts depend on a deploy environment. So: two workflows,
+# two jobs of work, and ci-node.yml is left exactly as it was.
+#
+# ONE ARTIFACT, TWO BUILDERS. Pages accepts a single upload, so both sites are
+# assembled into `_site/` before it is packed:
+#
+#   _site/index.html      landing (landing/scripts/build.mjs, via LANDING_OUT_DIR)
+#   _site/styles.css      landing's only asset — referenced relatively, so it is
+#                         base-path agnostic and needs no configuration
+#   _site/docs/**         vitepress output, copied from docs/.vitepress/dist
+#
+# THE BASE PATH IS THE ONE REAL SUBTLETY. VitePress inlines an absolute prefix
+# into every asset URL and every router link at BUILD time, so "docs live at
+# /docs" has to be told to the build, not arranged afterwards by moving files. A
+# project Pages site adds a second segment: the site root is `/<repo>/`, not
+# `/`. `actions/configure-pages` reports that segment as `base_path`, which is
+# `/` for a user/org site and `/<repo>` for a project site — hence the trailing
+# slash is stripped before `/docs/` is appended, so the two cases compose to
+# `/docs/` and `/<repo>/docs/` rather than `//docs/`.
+#
+# Neither site talks to a chain here. landing/ renders the committed
+# chain-facts.json and docs/ renders the committed .chain/snapshot.json, so this
+# workflow is fully offline and cannot publish a figure no node ever reported.
+name: pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+# Least privilege: `contents: read` to check out, and the two scopes Pages
+# deployment requires. Nothing here writes to the repository.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Deployments are serialised, and in-flight ones are NOT cancelled: a half-
+# applied Pages deployment is worse than a slightly stale one. Queueing means
+# the last push to master still wins, it just waits its turn.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build site
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            landing/package-lock.json
+            docs/package-lock.json
+
+      # ── landing → _site/ ────────────────────────────────────────────────────
+      - name: landing — npm ci
+        working-directory: landing
+        run: npm ci
+
+      # build.mjs honours LANDING_OUT_DIR and mkdir -p's it, so the landing page
+      # is written straight to the artifact root instead of being copied twice.
+      - name: landing — build to site root
+        working-directory: landing
+        env:
+          LANDING_OUT_DIR: ${{ github.workspace }}/_site
+        run: npm run build
+
+      # ── docs → _site/docs/ ──────────────────────────────────────────────────
+      - name: docs — npm ci
+        working-directory: docs
+        run: npm ci
+
+      # See the header: `base_path` is `/` on a user/org site and `/<repo>` on a
+      # project site, so strip any trailing slash before appending `/docs/`.
+      - name: docs — compute base path
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: |
+          set -euo pipefail
+          base="${PAGES_BASE_PATH%/}"
+          echo "DOCS_BASE=${base}/docs/" >> "$GITHUB_ENV"
+          echo "docs will be built for base ${base}/docs/"
+
+      - name: docs — build under /docs
+        working-directory: docs
+        run: npm run build
+
+      - name: Assemble single Pages artifact
+        run: |
+          set -euo pipefail
+          # Fail loudly rather than uploading half a site: an empty or missing
+          # build output here would deploy a 404 over a working page.
+          test -f _site/index.html
+          test -f docs/.vitepress/dist/index.html
+          mkdir -p _site/docs
+          cp -R docs/.vitepress/dist/. _site/docs/
+          echo "── _site ──"
+          find _site -maxdepth 2 -mindepth 1 | sort
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: deploy to Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,68 @@
+[
+  {
+    "number": 901,
+    "title": "indexer: add pagination to /v1/events",
+    "labels": [{ "name": "ready" }, { "name": "tier:T3" }],
+    "body": "Add limit/offset pagination to GET /v1/events with a hard cap of 200 per page."
+  },
+  {
+    "number": 902,
+    "title": "sdk: implement oracle submit_response",
+    "labels": [{ "name": "ready" }, { "name": "tier:T3" }, { "name": "cluster:sdk-oracle" }],
+    "body": "Implement submitResponse against pallet-oracle, with unit tests over a mocked api."
+  },
+  {
+    "number": 903,
+    "title": "sdk: oracle accuracy read path",
+    "labels": [{ "name": "ready" }, { "name": "tier:T3" }, { "name": "cluster:sdk-oracle" }],
+    "body": "Same cluster as 902 — must NOT run in parallel with it."
+  },
+  {
+    "number": 904,
+    "title": "emissions: change velocity bonus cap",
+    "labels": [{ "name": "ready" }, { "name": "tier:T0" }],
+    "body": "T0 economic core. Must never be dispatched autonomously."
+  },
+  {
+    "number": 905,
+    "title": "runtime: renumber pallet indices",
+    "labels": [{ "name": "ready" }, { "name": "tier:T1" }],
+    "body": "T1. Must never be dispatched autonomously."
+  },
+  {
+    "number": 906,
+    "title": "escrow: refactor dispute flow",
+    "labels": [{ "name": "ready" }, { "name": "tier:T2" }, { "name": "blocked" }],
+    "body": "Has the blocked label — skip."
+  },
+  {
+    "number": 907,
+    "title": "explorer: account view",
+    "labels": [{ "name": "ready" }, { "name": "tier:T3" }, { "name": "in-progress" }],
+    "body": "Already owned by a worker — skip."
+  },
+  {
+    "number": 908,
+    "title": "docs: tidy the README",
+    "labels": [{ "name": "ready" }],
+    "body": "No tier label — the dispatcher must refuse to guess the risk level."
+  },
+  {
+    "number": 909,
+    "title": "sc-e1: add Mechanism A sweep",
+    "labels": [{ "name": "ready" }, { "name": "tier:T2" }],
+    "body": "T2 work: workspace-level gate applies."
+  },
+  {
+    "number": 910,
+    "title": "indexer: escrow decoder",
+    "labels": [{ "name": "ready" }, { "name": "tier:T3" }],
+    "body": "Fourth dispatchable issue — should be deferred by MAX_PARALLEL."
+  },
+  {
+    "number": 911,
+    "title": "oracle: fix accuracy rounding",
+    "labels": [{ "name": "ready" }, { "name": "tier:T3" }, { "name": "needs-human" }],
+    "body": "A reviewer objected — must be skipped until a human clears it."
+  }
+]

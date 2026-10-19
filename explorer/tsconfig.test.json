@@ -1,0 +1,18 @@
+{
+  // The build config emits `dist/` from `src/` only, so it cannot also cover the
+  // test files without changing the output layout. This config is the other
+  // half: same strictness, no emit, and it takes in the tests and the vitest
+  // config as well. `npm run build` runs both, because vitest transpiles
+  // without typechecking — without this pass nothing in the gate would ever
+  // typecheck a test file.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    "declaration": false,
+    "declarationMap": false,
+    "sourceMap": false
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

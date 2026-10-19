@@ -1,0 +1,34 @@
+# scalar-agent — reference agent daemon, as a systemd USER service.
+#
+#   install -D -m 644 deploy/scalar-agent.service ~/.config/systemd/user/scalar-agent.service
+#   install -D -m 600 deploy/agent.env.example    ~/.config/scalar-agent/agent.env   # then edit
+#   systemctl --user daemon-reload && systemctl --user enable --now scalar-agent
+#   journalctl --user -u scalar-agent -o cat -f      # one JSON object per line
+#
+# `loginctl enable-linger $USER` keeps it running after you log out.
+# The unit assumes the repository is checked out at ~/scalar-commons-v4 and built
+# (`npm ci && npm run build` in examples/reference-agent). Adjust the paths if not.
+
+[Unit]
+Description=Scalar Commons reference agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+EnvironmentFile=%h/.config/scalar-agent/agent.env
+WorkingDirectory=%h/scalar-commons-v4/examples/reference-agent
+ExecStart=/usr/bin/env node dist/main.js
+# A fatal error (bad config, cannot register) exits 1; do not hammer the chain.
+Restart=on-failure
+RestartSec=60s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadOnlyPaths=%h
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-agent
+
+[Install]
+WantedBy=default.target

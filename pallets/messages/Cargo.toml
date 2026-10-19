@@ -1,0 +1,30 @@
+[package]
+name = "pallet-messages"
+version = "4.0.0"
+edition = "2021"
+
+[dependencies]
+parity-scale-codec = { workspace = true }
+scale-info         = { workspace = true }
+frame-support      = { workspace = true }
+frame-system       = { workspace = true }
+sp-runtime         = { workspace = true }
+# Registration checks go through pallet-agents (`is_agent`), and the fee is withdrawn from
+# the agents' Currency so the two pallets can never disagree on the balance type.
+pallet-agents      = { workspace = true }
+
+# Crates the test mock in src/tests.rs needs but the pallet itself does not. std is on here
+# because test runtimes execute natively.
+[dev-dependencies]
+# sp_core::H256 (frame_system::Config::Hash) and sr25519 dev keys for the envelope vectors.
+sp-core         = { workspace = true, features = ["std", "full_crypto"] }
+# sp_io::TestExternalities and the storage walk in `payload_is_not_written_to_state`.
+sp-io           = { workspace = true, features = ["std"] }
+# pallet_balances: the mock's Currency and AccountData.
+pallet-balances = { workspace = true, features = ["std"] }
+
+[features]
+default = ["std"]
+std = ["pallet-agents/std","parity-scale-codec/std","scale-info/std","frame-support/std","frame-system/std","sp-runtime/std"]
+runtime-benchmarks = ["frame-support/runtime-benchmarks","frame-system/runtime-benchmarks","pallet-agents/runtime-benchmarks"]
+try-runtime = ["frame-support/try-runtime","frame-system/try-runtime","pallet-agents/try-runtime"]

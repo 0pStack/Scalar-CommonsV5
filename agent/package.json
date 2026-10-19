@@ -1,0 +1,31 @@
+{
+  "name": "@scalar-commons/reference-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One-command reference worker for the Scalar Commons chain: register, heartbeat, accept, deliver, claim.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "setup:sdk": "npm --prefix ../sdk ci && npm --prefix ../sdk run build && node scripts/vendor-sdk.mjs",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/main.js",
+    "test": "vitest run",
+    "messaging-demo": "node dist/message-demo.js"
+  },
+  "dependencies": {
+    "@polkadot/api": "^15.0.0",
+    "@polkadot/keyring": "^13.0.0",
+    "@polkadot/util": "^13.0.0",
+    "@polkadot/util-crypto": "^13.0.0",
+    "@scalar-commons/sdk": "file:../sdk"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

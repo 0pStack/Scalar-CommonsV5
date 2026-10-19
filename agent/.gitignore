@@ -1,0 +1,6 @@
+node_modules
+dist
+agent.env
+*.env
+state/
+*.jsonl

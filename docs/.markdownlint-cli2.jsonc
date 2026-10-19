@@ -1,0 +1,21 @@
+{
+  // Lint config for the published docs site only. The globs in
+  // `package.json`'s `lint` script scope this to index.md, guide/ and
+  // reference/ — pre-existing engineering records in docs/ (VERIFIED-CONSTANTS,
+  // rfcs/) are not part of the site and are not linted here.
+  "config": {
+    // Reference tables of runtime constants and SCALE type signatures do not
+    // wrap. Hard-wrapping them would hurt readability, not help it.
+    "MD013": false,
+    // VitePress prose needs raw HTML for containers and the chain-check
+    // directives this repo's `check-chain-values.mjs` reads.
+    "MD033": false,
+    // Duplicate headings are fine when they live under different parents
+    // (e.g. "Errors" beneath each pallet).
+    "MD024": { "siblings_only": true },
+    // Bare URLs are legitimate in an RPC endpoint reference.
+    "MD034": false
+  },
+  "globs": [],
+  "ignores": ["node_modules/**", ".vitepress/**"]
+}

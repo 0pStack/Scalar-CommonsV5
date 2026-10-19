@@ -1,0 +1,25 @@
+# Code owners for Scalar Commons.
+#
+# GitHub requests review from the owner of every path a PR touches. Combined
+# with a branch protection rule on master requiring "Require review from Code
+# Owners", this is what stops an agent-authored PR merging itself into the
+# consensus, economic or CI layers unreviewed.
+#
+# NOTE: CODEOWNERS only *requests* review on its own. The blocking half is a
+# branch protection setting on master, which cannot be configured from a file
+# in the repository -- see ROUND6.md "Remaining gaps".
+#
+# Order matters: later patterns win.
+
+# Default owner for anything not matched below.
+*                   @tejaspatil1936
+
+# ── T0/T1 paths: consensus, economics, the binary, and CI itself ───────────
+# The runtime defines the economic rules and the supply cap.
+/runtime/**         @tejaspatil1936
+# Every pallet is a gaming surface (CLAUDE.md first principle 4).
+/pallets/**         @tejaspatil1936
+# The node is what actually produces blocks.
+/node/**            @tejaspatil1936
+# CI is the gate everything else is judged by, so it guards itself.
+/.github/**         @tejaspatil1936

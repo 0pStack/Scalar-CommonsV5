@@ -1,0 +1,10 @@
+# Factory runtime artifacts: regenerated constantly, never meaningful in git.
+#
+# The scripts mkdir -p these directories on every run (see lib/common.sh), so
+# there is nothing to preserve here — no .gitkeep negations, which would not work
+# anyway since git does not descend into an excluded directory.
+logs/
+run/
+blocked/
+STATE.md
+digests.log

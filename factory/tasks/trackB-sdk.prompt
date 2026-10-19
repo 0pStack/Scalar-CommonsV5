@@ -1,0 +1,102 @@
+You are an autonomous worker in a bounded factory loop on the Scalar Commons
+repository (Substrate / Polkadot SDK chain, native token CMN).
+
+TRACK B — TASK: turn the sdk/ skeleton into a real, working agent SDK.
+
+################  ABSOLUTE RULE — NON-NEGOTIABLE  ################
+NEVER make a check pass by weakening code. Specifically forbidden:
+  - deleting, skipping (it.skip/xit), or commenting out tests
+  - weakening assertions so they cannot fail
+  - implementing a method as a stub, a hardcoded return, or a TODO
+  - adding eslint-disable to silence a lint instead of fixing it
+  - relaxing or narrowing the gate command
+  - making integration tests "pass" by having them assert nothing when skipped
+A PostToolUse hook rejects stub patterns at write time and a fresh-context
+adversarial reviewer re-checks the diff. If a method genuinely cannot be
+implemented (e.g. the runtime does not expose what it needs), STOP and say so —
+BLOCKED is an acceptable outcome; a fake method is not.
+###################################################################
+
+## Starting state — verify it yourself, do not trust this summary
+
+sdk/ is a real but PARTIAL TypeScript package (@scalar-commons/sdk, P0-3
+skeleton), vitest + polkadot-js, roughly:
+
+  sdk/src/index.ts    (~287 lines) types + the main surface, partly skeletal
+  sdk/src/submit.ts   (~89)  signAndSend with decoded dispatch errors
+  sdk/src/retry.ts    (~66)  retry with explicit logging
+  sdk/src/logger.ts   (~31)
+  sdk/tests/retry.test.ts        (~82)  unit tests
+  sdk/tests/integration.test.ts  (~248) gated behind RUN_INTEGRATION=1
+
+Read sdk/README.md and sdk/src/index.ts first and inventory precisely which
+declared operations are real and which are skeletal. Work from that inventory.
+
+## Design rules already established in this package — keep them
+
+  - @polkadot/api is the ONLY transport.
+  - NO SILENT RETRIES. Every retry is logged with attempt number and cause
+    (see src/retry.ts). Never swallow an error.
+  - Balances are plancks as bigint (1 CMN = 10^12). Never a JS number, never a
+    float. ACC_SCALE is 1n << 64n.
+  - Dispatch errors are decoded to pallet.Error form and REJECT, never resolve.
+  - Doc comments in the existing voice, explaining the economic why.
+
+## What to build
+
+Real implementations of the agent-facing operations, replacing every skeletal
+one. The chain surface to cover (confirm each against the pallets before
+implementing — the pallet source is authoritative, not this list):
+
+  - agents:       register, stake/unstake, heartbeat, rank + agent info reads
+  - escrow:       create agreement, deliver, confirm/release, dispute
+  - oracle:       submit request, submit response, read accuracy
+  - emissions:    read era info, settle_era (PERMISSIONLESS — never gate it on a
+                  privileged caller), claim rewards, read unclaimed amounts
+  - orchestrator: link/unlink sub-agents (the self-link guard
+                  orchestrator != sub_agent must be respected, not bypassed)
+  - governance:   conviction voting reads used by the emissions weighting
+  - queries:      NetPosition and EraInfo as declared in index.ts
+
+Read the pallet sources for exact extrinsic names, arguments, and errors:
+pallets/{agents,escrow,oracle,emissions,auto-params,orchestrator,constitution}/src/lib.rs
+and runtime/src/lib.rs for the constants.
+
+## Testing strategy — this is the crux of the task
+
+The gate must pass with NO chain running at ws://127.0.0.1:9944. So:
+
+  - Unit tests (the gate): mock the polkadot-js api surface and assert that each
+    method builds the CORRECT extrinsic — right pallet, right call, right
+    argument encoding and order — and that errors propagate as decoded
+    rejections. This is real testing: it catches wrong-call and wrong-argument
+    bugs, which are the actual failure mode of an SDK.
+  - Add tests for: bigint handling above 2^53, dispatch-error decoding, retry
+    logging (already partly covered), and the permissionless settle_era path.
+  - Integration tests stay behind RUN_INTEGRATION=1, must be SKIPPED VISIBLY
+    when the env var is absent (a skipped test must be reported as skipped, not
+    silently passed), and must be runnable against a live node when it is set.
+
+Mocking the transport is allowed and expected. Mocking YOUR OWN SDK logic is
+not: the code under test must be the real code path.
+
+## THE GATE (the only definition of success)
+
+    cd sdk && npm ci --no-audit --no-fund && npm run typecheck && npm test
+
+Exit 0 is the only success. Run it yourself before finishing. typecheck must be
+clean — do not reach for `any`, `as unknown as`, or @ts-ignore to get there; if
+a type genuinely cannot be expressed, say so in your final message.
+
+Note: npm test is vitest run, which passes when tests are skipped. A suite where
+the meaningful tests are all skipped is a failed task, and the reviewer will
+check for exactly that.
+
+Commit in small scoped steps ("sdk: implement escrow confirm + tests"). Do not
+push and do not open a PR — the factory handles that.
+## TRIAGE HINT (2026-08-01)
+Fix in src/, never by loosening tsconfig or tests:
+1. src/client.ts:185 TS2322 — signAndSend's signer must be an IKeyringPair
+   (keypair object), not AccountId/Address. Fix that function's parameter type.
+2. src/index.ts:115 TS2345 — findMetaError lives on api.registry; pass the
+   registry, not the ApiPromise.

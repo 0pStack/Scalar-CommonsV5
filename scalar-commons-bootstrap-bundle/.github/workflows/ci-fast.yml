@@ -1,0 +1,23 @@
+# Fast PR gate: every agent PR must pass this before human review.
+name: ci-fast
+on:
+  pull_request:
+  workflow_dispatch:
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo check --workspace
+      - name: indexer tests (if present)
+        run: |
+          if [ -f indexer/package.json ]; then
+            cd indexer && npm ci && npm test
+          fi

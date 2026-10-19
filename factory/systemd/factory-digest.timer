@@ -1,0 +1,15 @@
+[Unit]
+Description=Nightly factory digest at 05:30 UTC
+Documentation=file:///home/dev/scalar-commons-v4/factory/README.md
+
+[Timer]
+# 05:30 UTC: after the night window (22:00-07:00) has done most of its work, so
+# the digest is the morning read.
+OnCalendar=*-*-* 05:30:00 UTC
+AccuracySec=1min
+# If the box was asleep/off at 05:30, still run once it comes back.
+Persistent=true
+Unit=factory-digest.service
+
+[Install]
+WantedBy=timers.target

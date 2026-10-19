@@ -1,0 +1,12 @@
+Fix test COMPILATION only. Read ROUND3.md and factory/blocked/resolved/*tests-fix* 
+if present. Authorized changes, nothing else:
+1. Add missing [dev-dependencies] to all 7 pallet Cargo.toml files (derive the
+   list from each pallet's tests.rs imports; versions matching Cargo.lock).
+2. Fix ConstU32-vs-ConstU64 type mismatches in test MOCK CONFIGS (tests/common.rs
+   and pallets/*/src/tests.rs mock runtime blocks) where the Config trait expects
+   a u64/Balance Get — use ConstU64 per CLAUDE.md. Mock config type lines only.
+3. Fix any other missing-import or missing-bound errors in test mock setup code.
+FORBIDDEN: changing any #[test] function body, assertion, or expected value;
+deleting/renaming/ignoring tests; #[allow]; touching pallet lib.rs or runtime.
+Branch master, commit in small steps, push.
+Gate: cargo test --workspace --no-run exits 0.

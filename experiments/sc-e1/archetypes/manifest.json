@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "description": "SC-E1 archetype run matrix (protocol §6). Each run × 3 seeds. Counts are scaled down from the protocol defaults (e.g. sybil N=1000) so the recorded extrinsic stream stays reviewable; scale via cohort.count for a full run. RUN-B/RUN-F config deltas (work-weighting disabled / zero-privileged-calls) are chain-spec concerns, not archetype behaviour — the archetype population is identical to RUN-A by design.",
+  "runs": [
+    {
+      "id": "RUN-A",
+      "seeds": [1, 2, 3],
+      "eras": 20,
+      "settlement": { "maxBackoff": 8 },
+      "cohorts": [
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 1 } },
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 3 } },
+        { "archetype": "A-2", "count": 2, "params": { "stakeCmn": 10000 } }
+      ]
+    },
+    {
+      "id": "RUN-B",
+      "seeds": [1, 2, 3],
+      "eras": 20,
+      "settlement": { "maxBackoff": 8 },
+      "cohorts": [
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 1 } },
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 3 } },
+        { "archetype": "A-2", "count": 2, "params": { "stakeCmn": 10000 } }
+      ]
+    },
+    {
+      "id": "RUN-C",
+      "seeds": [1, 2, 3],
+      "eras": 10,
+      "settlement": { "maxBackoff": 8 },
+      "cohorts": [
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 2 } },
+        { "archetype": "A-2", "count": 2, "params": { "stakeCmn": 10000 } },
+        { "archetype": "A-3", "count": 20, "params": {} }
+      ]
+    },
+    {
+      "id": "RUN-D",
+      "seeds": [1, 2, 3],
+      "eras": 10,
+      "settlement": { "maxBackoff": 8 },
+      "cohorts": [
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 2 } },
+        { "archetype": "A-2", "count": 2, "params": { "stakeCmn": 10000 } },
+        { "archetype": "A-4", "count": 2, "params": { "stakeCmn": 200 } }
+      ]
+    },
+    {
+      "id": "RUN-E",
+      "seeds": [1, 2, 3],
+      "eras": 10,
+      "settlement": { "maxBackoff": 8 },
+      "cohorts": [
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 2 } },
+        { "archetype": "A-2", "count": 2, "params": { "stakeCmn": 10000 } },
+        { "archetype": "A-5", "count": 2, "params": { "stakeCmn": 100 } }
+      ]
+    },
+    {
+      "id": "RUN-F",
+      "seeds": [1, 2, 3],
+      "eras": 100,
+      "settlement": { "maxBackoff": 8 },
+      "cohorts": [
+        { "archetype": "A-1", "count": 2, "params": { "stakeCmn": 5000, "escrowsPerEra": 2 } },
+        { "archetype": "A-2", "count": 2, "params": { "stakeCmn": 10000 } }
+      ]
+    }
+  ]
+}

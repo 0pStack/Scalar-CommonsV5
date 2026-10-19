@@ -1,0 +1,61 @@
+# SC-E1 — Zombienet 3-validator ephemeral network (protocol §8.1)
+#
+# Spawns a throwaway 3-validator Scalar Commons network for a single SEEV run,
+# then is torn down after the indexer export is extracted. One network per run
+# per seed; nothing here is a persistent testnet.
+#
+# Scalar Commons is a standalone (solo) Substrate chain, so Zombienet models it
+# as the `relaychain` with three validator authorities (Alice / Bob / Charlie).
+# There is no parachain block.
+#
+# λ (fast-era) compression lives entirely in the `sc-e1` chain-spec preset
+# (protocol §8.2, P0-2) — NOT here. This file only shapes the topology.
+
+[settings]
+# Generous startup budget: the CI host builds/loads WASM and syncs 3 nodes.
+timeout = 1000
+# GitHub Actions runners have no container runtime we rely on here; run the
+# node processes directly on the host.
+provider = "native"
+
+[relaychain]
+# TODO: unblock after PR #4 merges (P0-2) — the `sc-e1` fast-era chain-spec
+# preset must exist in the node before this resolves. Until then Zombienet
+# cannot `build-spec --chain sc-e1` and the smoke job fails loudly (intended).
+chain = "sc-e1"
+
+# TODO: unblock after PR #4 merges (P0-2) — the node crate currently ships only
+# `node/src/chain_spec.rs` (no Cargo.toml/main.rs yet), so this binary does not
+# build. Path is relative to the repo root the workflow runs from.
+default_command = "./target/release/scalar-commons-node"
+
+# Uniform flags for every validator. `--validator` is added per-node below.
+default_args = [
+  "-linfo",
+  # Open RPC/WS so the SDK (§8.3, P0-3) and indexer (§8.4, P0-5) can attach.
+  "--rpc-cors=all",
+  "--rpc-methods=Unsafe",
+  "--unsafe-rpc-external",
+]
+
+  # ── Validator 1 ────────────────────────────────────────────────────────────
+  [[relaychain.nodes]]
+  name = "validator-1"
+  validator = true
+  # Deterministic well-known dev key; matches an authority in the sc-e1 genesis.
+  args = ["--alice"]
+  rpc_port = 9944
+
+  # ── Validator 2 ────────────────────────────────────────────────────────────
+  [[relaychain.nodes]]
+  name = "validator-2"
+  validator = true
+  args = ["--bob"]
+  rpc_port = 9945
+
+  # ── Validator 3 ────────────────────────────────────────────────────────────
+  [[relaychain.nodes]]
+  name = "validator-3"
+  validator = true
+  args = ["--charlie"]
+  rpc_port = 9946

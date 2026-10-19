@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.tsbuildinfo
+*.sqlite
+*.sqlite-journal

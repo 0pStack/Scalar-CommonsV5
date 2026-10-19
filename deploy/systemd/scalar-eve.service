@@ -1,0 +1,42 @@
+[Unit]
+Description=Scalar Commons devnet validator — eve
+Documentation=file:///home/dev/scalar-commons-v4/deploy/README.md
+After=network-online.target scalar-alice.service
+Wants=network-online.target
+PartOf=scalar-devnet.target
+
+[Service]
+Type=exec
+WorkingDirectory=%h
+# ROUND15: eve is the fifth authority. Note that she does NOT add fault
+# tolerance over four — GRANDPA's threshold rises to 4 of 5 in step with the set
+# size, so four and five both survive exactly one node being down. Seven is the
+# next size that survives two. See scalar-dave.service and README.md
+# "Fault tolerance".
+ExecStart=/home/dev/scalar-commons-v4/target/release/scalar-node \
+    --chain /home/dev/scalar-commons-v4/deploy/scalar-local-raw.json \
+    --base-path %h/scalar-testnet/eve \
+    --name scalar-eve \
+    --validator \
+    --eve \
+    --node-key-file %h/scalar-testnet/eve/node-key \
+    --port 30337 \
+    --rpc-port 9948 \
+    --rpc-methods safe \
+    --rpc-rate-limit 300 \
+    --rpc-max-connections 100 \
+    --rpc-max-subscriptions-per-connection 64 \
+    --rpc-max-batch-request-len 16 \
+    --rpc-max-request-size 10 \
+    --rpc-message-buffer-capacity-per-connection 32 \
+    --prometheus-port 9619 \
+    --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-eve
+
+[Install]
+WantedBy=scalar-devnet.target

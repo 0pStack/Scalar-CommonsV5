@@ -1,0 +1,61 @@
+# claude-swarm — MENTION-ONLY. A human must type @claude for this to run.
+#
+# The `issues: [opened, labeled]` trigger was removed in the Stage-1 hardening
+# pass: it started an agent with contents:write the moment an issue carried the
+# `agent-task` label, with no human in the loop and no accounting. Combined with
+# continuous-watch.yml (which re-commented "@claude ..." on any agent-task issue
+# lacking a branch) and pr-ci-feedback.yml (which re-commented "@claude ..." on
+# every red CI run), it formed a self-sustaining spawn loop — the Phase-0 burn.
+# Those two workflows are deleted; this trigger is what remains of that path.
+#
+# Autonomous work now goes through factory/dispatch.sh, which is off by default,
+# tier-gated, and charged against the daily spawn ledger. This workflow is only
+# for a human deliberately asking for help in a comment.
+name: claude-swarm
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude:
+    if: |
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          system_prompt: |
+            You are a Rust/Substrate engineer on the scalar-commons-v4 project.
+            BEFORE committing any code you MUST run:
+              cargo fmt --all
+            This ensures rustfmt formatting passes CI. Always run it as the last step before git commit.
+            AFTER completing your code changes, you MUST open a pull request by running:
+              gh pr create --base master --title "<concise title>" --body "Fixes #<ISSUE_NUMBER>"
+            Never finish a task without creating a PR. The GH_TOKEN env var is available.
+          claude_args: |
+            --model claude-sonnet-4-6
+            --max-turns 80
+            --allowedTools Edit,Read,Write,Bash(git:*),Bash(cargo:*),Bash(rustfmt:*),Bash(ls:*),Bash(find:*),Bash(cat:*),Bash(grep:*),Bash(echo:*),Bash(mkdir:*),Bash(cp:*),Bash(gh:*),Bash(python3:*),Bash(python:*),Bash(node:*),Bash(npm:*)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

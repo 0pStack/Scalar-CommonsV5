@@ -1,0 +1,116 @@
+[package]
+name    = "scalar-node"
+version = "4.0.0"
+edition = "2021"
+description = "Scalar Commons node — sovereign Substrate chain for autonomous AI-agent coordination."
+build   = "build.rs"
+
+# lib + thin bin, exactly as the reference splits them. The library exists so
+# `chain_spec::mainnet_genesis_config` — which takes five arguments that have
+# no safe defaults and so cannot be reached from a `--chain` id — remains a
+# public API instead of unreachable code.
+[lib]
+name = "scalar_node"
+path = "src/lib.rs"
+
+# The binary the whole project is named after. Ported from the kitchensink
+# reference node (`substrate/bin/node/cli` at tag polkadot-stable2503), which
+# is the only SDK node whose consensus shape matches this runtime:
+# Babe + Grandpa + Staking + Session + Historical + Offences + BagsList.
+[[bin]]
+name = "scalar-node"
+path = "src/main.rs"
+
+[dependencies]
+# ── Third-party ──────────────────────────────────────────────────────────────
+clap        = { workspace = true }
+futures     = { workspace = true }
+jsonrpsee   = { workspace = true }
+log         = { workspace = true }
+serde_json  = { workspace = true }
+
+# ── The runtime this node executes ───────────────────────────────────────────
+scalar-commons-runtime = { path = "../runtime" }
+
+# ── Substrate client (node-side, std only) ───────────────────────────────────
+sc-authority-discovery  = { workspace = true }
+sc-basic-authorship     = { workspace = true }
+sc-cli                  = { workspace = true }
+sc-client-api           = { workspace = true }
+sc-consensus            = { workspace = true }
+sc-consensus-babe       = { workspace = true }
+sc-consensus-babe-rpc   = { workspace = true }
+sc-consensus-grandpa    = { workspace = true }
+sc-consensus-grandpa-rpc = { workspace = true }
+sc-consensus-slots      = { workspace = true }
+sc-executor             = { workspace = true }
+sc-network              = { workspace = true }
+sc-network-sync         = { workspace = true }
+sc-offchain             = { workspace = true }
+sc-rpc                  = { workspace = true }
+sc-rpc-api              = { workspace = true }
+sc-service              = { workspace = true }
+sc-storage-monitor      = { workspace = true }
+sc-sysinfo              = { workspace = true }
+sc-telemetry            = { workspace = true }
+sc-transaction-pool     = { workspace = true }
+sc-transaction-pool-api = { workspace = true }
+
+# ── Substrate primitives ─────────────────────────────────────────────────────
+sp-api               = { workspace = true, default-features = true }
+sp-authority-discovery = { workspace = true, default-features = true }
+sp-block-builder     = { workspace = true, default-features = true }
+sp-blockchain        = { workspace = true }
+sp-consensus         = { workspace = true }
+sp-consensus-babe    = { workspace = true, default-features = true }
+sp-consensus-grandpa = { workspace = true, default-features = true }
+sp-core              = { workspace = true, default-features = true }
+sp-inherents         = { workspace = true, default-features = true }
+sp-io                = { workspace = true, default-features = true }
+sp-keystore          = { workspace = true, default-features = true }
+sp-runtime           = { workspace = true, default-features = true }
+sp-timestamp         = { workspace = true, default-features = true }
+
+# ── Benchmarking CLI ─────────────────────────────────────────────────────────
+# ROUND6: powers the `benchmark` subcommand. Round 4 omitted this because the
+# runtime's runtime-benchmarks feature graph was incoherent (5 of 40 entries);
+# Round 5 completed the graph and Round 6 cleared the last error, so the CLI
+# can now be wired against a runtime that actually builds under the feature.
+#
+# Declared inline rather than via [workspace.dependencies] because the root
+# manifest carries frame-benchmarking-cli only in [patch.crates-io], and root
+# Cargo.toml is outside this round's scope. Same git + tag as every other SDK
+# crate here, so the pin is identical; runtime/Cargo.toml already declares
+# sp-version, pallet-authorship and pallet-transaction-payment-rpc-runtime-api
+# the same way. Promoting it to a workspace entry is cosmetic follow-up.
+frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503" }
+
+# ── Runtime-API traits the RPC layer needs to name in its bounds ─────────────
+frame-system-rpc-runtime-api = { workspace = true, default-features = true }
+pallet-transaction-payment-rpc-runtime-api = { workspace = true, default-features = true }
+substrate-frame-rpc-system   = { workspace = true }
+pallet-transaction-payment-rpc = { workspace = true }
+
+# ── Genesis config types referenced by chain_spec.rs ─────────────────────────
+pallet-staking = { workspace = true, default-features = true }
+
+[build-dependencies]
+substrate-build-script-utils = { workspace = true }
+
+[features]
+default = []
+# Mirrors the kitchensink node's feature, which forwards to its runtime plus the
+# SDK crates that expose the feature. Membership determined by reading each
+# dependency's own Cargo.toml: of this node's dependencies, exactly these four
+# declare a `runtime-benchmarks` feature.
+#
+# `benchmark pallet` refuses to run unless the node was built with this on --
+# that guard is the reference's and is kept, so a default binary reports the
+# situation instead of silently producing meaningless numbers.
+runtime-benchmarks = [
+    "scalar-commons-runtime/runtime-benchmarks",
+    "frame-benchmarking-cli/runtime-benchmarks",
+    "pallet-staking/runtime-benchmarks",
+    "sc-service/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+]

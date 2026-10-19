@@ -1,0 +1,33 @@
+[package]
+name        = "scalar-commons-integration-tests"
+version     = "0.1.0"
+edition     = "2021"
+publish     = false
+
+[dev-dependencies]
+frame-support      = { workspace = true, features = ["std"] }
+frame-system       = { workspace = true, features = ["std"] }
+sp-core            = { workspace = true, features = ["std"] }
+sp-io              = { workspace = true, features = ["std"] }
+sp-runtime         = { workspace = true, features = ["std"] }
+parity-scale-codec = { workspace = true, features = ["std"] }
+scale-info         = { workspace = true, features = ["std"] }
+pallet-balances    = { workspace = true, features = ["std"] }
+pallet-agents      = { workspace = true, features = ["std"] }
+pallet-escrow      = { workspace = true, features = ["std"] }
+pallet-oracle      = { workspace = true, features = ["std"] }
+pallet-emissions   = { workspace = true, features = ["std"] }
+pallet-auto-params = { workspace = true, features = ["std"] }
+pallet-orchestrator = { workspace = true, features = ["std"] }
+pallet-messages    = { workspace = true, features = ["std"] }
+
+[[test]]
+name = "integration"
+path = "integration.rs"
+
+# `construct_runtime!` expands to `#[cfg(feature = "std")]` arms. This crate is
+# test-only and declares no features, so rustc flags the value as unexpected.
+# Declaring it as expected is the fix; an `allow` would also hide genuine typos
+# in future cfgs.
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("std"))'] }

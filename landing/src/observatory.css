@@ -1,0 +1,2056 @@
+/* /observatory — the design system, v5.
+
+   Type: Source Serif 4 for display and figures, at optical size 60 (headings
+   weight 500, figures weight 400), with its own tabular lining figures, so a
+   figure that counts up moves nothing beside it. Inter for the interface and
+   reading (400 body, 500 labels, 600 small caps; cv11 and ss01; tabular
+   figures wherever the interface shows numbers). JetBrains Mono at 0.75 rem
+   only for sources, hashes, addresses and the river's axis. Nine sizes, and
+   no others (test/observatory.test.mjs holds the stylesheet to them; presenter
+   mode, which sets figures for a room, is the one stated exception).
+
+   Space: one scale — 4, 8, 16, 24, 40, 64, 104 px — for every margin,
+   padding and gap. Content is at most 1280 px wide.
+
+   Colour: the plate, a surface, a hairline, text and one secondary grey that
+   passes WCAG AA on both; one teal accent for live state only; amber for
+   disputes only. No gradients, no glow, no glass, no decorative icons.
+
+   Components: one button, one disclosure, one tooltip, one focus ring. */
+
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("fonts/source-serif-4-latin-opsz-normal.woff2") format("woff2-variations");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2");
+}
+
+/* Fallback faces with the web fonts' metrics, so the swap from a system face
+   to the real one moves nothing (CLS under 0.02). Widths measured in Chromium
+   against Times New Roman / Arial / Courier New over a sample of the page's
+   own text (the serif at optical size 60); ascent and descent are each
+   font's own, divided by the size adjustment. Liberation faces carry the
+   Microsoft metrics on Linux. */
+@font-face {
+  font-family: "Source Serif 4 Fallback";
+  src: local("Times New Roman"), local("Liberation Serif"), local("Times");
+  size-adjust: 99.53%;
+  ascent-override: 104.49%;
+  descent-override: 34.16%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "Inter Fallback";
+  src: local("Arial"), local("Liberation Sans"), local("Helvetica");
+  size-adjust: 107.22%;
+  ascent-override: 90.47%;
+  descent-override: 22.38%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: "JetBrains Mono Fallback";
+  src: local("Courier New"), local("Liberation Mono"), local("Courier");
+  size-adjust: 99.98%;
+  ascent-override: 102.02%;
+  descent-override: 30%;
+  line-gap-override: 0%;
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #0b0e12;
+  --surface: #11151b;
+  --border: #1f252d;
+  --text: #e8eaed;
+  --text-dim: #a3acb7;
+  --grid: #161b21;
+  --accent: #5fd0c2;
+  --live: var(--accent);
+  --active: var(--accent);
+  --settled: #6b747e;
+  --disputed: #e6a23c;
+  --slashed: var(--text-dim);
+  /* An idle agent's cell: the settled grey, which stands 3:1 off the plate. */
+  --idle: #6b747e;
+  /* Red for one thing only: an agent slashed in the last hour. */
+  --slash: #f0675c;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f7f6f2;
+    --surface: #ffffff;
+    --border: #e1ded5;
+    --text: #16191d;
+    --text-dim: #545c66;
+    --grid: #efede7;
+    --accent: #0a7569;
+    --live: var(--accent);
+    --active: var(--accent);
+    --settled: #8a9098;
+    --disputed: #9a5800;
+    --slashed: var(--text-dim);
+    /* A step darker than the settled grey, so an idle cell still stands 3:1 off the paper. */
+    --idle: #808790;
+    --slash: #b42318;
+  }
+}
+
+:root {
+  --font-serif: "Source Serif 4", "Source Serif 4 Fallback", Georgia, serif;
+  --font-sans: "Inter", "Inter Fallback", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, Menlo, Consolas, monospace;
+  /* The type scale, in rem at a 16 px root: size, then line height. */
+  --t-display: 4.5rem;
+  --lh-display: 1;
+  --t-figure-xl: 4rem;
+  --lh-figure-xl: 1;
+  --t-h2: 2.25rem;
+  --lh-h2: 1.15;
+  --t-figure-l: 2.5rem;
+  --lh-figure-l: 1;
+  --t-h3: 1.25rem;
+  --lh-h3: 1.3;
+  --t-body: 1.0625rem;
+  --lh-body: 1.6;
+  --t-label: 0.875rem;
+  --lh-label: 1.4;
+  --t-eyebrow: 0.75rem;
+  --lh-eyebrow: 1.2;
+  --t-mono: 0.75rem;
+  --lh-mono: 1.5;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+  --space-6: 64px;
+  --space-7: 104px;
+  --content: 1280px;
+  --measure: 62ch;
+  --gutter: var(--space-3);
+  --bar-height: 56px;
+}
+
+@media (min-width: 40rem) {
+  :root {
+    --gutter: var(--space-4);
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --gutter: var(--space-5);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-padding-top: var(--bar-height);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 var(--t-body) / 1.6 var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  overflow-wrap: break-word;
+}
+
+a {
+  color: inherit;
+  text-decoration-color: var(--border);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  text-decoration-color: var(--text-dim);
+}
+
+/* One focus ring for everything focusable. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+h1,
+h2 {
+  font-family: var(--font-serif);
+  font-variation-settings: "opsz" 60;
+  font-weight: 500;
+  text-wrap: balance;
+}
+
+h2 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--t-h2);
+  line-height: var(--lh-h2);
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  margin: 0;
+  font-size: var(--t-h3);
+  line-height: var(--lh-h3);
+  font-weight: 500;
+}
+
+/* Reading text never runs past 62 characters. */
+p,
+dd,
+li,
+.lede,
+.dek {
+  max-width: var(--measure);
+}
+
+/* Mono is for sources, hashes and addresses only. */
+.mono,
+code,
+pre {
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  line-height: var(--lh-mono);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-2);
+  font-size: var(--t-eyebrow);
+  line-height: var(--lh-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.dim {
+  color: var(--text-dim);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: absolute;
+  left: var(--gutter);
+  top: -100px;
+  z-index: 20;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--text);
+}
+
+.skip:focus {
+  top: var(--space-2);
+}
+
+/* The frame: content at most 1280 px wide, centred, with the gutter outside it. */
+.frame {
+  width: 100%;
+  max-width: calc(var(--content) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+/* ── components ───────────────────────────────────────────────────────────
+   One button, one disclosure, one tooltip. */
+
+/* The button: quiet text with a hairline only on hover, a 32 px hit area. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  font: 500 var(--t-label) / 1 var(--font-sans);
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.btn[aria-checked="true"],
+.btn[aria-pressed="true"] {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+/* The disclosure: a summary that reads as a button, with a chevron drawn in CSS. */
+.disclosure > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 32px;
+  padding: 0 var(--space-2);
+  margin: 0;
+  font: 500 var(--t-label) / 1 var(--font-sans);
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 150ms ease-out;
+}
+
+.disclosure[open] > summary::before {
+  transform: rotate(45deg);
+}
+
+.disclosure > summary:hover,
+.disclosure[open] > summary {
+  color: var(--text);
+}
+
+.disclosure > summary:hover {
+  border-color: var(--border);
+}
+
+/* The tooltip: a figure's source on hover, and an agent's details in the agent panel. */
+.tooltip {
+  position: absolute;
+  z-index: 5;
+  width: max-content;
+  max-width: min(28rem, 86vw);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  pointer-events: none;
+}
+
+/* ── the top bar ──────────────────────────────────────────────────────────
+   56 px, sticky, a bottom hairline. Left: the wordmark and the nav. Right:
+   the status pill and the two buttons. Its height is fixed, so a change of
+   state moves nothing beneath it. */
+
+.statusbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+
+.sb-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: calc(var(--bar-height) - 1px); /* the hairline makes up the rest */
+}
+
+.sb-left,
+.sb-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.sb-right {
+  gap: var(--space-2);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.wordmark .mark {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.wordmark-text {
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.site-nav ul {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current="page"] {
+  color: var(--text);
+}
+
+/* The status pill: dot · state · block N · finality, on the surface. */
+.sb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  max-width: none;
+  min-height: 32px;
+  margin: 0 var(--space-2) 0 0;
+  padding: 0 var(--space-3);
+  white-space: nowrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sb-state {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.statusbar[data-state="network-normal"] .sb-state {
+  color: var(--live);
+}
+
+.sb-sep {
+  white-space: pre;
+  color: var(--text-dim);
+}
+
+/* The pill's name, and who is sealing, are for a screen reader; the Validators section shows the set. */
+.statusbar .reading-label,
+.sb-validators {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.sb-block {
+  color: var(--text);
+}
+
+/* The height in the pill is the interface's own figure: Inter, tabular. */
+.statusbar .reading-value {
+  display: inline;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.statusbar .reading-value .error {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.statusbar .reading-value.is-error .unavailable {
+  font-size: inherit;
+}
+
+/* The bar's own source, when asked for, hangs below its right end rather than growing it. */
+.statusbar .reading-prov {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 11;
+}
+
+/* Below 64 rem the bar is two rows: the wordmark and the nav; the pill and the buttons. */
+@media (max-width: 63.99rem) {
+  :root {
+    --bar-height: 96px;
+  }
+  .sb-inner {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0;
+    padding-block: 0;
+  }
+  .sb-left,
+  .sb-right {
+    justify-content: space-between;
+    min-height: 44px;
+  }
+  .sb-pill {
+    flex: 1 1 auto;
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 39.99rem) {
+  /* The name stays for a screen reader: the link is never nameless. */
+  .sb-left .wordmark-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .sb-finality,
+  .sb-finality + .sb-sep,
+  .sb-block + .sb-sep,
+  .sb-present {
+    display: none;
+  }
+}
+
+/* The live dot: filled in the accent only while the network reads normal; a hollow ring otherwise. Still, always. */
+.pulse-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--text-dim);
+  border-radius: 50%;
+}
+
+.statusbar[data-state="network-normal"] .pulse-dot,
+.live-line[data-state="network-normal"] .pulse-dot {
+  background: var(--live);
+  border-color: var(--live);
+}
+
+/* ── the first screen ─────────────────────────────────────────────────────
+   As tall as its content plus 64 px. Five columns of text and figures,
+   centred against seven of the framed agent activity panel. */
+
+.hero-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-block: var(--space-6) 0;
+}
+
+@media (min-width: 64rem) {
+  .hero-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--space-5);
+  }
+}
+
+.hero-text {
+  grid-column: 1 / span 5;
+  align-self: center;
+  min-width: 0;
+}
+
+.hero-panel {
+  grid-column: 6 / span 7;
+  min-width: 0;
+}
+
+.hero h1 {
+  margin: 0 0 var(--space-4);
+  font-size: var(--t-display);
+  line-height: var(--lh-display);
+  letter-spacing: -0.02em;
+}
+
+/* On a phone the title steps down one size on the scale, so it never leaves the screen. */
+@media (max-width: 39.99rem) {
+  .hero h1 {
+    font-size: var(--t-figure-xl);
+  }
+}
+
+.dek {
+  margin: 0 0 var(--space-5);
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+/* Four figures and a note with hairlines between them: the height across
+   the top; agents registered and how many are operator-run beside it;
+   agreements open, and beside it, directly under the operator-run figure,
+   the plain note on who runs those agents. Five columns cannot hold the
+   figures in one row (the height alone is seven characters and growing). */
+.hero-figures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 0 var(--space-5);
+}
+
+.hero-figure,
+.hero-note {
+  position: relative;
+  min-width: 0;
+  padding-block: var(--space-4);
+}
+
+.hero-figure:first-child {
+  grid-column: 1 / -1;
+  padding-top: 0;
+}
+
+.hero-figure + .hero-figure,
+.hero-note {
+  border-top: 1px solid var(--border);
+}
+
+/* The right-hand column: the operator-run figure and the note under it. */
+.hero-figure:nth-child(3),
+.hero-note {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--border);
+}
+
+.hero-note {
+  margin: 0;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+/* The operator-run figure's "of M" is part of the figure, set at the label's size. */
+.hero-figure .reading-value .unit {
+  font-family: var(--font-sans);
+  font-size: var(--t-label);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* On a phone, two figures to a row: the three beneath the height step down one size on the scale. */
+@media (max-width: 39.99rem) {
+  .hero-figure + .hero-figure .reading-value {
+    font-size: var(--t-figure-l);
+    line-height: var(--lh-figure-l);
+  }
+}
+
+/* Activity in the last hour: four figures in a row under the hero's, at figure-l. */
+.hour {
+  margin: 0 0 var(--space-5);
+}
+
+.hour-title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-sans);
+  color: var(--text-dim);
+}
+
+/* When the event index is an hour or more behind the chain, the row says so before its figures. */
+.hour-note {
+  margin: 0 0 var(--space-3);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+/* Four to a row in five columns: a step less room either side of each hairline than a section's row. */
+.hour .hour-figures > .reading {
+  padding-inline: var(--space-3);
+}
+
+.hour .hour-figures > .reading:first-child {
+  padding-left: 0;
+}
+
+.hero-figure .reading-value {
+  margin: 0;
+  font-size: var(--t-figure-xl);
+  line-height: var(--lh-figure-xl);
+}
+
+.live-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-line .ll-state {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.live-line[data-state="network-normal"] .ll-state {
+  color: var(--live);
+}
+
+/* The agent activity panel's frame: a hairline and 24 px of room; each canvas is clipped to it, so nothing is drawn outside and nothing sits behind the text. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The key samples the plate: open 1 px in the accent, disputed 2 px in amber, settled 1 px dashed grey. */
+.swatch {
+  width: 16px;
+  height: 0;
+  border-top: 1px solid var(--active);
+}
+
+.swatch-disputed {
+  border-top: 2px solid var(--disputed);
+}
+
+.swatch-settled {
+  border-top: 1px dashed var(--settled);
+}
+
+/* The legend's samples are the plate's own marks: a dot in each state's ink, and the operator-run ring. */
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--idle);
+}
+
+.dot-working {
+  background: var(--active);
+}
+
+.dot-disputed {
+  background: var(--disputed);
+}
+
+.dot-slashed {
+  background: var(--slash);
+}
+
+.dot-ring {
+  width: 14px;
+  height: 14px;
+  background: none;
+  border: 1px solid var(--text-dim);
+}
+
+.field-host,
+.constellation-host {
+  position: relative;
+  height: clamp(320px, 52vh, 560px);
+}
+
+/* Beside a taller column of figures the field takes the panel's spare height, so the frame holds no dead band. */
+.field-host {
+  flex: 1 1 auto;
+  min-height: clamp(320px, 52vh, 560px);
+  height: auto;
+}
+
+.field-canvas,
+.constellation-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: manipulation;
+}
+
+.field-live {
+  margin: 0;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The panel's one footnote: a line in the label size. */
+.panel-foot {
+  margin: 0;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+
+/* Room for the footnote's longest case (two lines) from the first paint, so its arrival moves nothing. */
+.field-foot {
+  min-height: calc(2 * var(--lh-label) * var(--t-label));
+}
+
+/* The field is the default view; the network graph replaces it while its switch is on. */
+.graph-legend,
+.graph-host,
+.graph-note,
+.hero-panel[data-graph] .field-legend,
+.hero-panel[data-graph] .field-host,
+.hero-panel[data-graph] .field-live,
+.hero-panel[data-graph] .field-foot {
+  display: none;
+}
+
+.hero-panel[data-graph] .graph-legend {
+  display: flex;
+}
+
+.hero-panel[data-graph] .graph-note {
+  display: block;
+}
+
+.hero-panel[data-graph] .graph-host {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+/* As the field does, the graph's plate takes the panel's spare height. */
+.hero-panel[data-graph] .constellation-host {
+  height: auto;
+  min-height: clamp(320px, 52vh, 560px);
+}
+
+@media (min-width: 64rem) {
+  .hero-panel[data-graph] .graph-host:has(.graph-bundles:not([hidden])) {
+    grid-template-columns: minmax(0, 1fr) 13rem;
+  }
+}
+
+/* The counts that used to float over the lines: beside the plate, one pair to a row. */
+.graph-bundles {
+  max-width: none;
+  max-height: clamp(320px, 52vh, 560px);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+}
+
+.graph-bundles li {
+  display: grid;
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.graph-pair {
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  line-height: var(--lh-mono);
+  color: var(--text-dim);
+}
+
+.graph-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.list-pager {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-3) 0 0;
+  font-size: var(--t-label);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.list-pager[hidden] {
+  display: none;
+}
+
+.agent-list {
+  max-width: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  list-style: none;
+  columns: 2;
+  column-gap: var(--space-5);
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  line-height: var(--lh-mono);
+}
+
+.agent-list li {
+  break-inside: avoid;
+  padding-block: var(--space-1);
+  border-top: 1px solid var(--border);
+}
+
+/* The river under the hero: a titled strip, 140 px, the content width. */
+.river-strip {
+  margin-block: var(--space-5) 0;
+}
+
+.river-strip figcaption {
+  margin: 0 0 var(--space-3);
+}
+
+.hero-river {
+  display: block;
+  width: 100%;
+  height: 140px;
+}
+
+/* ── sections ─────────────────────────────────────────────────────────────
+   104 px between sections, 40 px within: the eyebrow, the heading and the
+   sentence; the instrument; the row of figures. */
+
+.section {
+  padding-block: var(--space-7) 0;
+}
+
+.section-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+@media (min-width: 64rem) {
+  .section-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .section-head,
+  .section .instrument,
+  .section .readings,
+  .section .notes {
+    grid-column: 1 / -1;
+  }
+  /* The ring beside its list of validators: five columns and seven. */
+  #validators .instrument {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-rows: repeat(3, auto) 1fr;
+    column-gap: var(--space-5);
+    align-items: start;
+  }
+  #validators .ring-host {
+    grid-column: 1 / span 5;
+    grid-row: 1 / span 4;
+  }
+  #validators .instrument > :not(.ring-host) {
+    grid-column: 6 / span 7;
+  }
+}
+
+.lede {
+  margin: 0;
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+.instrument {
+  position: relative;
+  min-width: 0;
+}
+
+.instrument-note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+
+.instrument-failed {
+  margin: 0;
+  padding: var(--space-3) 0;
+  font-size: var(--t-label);
+  color: var(--text-dim);
+}
+
+/* A chart's or a panel's title: the h3 style, whatever its level in the
+   outline (the panel and the strip under the hero are h2s, so the outline
+   runs h1 → h2 → h3 without a gap). */
+.chart-title,
+.panel-title {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-variation-settings: normal;
+  font-size: var(--t-h3);
+  line-height: var(--lh-h3);
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+/* ── figures ──────────────────────────────────────────────────────────────
+   A figure in the display serif, its caption directly under it in the label
+   style, its unit small and grey beside it. A row of figures is equal-width
+   columns with hairlines between them — no boxes. */
+
+.figure-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0;
+}
+
+.figure-row > .reading {
+  padding: 0 var(--space-4);
+}
+
+.figure-row > .reading:first-child {
+  padding-left: 0;
+}
+
+.figure-row > .reading + .reading {
+  border-left: 1px solid var(--border);
+}
+
+@media (max-width: 47.99rem) {
+  .figure-row {
+    grid-auto-flow: row;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    row-gap: var(--space-4);
+  }
+  .figure-row > .reading:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+.reading {
+  position: relative;
+  min-width: 0;
+}
+
+.reading-label {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+.reading-value {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-variation-settings: "opsz" 60;
+  font-weight: 400;
+  font-size: var(--t-figure-l);
+  line-height: var(--lh-figure-l);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--text);
+}
+
+/* The figure links to the raw bytes it was read from; the link shows itself only with its source. */
+.reading-value .num {
+  color: inherit;
+  text-decoration: none;
+}
+
+html[data-sources] .reading-value .num,
+.reading-value .num:hover,
+.reading-value .num:focus-visible {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--border);
+  text-underline-offset: 0.12em;
+}
+
+/* Units small and grey, beside the figure. */
+.reading-value .unit {
+  margin-left: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--t-label);
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.reading-value .sub {
+  display: block;
+  margin-top: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+
+.reading-value.is-error .unavailable,
+.reading-value.is-absent .digits {
+  font-family: var(--font-sans);
+  font-size: var(--t-h3);
+  color: var(--text-dim);
+}
+
+.reading-value .error {
+  display: block;
+  margin-top: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+/* Amber is for disputes only: the count of open disputes, when it is not zero. */
+.reading-disputes .reading-value[data-number]:not([data-number="0"]) .digits {
+  color: var(--disputed);
+}
+
+/* A flat placeholder the height of a figure, on first load only. No shimmer. */
+.skeleton {
+  display: inline-block;
+  width: 4ch;
+  height: 0.7em;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.skeleton-inline {
+  width: 8ch;
+}
+
+/* ── provenance ───────────────────────────────────────────────────────────
+   Every figure carries its source line — the endpoint, the UTC time, a link
+   to the raw bytes — hidden until asked for. With Sources on, every line
+   shows in place under its figure; with it off, hovering or focusing a
+   figure shows its line in the one tooltip style. */
+
+.reading-prov {
+  display: none;
+  max-width: none;
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  line-height: var(--lh-mono);
+  font-weight: 400;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+html[data-sources] .reading-prov {
+  display: block;
+  position: static;
+}
+
+html:not([data-sources]) [data-reading]:hover > .reading-prov,
+html:not([data-sources]) [data-reading]:focus-within > .reading-prov {
+  display: block;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 5;
+  width: max-content;
+  max-width: min(28rem, 86vw);
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.statusbar .reading-prov {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: var(--space-2) var(--space-3);
+}
+
+.reading-prov a {
+  color: var(--text-dim);
+}
+
+.reading-prov a:hover {
+  color: var(--text);
+}
+
+/* ── 01 chain ─────────────────────────────────────────────────────────── */
+
+.pulse-canvas {
+  display: block;
+  width: 100%;
+  height: 200px;
+}
+
+@media (min-width: 64rem) {
+  .pulse-canvas {
+    height: 240px;
+  }
+}
+
+/* ── 02 economy ───────────────────────────────────────────────────────── */
+
+.dial {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.dial svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.dial .dial-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.dial .dial-arc {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 6;
+}
+
+.dial .dial-tick {
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.dial .dial-era {
+  font-family: var(--font-serif);
+  font-size: var(--t-display);
+  font-variation-settings: "opsz" 60;
+  font-variant-numeric: tabular-nums lining-nums;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+.dial .dial-caption {
+  font-family: var(--font-sans);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: var(--text-dim);
+  text-anchor: middle;
+}
+
+/* ── 03 validators ────────────────────────────────────────────────────── */
+
+.ring-host {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  margin-inline: auto;
+}
+
+.ring {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ring .ring-track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.ring .ring-chord {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+.ring .ring-point {
+  fill: var(--text);
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.ring .ring-point.is-queued {
+  fill: none;
+  stroke: var(--text-dim);
+  stroke-dasharray: 2 2;
+}
+
+.ring .ring-point.is-authoring {
+  fill: var(--live);
+}
+
+.ring .ring-halo {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 1;
+  opacity: 0;
+}
+
+.ring .ring-votes {
+  fill: none;
+  stroke-width: 1;
+}
+
+.ring .ring-centre {
+  font-family: var(--font-serif);
+  font-size: var(--t-figure-xl);
+  font-variation-settings: "opsz" 60;
+  font-variant-numeric: tabular-nums lining-nums;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+.validator-list {
+  max-width: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  line-height: 1.5;
+}
+
+.validator-list li {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: var(--space-1) var(--space-2);
+  max-width: none;
+  padding-block: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.validator-list .v-index {
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.validator-list .v-meta {
+  grid-column: 2;
+  color: var(--text-dim);
+}
+
+/* ── 04 history ───────────────────────────────────────────────────────────
+   Four small multiples on one axis style: a title, a one-line caption, the
+   plot from zero with its zero line, and the figure beneath. */
+
+.strips {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-5);
+}
+
+@media (min-width: 40rem) {
+  .strips {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 80rem) {
+  .strips {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.strip {
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.strip figcaption {
+  margin: 0;
+}
+
+.strip .chart-title {
+  margin: 0;
+  font-size: var(--t-h3);
+  line-height: var(--lh-h3);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.strip-caption {
+  margin: var(--space-1) 0 0;
+  font-size: var(--t-label);
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.strip-plot {
+  width: 100%;
+  height: 120px;
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.strip-plot svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.strip-plot .plot-line {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.25;
+}
+
+.strip-plot .plot-area {
+  fill: var(--grid);
+}
+
+.strip-plot .plot-bar {
+  fill: var(--text-dim);
+}
+
+.strip-plot .plot-bar.is-last {
+  fill: var(--text);
+}
+
+.strip-plot .plot-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.strip-plot .plot-dot {
+  fill: var(--text);
+}
+
+.strip-plot .plot-label {
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  fill: var(--text-dim);
+}
+
+/* ── 05 upgrades ──────────────────────────────────────────────────────── */
+
+.rail {
+  position: relative;
+  height: 120px;
+  margin: 0 0 var(--space-4);
+}
+
+.rail-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid var(--text-dim);
+}
+
+.rail-line::after {
+  /* The future: a dashed continuation past the last applied upgrade. */
+  content: "";
+  position: absolute;
+  left: var(--future, 82%);
+  right: 0;
+  top: -1px;
+  border-top: 1px dashed var(--text-dim);
+  background: var(--bg);
+}
+
+.rail-markers {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rail-marker {
+  position: absolute;
+  left: var(--x);
+  top: 50%;
+  width: 0;
+  max-width: none;
+}
+
+.rail-tick {
+  position: absolute;
+  left: -5px;
+  top: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text);
+}
+
+.rail-scheduled .rail-tick {
+  background: var(--bg);
+  border: 1px dashed var(--text-dim);
+}
+
+/* The runtime in force: the one marker in the accent, since it is the live state. */
+.rail-marker.is-current .rail-tick {
+  background: var(--live);
+}
+
+.rail-spec {
+  position: absolute;
+  bottom: 16px;
+  left: 0;
+  transform: translateX(-50%);
+  font-family: var(--font-serif);
+  font-size: var(--t-figure-l);
+  font-variation-settings: "opsz" 60;
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: var(--lh-figure-l);
+  white-space: nowrap;
+}
+
+.rail-meta {
+  position: absolute;
+  top: 16px;
+  left: 0;
+  transform: translateX(-50%);
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+
+.upgrade-detail {
+  margin: 0;
+}
+
+.upgrades {
+  max-width: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upgrade {
+  max-width: none;
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.upgrade-title {
+  margin: 0 0 var(--space-1);
+}
+
+.upgrade-spec {
+  font-family: var(--font-serif);
+  font-variation-settings: "opsz" 60;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.status {
+  margin-left: var(--space-2);
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.upgrade-change {
+  margin: 0 0 var(--space-1);
+}
+
+.upgrade-facts {
+  margin: 0 0 var(--space-2);
+  color: var(--text-dim);
+}
+
+.confirm[data-state="confirmed"] {
+  color: var(--text);
+}
+
+.confirm a {
+  color: inherit;
+}
+
+.chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-2);
+  max-width: 100%;
+  margin: 0;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border);
+}
+
+.chip-label {
+  font-size: var(--t-eyebrow);
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.hash {
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  word-break: break-all;
+}
+
+/* ── 06 verify ────────────────────────────────────────────────────────── */
+
+.verify {
+  max-width: 960px;
+}
+
+.facts {
+  margin: var(--space-4) 0 var(--space-5);
+}
+
+.fact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1) var(--space-5);
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 48rem) {
+  .fact {
+    grid-template-columns: 176px minmax(0, 1fr);
+  }
+}
+
+.fact dt {
+  font-size: var(--t-label);
+  font-weight: 600;
+}
+
+.fact dd {
+  max-width: none;
+  margin: 0;
+  font-size: var(--t-label);
+  overflow-wrap: anywhere;
+}
+
+/* A hash is a hash: mono, whatever the figures around it are set in. */
+.fact .reading-value {
+  display: inline;
+  font-family: var(--font-mono);
+  font-size: var(--t-mono);
+  word-break: break-all;
+}
+
+.fact .reading-prov {
+  display: inline;
+  margin: 0 0 0 var(--space-2);
+}
+
+.command {
+  margin: 0 0 var(--space-4);
+}
+
+.command figcaption {
+  margin: 0 0 var(--space-2);
+  font-size: var(--t-label);
+  font-weight: 600;
+}
+
+.command-body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.command pre {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  padding: var(--space-3);
+  overflow-x: auto;
+  border-left: 1px solid var(--text-dim);
+  line-height: 1.55;
+}
+
+.command-reads {
+  margin: var(--space-2) 0 0;
+  font-size: var(--t-label);
+  color: var(--text-dim);
+}
+
+.copy {
+  flex: none;
+}
+
+.copy[hidden] {
+  display: none;
+}
+
+/* The security posture: a record inside Verify, labelled as one. */
+.posture-record {
+  margin: var(--space-5) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--text-dim);
+}
+
+.posture-record h3 {
+  margin: 0 0 var(--space-1);
+}
+
+.posture-lede {
+  margin: 0 0 var(--space-3);
+  font-size: var(--t-label);
+  color: var(--text-dim);
+}
+
+.posture {
+  margin: 0;
+}
+
+.posture-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-1) var(--space-5);
+  padding-block: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+@media (min-width: 48rem) {
+  .posture-row {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+}
+
+.posture-row dt {
+  font-size: var(--t-label);
+  font-weight: 600;
+}
+
+.posture-note {
+  display: block;
+  margin-top: var(--space-1);
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.posture-row dd {
+  margin: 0;
+}
+
+.posture-value {
+  font-family: var(--font-serif);
+  font-size: var(--t-figure-l);
+  font-variation-settings: "opsz" 60;
+  line-height: var(--lh-figure-l);
+}
+
+.posture-source {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--t-label);
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+
+.not-recorded {
+  font-family: var(--font-sans);
+  font-size: var(--t-body);
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+/* ── footer ───────────────────────────────────────────────────────────── */
+
+main {
+  padding-bottom: var(--space-7);
+}
+
+.footer {
+  padding-block: var(--space-6) var(--space-7);
+  border-top: 1px solid var(--border);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text-dim);
+}
+
+.footer-grid {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.footer-grid > p {
+  margin: 0;
+}
+
+.merge {
+  position: relative;
+  max-width: none;
+}
+
+.merge .reading-value {
+  display: inline;
+  font-family: var(--font-sans);
+  font-size: var(--t-label);
+  line-height: var(--lh-label);
+  color: var(--text);
+}
+
+.howto dl {
+  margin: var(--space-3) 0 0;
+}
+
+.howto dl div {
+  margin: 0 0 var(--space-2);
+}
+
+.howto dt {
+  display: inline;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.howto dt::after {
+  content: " — ";
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.howto dd {
+  display: inline;
+  margin: 0;
+}
+
+.noscript {
+  margin: 0;
+  padding-block: var(--space-3);
+  color: var(--text-dim);
+}
+
+.harness {
+  padding-top: var(--space-5);
+}
+
+/* ── touch ────────────────────────────────────────────────────────────────
+   On a coarse pointer every control is at least 40 px tall. */
+
+@media (pointer: coarse) {
+  .btn,
+  .disclosure > summary,
+  .site-nav a {
+    min-height: 40px;
+  }
+}
+
+/* ── motion ───────────────────────────────────────────────────────────────
+   Sections fade up 12 px once as they enter the viewport. Only reveal.js
+   sets `reveal-ready`, so without the script every section is visible. */
+
+html.reveal-ready [data-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+[data-reveal] {
+  transition: opacity 400ms ease-out, transform 400ms ease-out;
+}
+
+/* ── presenter mode ───────────────────────────────────────────────────────
+   The P key or the Present button: one screen at a time — the first screen,
+   then the six sections — each filling the viewport under the top bar. The
+   one exception to the type scale: figures are set for a room, 160 px where
+   the screen has the width. */
+
+html[data-present] body {
+  overflow: hidden;
+}
+
+html[data-present] .site-nav,
+html[data-present] .reading-prov,
+html[data-present] footer,
+html[data-present] .noscript,
+html[data-present] .river-strip,
+html[data-present] .sb-sources,
+html[data-present] .notes,
+html[data-present] .agents-list,
+html[data-present] .graph-toggle,
+html[data-present] .validator-list,
+html[data-present] .upgrade-detail,
+html[data-present] .skip {
+  display: none;
+}
+
+html[data-present] [data-reading]:hover > .reading-prov,
+html[data-present] [data-reading]:focus-within > .reading-prov {
+  display: none;
+}
+
+html[data-present] [data-present-screen] {
+  position: fixed;
+  inset: var(--bar-height) 0 0;
+  z-index: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--bg);
+  opacity: 0;
+  visibility: hidden;
+  transform: none;
+  transition: opacity 300ms ease-out, visibility 0s linear 300ms;
+}
+
+html[data-present] [data-present-screen][data-present-active] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 300ms ease-out;
+}
+
+html[data-present].reveal-ready [data-reveal]:not(.is-in) {
+  transform: none;
+}
+
+html[data-present] .hero-grid {
+  align-content: center;
+  min-height: 100%;
+  padding-block: var(--space-5);
+}
+
+html[data-present] .section {
+  display: grid;
+  align-content: center;
+  padding-block: var(--space-5);
+}
+
+html[data-present] .section .reading-value {
+  font-size: clamp(3rem, 8.5vw, 160px);
+}
+
+html[data-present] #chain .readings {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: var(--space-4);
+}
+
+html[data-present] #chain .readings .reading-value,
+html[data-present] #economy .readings .reading-value,
+html[data-present] #validators .readings .reading-value {
+  font-size: clamp(2.5rem, 6vw, 120px);
+}
+
+html[data-present] #chain .pulse-canvas {
+  height: 28vh;
+}
+
+html[data-present] .strip .reading-value {
+  font-size: clamp(2rem, 3.5vw, 4rem);
+}
+
+html[data-present] .pulse-canvas {
+  height: 40vh;
+}
+
+html[data-present] .strip-plot {
+  height: 24vh;
+}
+
+html[data-present] .dial,
+html[data-present] .ring-host {
+  max-width: min(56vh, 520px);
+}
+
+.present-counter {
+  position: fixed;
+  right: var(--gutter);
+  bottom: var(--space-3);
+  z-index: 12;
+  margin: 0;
+  font-size: var(--t-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.reveal-ready [data-reveal]:not(.is-in),
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .disclosure > summary::before,
+  html[data-present] [data-present-screen] {
+    transition: none;
+  }
+}

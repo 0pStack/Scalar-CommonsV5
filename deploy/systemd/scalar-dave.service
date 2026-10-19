@@ -1,0 +1,41 @@
+[Unit]
+Description=Scalar Commons devnet validator — dave
+Documentation=file:///home/dev/scalar-commons-v4/deploy/README.md
+After=network-online.target scalar-alice.service
+Wants=network-online.target
+PartOf=scalar-devnet.target
+
+[Service]
+Type=exec
+WorkingDirectory=%h
+# ROUND15: dave is one of the two authorities added to take the set from 3 to 5,
+# so GRANDPA's supermajority survives one validator being down. Same shape as
+# bob/charlie — only alice is given as a bootnode; authority discovery (ROUND5)
+# resolves the rest over the DHT. No RPC is exposed on this node.
+ExecStart=/home/dev/scalar-commons-v4/target/release/scalar-node \
+    --chain /home/dev/scalar-commons-v4/deploy/scalar-local-raw.json \
+    --base-path %h/scalar-testnet/dave \
+    --name scalar-dave \
+    --validator \
+    --dave \
+    --node-key-file %h/scalar-testnet/dave/node-key \
+    --port 30336 \
+    --rpc-port 9947 \
+    --rpc-methods safe \
+    --rpc-rate-limit 300 \
+    --rpc-max-connections 100 \
+    --rpc-max-subscriptions-per-connection 64 \
+    --rpc-max-batch-request-len 16 \
+    --rpc-max-request-size 10 \
+    --rpc-message-buffer-capacity-per-connection 32 \
+    --prometheus-port 9618 \
+    --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/12D3KooWEyoppNCUx8Yx66oV9fJnriXwCcXwDDUA2kj6vnc6iDEp
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-dave
+
+[Install]
+WantedBy=scalar-devnet.target

@@ -1,0 +1,21 @@
+{"id":"pallet-agents","name":"SC_Agents_Pallet","type":"pallet","description":"Agent registration, ranks, and slashing for the Scalar Commons runtime"}
+{"id":"pallet-escrow","name":"SC_Escrow_Pallet","type":"pallet","description":"Task-bonded payments and dispute resolution"}
+{"id":"pallet-oracle","name":"SC_Oracle_Pallet","type":"pallet","description":"Aggregated off-chain values for on-chain consumption"}
+{"id":"pallet-emissions","name":"SC_Emissions_Pallet","type":"pallet","description":"Issuance schedule and supply cap with lambda-scaled era rewards"}
+{"id":"pallet-auto-params","name":"SC_AutoParams_Pallet","type":"pallet","description":"Adaptive parameter governance for runtime parameters"}
+{"id":"pallet-orchestrator","name":"SC_Orchestrator_Pallet","type":"pallet","description":"Task lifecycle coordinator for agent work"}
+{"id":"pallet-constitution","name":"SC_Constitution_Pallet","type":"pallet","description":"Root rules and governance of the network"}
+{"id":"sc-e1-sim","name":"SC-E1-phase0-sim.py","type":"artifact","description":"Monte Carlo simulator for the SC-E1 economic model Phase 0"}
+{"id":"verified-constants","name":"VERIFIED-CONSTANTS.md","type":"artifact","description":"Transcribed emissions weight formula from pallets/emissions/src/lib.rs (P0-1a/b)"}
+{"id":"verdict-json","name":"verdict.json","type":"artifact","description":"Machine-readable verdict output for SC-E1 Phase-0 v2 simulation"}
+{"id":"sc-e1-v2-results","name":"SC-E1-PHASE0-V2-RESULTS.md","type":"artifact","description":"Phase-0 v2 simulation results comparing v1 vs verified formula"}
+{"id":"R-SC-0001","name":"R-SC-0001","type":"finding","description":"Emissions weight formula uses sqrt(stake)*log2(volume)*diversity*rank*heartbeat*onboarding_boost"}
+{"id":"R-SC-0002","name":"R-SC-0002","type":"finding","description":"Pool ceiling is hard-capped at 1M tokens per era; break-evens above 1M unreachable via base schedule"}
+{"id":"R-SC-0003","name":"R-SC-0003-v2","type":"finding","description":"Real sqrt(stake)+work-gated weight eliminates pure-stake sybil farming"}
+{"id":"R-SC-0004","name":"R-SC-0004-v2","type":"finding","description":"Wash trading profitable at genesis ceiling (1M/era); real defense is buyer-diversity gate"}
+{"id":"R-SC-0005","name":"R-SC-0005","type":"finding","description":"Oracle bonus inert on-chain (OracleScoreProvider=()) — oracle collusion uplift is moot"}
+{"id":"R-SC-0006","name":"R-SC-0006","type":"finding","description":"Flat-fee model not yet transcribed; two break-even numbers depend on it"}
+{"id":"OD-1","name":"OD-1","type":"open_decision","description":"Fee model transcription: real chain fee is 0.25% bps (F-3) — next transcription target"}
+{"id":"OD-2","name":"OD-2","type":"open_decision","description":"Oracle score provider needs real implementation for oracle bonus to activate"}
+{"id":"OD-3","name":"OD-3","type":"open_decision","description":"Cargo.toml manifests missing for 6 of 7 custom pallets — blocks benchmarking"}
+{"id":"OD-4","name":"OD-4","type":"open_decision","description":"Pool-scaled gaming costs RFC: design document for OD-4 submitted in PR #18"}

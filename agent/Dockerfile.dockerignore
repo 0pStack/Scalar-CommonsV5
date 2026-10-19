@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/target
+.git
+node
+runtime
+pallets
+indexer
+explorer
+landing
+docs
+agent.env
+*.env
+state
+**/*.jsonl

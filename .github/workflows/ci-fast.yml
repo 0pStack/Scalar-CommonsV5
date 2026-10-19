@@ -1,0 +1,162 @@
+# Fast PR gate: every PR must pass this before human review.
+#
+# ROUND6: minimum changes only. The step list is the one that was already here
+# -- fmt, clippy, cargo check -- because those are the gates CLAUDE.md
+# mandates. Three things were wrong with how they ran:
+#
+#   1. `dtolnay/rust-toolchain@stable` overrode rust-toolchain.toml's 1.85.0
+#      pin. This SDK tag cannot be compiled by a newer rustc, so the job was
+#      destined to fail for a reason unrelated to any PR's contents.
+#   2. protoc was missing, which sc-network's build needs.
+#   3. The indexer step guarded on `indexer/package.json`, which does not
+#      exist -- indexer/ holds one Python file. A check that can never run is
+#      not a check, so it is gone. When the Node indexer lands, it gets a real
+#      step (and its own job), not a silent no-op.
+#
+# HONEST STATUS, measured on rebuild/runtime at the time of writing: fmt and
+# clippy both FAIL, and this round could not fix either -- both live in files
+# outside its scope.
+#
+#   cargo fmt --all -- --check      551 diff hunks across ~30 files. Essentially
+#                                   the whole tree; it has never been run.
+#   cargo clippy -D warnings        exactly 2 issues, both in pallets/auto-params:
+#                                     src/lib.rs:38  unused import `sp_std::vec::Vec`
+#                                     src/tests.rs:14 duplicated attribute
+#   cargo check --workspace         PASSES.
+#
+# They are left as blocking steps on purpose. Neither `continue-on-error` nor
+# deleting them would make the code any better; it would only hide the debt,
+# and hiding it is how this repository got a node that was `fn main() {}`.
+# Clearing them is a small, mechanical, self-contained commit. See ROUND6.md.
+name: ci-fast
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-fast-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Secret scan. Runs as its own job so a leaked credential fails within
+  # seconds instead of behind a 45-minute Rust build, and so that a red
+  # secret scan is legible on the PR as its own check.
+  #
+  # fetch-depth: 0 is load-bearing -- the scan is `--log-opts="--all"`, so it
+  # reads every commit on every ref. With the default shallow checkout it
+  # would scan one commit and pass vacuously, which is the worst kind of
+  # green. The gitleaks version is pinned: .gitleaks.toml relies on the
+  # documented merge behaviour of a stub [[rules]] block, and an unpinned
+  # upgrade could silently change whether the SS58 allowlist binds at all.
+  #
+  # The negative control is not decoration. It writes a fake private key to a
+  # scratch file and asserts the scan goes red, which proves the config still
+  # detects secrets rather than having been quietly neutered into a rubber
+  # stamp. The scratch file is removed before the real scan runs.
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.28.0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks (pinned)
+        run: |
+          set -euo pipefail
+          curl -sSfL -o /tmp/gitleaks.tar.gz \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo install -m 0755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Control -- prove the allowlist is narrow, not a rubber stamp
+        run: |
+          set -euo pipefail
+          scratch="$(mktemp -d)"
+          trap 'rm -rf "$scratch"' EXIT
+
+          # (1) generic-api-key must STILL fire on a non-SS58 secret. If this
+          #     stops failing, .gitleaks.toml has neutered the rule we amended
+          #     and the whole gate is decorative.
+          # Assembled from halves on purpose. A complete high-entropy token
+          # written literally here would be a real finding in this very file,
+          # and the full-history scan below would (correctly) go red on it.
+          # Neither half matches the rule on its own; the assembled file does.
+          p1='Zt7Qp2Lm9Xc4Vb8N'
+          p2='r3Wd6Ys1Hj5Kf0Ga'
+          printf 'api_key = "%s%s"\n' "$p1" "$p2" > "$scratch/planted.txt"
+          if gitleaks dir "$scratch/planted.txt" --config .gitleaks.toml \
+               --no-banner --redact >/dev/null 2>&1; then
+            echo "::error::gitleaks did NOT flag a planted generic-api-key secret -- the allowlist is too broad"
+            exit 1
+          fi
+
+          # (2) an SS58 public address must be allowlisted. If this starts
+          #     failing, the carve-out has stopped working and the real scan
+          #     below is about to go red on public on-chain data.
+          printf 'sudoKey: "5DFASjqmCBrMfRsHDzQyXGodfWL4Bj1uK6X2U3jBEEoPh8ZN"\n' > "$scratch/ss58.txt"
+          if ! gitleaks dir "$scratch/ss58.txt" --config .gitleaks.toml \
+                 --no-banner --redact >/dev/null 2>&1; then
+            echo "::error::SS58 public address was flagged -- the allowlist regex no longer matches"
+            exit 1
+          fi
+
+          echo "control OK: real secrets still caught, SS58 addresses exempt"
+
+      - name: gitleaks (full history)
+        run: |
+          set -euo pipefail
+          gitleaks detect --source . --config .gitleaks.toml \
+            --log-opts="--all" --redact --no-banner
+
+  # The chain spec testers actually download. Runs unconditionally and without
+  # network access: it compares docs/public/chainspec.json against the operator
+  # spec in deploy/, so it cannot flake on a validator reboot, and it cannot be
+  # skipped by a path filter that happens not to list deploy/.
+  #
+  # Why it is a gate and not a note: this file is the only way an outsider
+  # learns the bootnode peer ids, and a stale genesis here means a tester syncs
+  # a different chain and gets no error pointing at the cause.
+  chainspec:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Published chain spec matches the operator spec
+        run: node scripts/check-published-chainspec.mjs
+
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+
+      # Single source of truth for the toolchain: rust-toolchain.toml.
+      - name: Resolve pinned toolchain
+        id: toolchain
+        run: echo "channel=$(grep -oP 'channel\s*=\s*"\K[^"]+' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+          targets: wasm32v1-none
+          components: rust-src, rustfmt, clippy
+      - name: Assert the pinned toolchain is what we got
+        run: |
+          rustc --version
+          rustc --version | grep -q '${{ steps.toolchain.outputs.channel }}'
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo check --workspace

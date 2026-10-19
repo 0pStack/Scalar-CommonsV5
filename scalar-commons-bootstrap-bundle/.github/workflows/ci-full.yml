@@ -1,0 +1,23 @@
+# Full gate: workspace tests on merge to main (and on demand via label `full-ci`).
+name: ci-full
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+jobs:
+  test:
+    if: github.event_name != 'pull_request' || github.event.label.name == 'full-ci'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --release
+      - name: indexer tests
+        run: |
+          if [ -f indexer/package.json ]; then
+            cd indexer && npm ci && npm test
+          fi

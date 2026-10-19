@@ -1,0 +1,30 @@
+name: Agent task
+description: A scoped task for the Claude swarm. One issue = one agent run = one PR.
+labels: [agent-task]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Why this exists. Link the protocol section, finding (R-SC-####), or decision (OD-#).
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Objectively checkable. CI green is implied; list the rest.
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Files in scope
+      description: Paths the agent may touch. Everything else is out of bounds.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Invariants from CLAUDE.md that bind here; anything the agent must NOT do.

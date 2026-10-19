@@ -1,0 +1,13 @@
+[Unit]
+Description=Scalar Commons factory watchdog (caps, kill switch, disk + rate guards)
+Documentation=file:///home/dev/scalar-commons-v4/factory/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/dev/scalar-commons-v4
+ExecStart=/home/dev/scalar-commons-v4/factory/watchdog.sh
+# The watchdog only reads state and kills over-cap loops; it never calls the API,
+# so it needs no credentials.
+Nice=5
+StandardOutput=append:/home/dev/scalar-commons-v4/factory/logs/watchdog.systemd.log
+StandardError=append:/home/dev/scalar-commons-v4/factory/logs/watchdog.systemd.log

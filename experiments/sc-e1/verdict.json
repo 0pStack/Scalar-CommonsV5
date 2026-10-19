@@ -1,0 +1,95 @@
+{
+ "schema": "{metric, v1_value, v2_value, delta, verdict}",
+ "run_date": "2026-07-06",
+ "basis": "v1 = MA-3 assumed formula (SC-E1-PHASE0-RESULTS.md); v2 = verified compute_weight (docs/VERIFIED-CONSTANTS.md). Pre-registered thresholds NOT locked; verdicts are indicative.",
+ "verdicts": [
+  {
+   "metric": "pool_ceiling",
+   "v1_value": 1000000,
+   "v2_value": 1000000,
+   "delta": 0,
+   "verdict": "PASS",
+   "note": "v1 swept E_era freely to 1e9; v2 confirms the runtime hard-caps the base pool at InitialEmissionsPerEra=1,000,000 CMN/era (F-4). Break-evens above 1M are unreachable via the base schedule."
+  },
+  {
+   "metric": "P1_worker_staker_ratio",
+   "v1_value": 1.4438,
+   "v2_value": null,
+   "delta": null,
+   "verdict": "UNDEFINED",
+   "note": "No stake pool (F-1/F-2). Passive staker weight=0 -> earns 0 -> ratio is a quotient by ~0. P1 needs re-specification before lock."
+  },
+  {
+   "metric": "P2_volume_earnings_spearman_rho",
+   "v1_value": 0.9798,
+   "v2_value": -0.5879,
+   "delta": -1.5677,
+   "verdict": "FAIL",
+   "note": "Sign flip. log2 saturation + onboarding boost favoring low-volume workers + retained flat fees invert monotonicity. Dominated by the un-transcribed fee model (F-3); real 0.25% bps fee would likely restore rho>0."
+  },
+  {
+   "metric": "gini_all_agents",
+   "v1_value": 0.4286,
+   "v2_value": 0.5261,
+   "delta": 0.0975,
+   "verdict": "INFO",
+   "note": "More concentrated under sqrt(stake)*work single weight vs the broad v1 stake pool."
+  },
+  {
+   "metric": "top1_share",
+   "v1_value": 0.0194,
+   "v2_value": 0.0118,
+   "delta": -0.0076,
+   "verdict": "INFO",
+   "note": "sqrt(stake) anti-whale base compresses the single largest earner."
+  },
+  {
+   "metric": "P4_sybil_net_per_acct_at_1M",
+   "v1_value": -19.19,
+   "v2_value": -30.0,
+   "delta": -10.81,
+   "verdict": "PASS",
+   "note": "Zero-work sybils get weight 0 -> earn 0 (net = burned heartbeat fees only)."
+  },
+  {
+   "metric": "P4_sybil_break_even_pool",
+   "v1_value": 2775000,
+   "v2_value": null,
+   "delta": null,
+   "verdict": "PASS",
+   "note": "Break-even is INFINITE: no pool earns a zero-work agent anything. v1's 2.78M cliff is gone. sqrt(stake) also penalizes stake-splitting sublinearly."
+  },
+  {
+   "metric": "P5_wash_net_per_era_at_1M",
+   "v1_value": -14.1,
+   "v2_value": 1556.41,
+   "delta": 1570.51,
+   "verdict": "FAIL",
+   "note": "Sign flip - worse. Wash profitable at the only pool the chain uses (1M ceiling). Diversity gate discounts 10x (1 buyer -> 1000 bps) but not to zero; onboarding boost helps the slow washer. Binding defense is the buyer-diversity gate, not MinQualifyingVol. Magnitude sensitive to retained flat-fee model."
+  },
+  {
+   "metric": "P5_wash_break_even_pool",
+   "v1_value": 1120000,
+   "v2_value": 1000000,
+   "delta": -120000,
+   "verdict": "FAIL",
+   "note": "Profitable at/below the 1M ceiling (< pool). Does not worsen with scale (pool capped), but already breached at genesis ceiling."
+  },
+  {
+   "metric": "P6_oracle_collusion_uplift",
+   "v1_value": -0.0243,
+   "v2_value": 0.0,
+   "delta": 0.0243,
+   "verdict": "MOOT",
+   "note": "Oracle bonus inert on-chain (OracleScoreProvider=(), best_score=0, F-5). No reward surface to attack until a provider is wired. P6 un-testable against the chain today."
+  },
+  {
+   "metric": "P7_eras_settled",
+   "v1_value": 100,
+   "v2_value": 100,
+   "delta": 0,
+   "verdict": "PASS",
+   "note": "100/100 settled; p95 settlement lag 0.0030 -> 0.0065 era. Settlement rationality precondition holds from era 1."
+  }
+ ]
+}

@@ -1,0 +1,337 @@
+/* Landing page styles. No build step, no framework, no JS on the page: the only
+   thing shipped is the HTML the build verified plus this file. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #0d1117;
+  --bg-raised: #151b23;
+  --border: #2a3340;
+  --text: #e8edf3;
+  --text-dim: #a3b0c0;
+  --accent: #6fd3c7;
+  --accent-dim: #2f6f68;
+  --warn: #e8c46a;
+  --measure: 44rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0 1.5rem 4rem;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 clamp(1rem, 0.95rem + 0.2vw, 1.0625rem) / 1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+header,
+main,
+footer {
+  max-width: var(--measure);
+  margin-inline: auto;
+}
+
+/* ── header ─────────────────────────────────────────────────────────────── */
+
+header {
+  padding: 1.5rem 0 3rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-nav ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin: 0 0 2.25rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.875rem;
+}
+
+.site-nav a {
+  display: inline-block;
+  padding: 0.5rem 0;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.site-nav a:hover,
+.site-nav a[aria-current="page"] {
+  color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: 0.3em;
+}
+
+.wordmark {
+  margin: 0 0 2.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(2rem, 1.5rem + 2.2vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-weight: 650;
+  text-wrap: balance;
+}
+
+.tagline {
+  margin: 0 0 1.75rem;
+  font-size: 1.125rem;
+  color: var(--accent);
+}
+
+.lede,
+.intro {
+  color: var(--text-dim);
+  text-wrap: pretty;
+}
+
+.lede {
+  margin: 0 0 2.5rem;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.badges li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.badge-label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.badge-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── sections ───────────────────────────────────────────────────────────── */
+
+section {
+  padding: 3rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+h2 {
+  margin: 0 0 1rem;
+  font-size: clamp(1.375rem, 1.2rem + 0.7vw, 1.75rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  font-weight: 640;
+  text-wrap: balance;
+}
+
+.intro {
+  margin: 0 0 2rem;
+}
+
+ul.claims {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1.75rem;
+}
+
+ul.claims p {
+  margin: 0;
+}
+
+ul.claims strong {
+  font-weight: 640;
+  color: var(--text);
+}
+
+ul.claims li p:first-child {
+  color: var(--text-dim);
+}
+
+.refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.6rem !important;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+.refs code {
+  padding: 0.15rem 0.45rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.caveat {
+  margin: 2rem 0 0;
+  padding: 1rem 1.1rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
+  border-radius: 0.4rem;
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+}
+
+.caveat span {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--warn);
+}
+
+/* ── links ──────────────────────────────────────────────────────────────── */
+
+ul.links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+
+ul.links li {
+  padding: 1.1rem 1.25rem;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+ul.links a {
+  font-weight: 640;
+  color: var(--accent);
+  text-decoration-color: var(--accent-dim);
+  text-underline-offset: 0.2em;
+}
+
+ul.links a:hover {
+  text-decoration-color: var(--accent);
+}
+
+ul.links p {
+  margin: 0.4rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.9375rem;
+}
+
+.badge {
+  margin-left: 0.6rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  vertical-align: 0.1em;
+}
+
+.badge.planned {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+/* ── verification table ─────────────────────────────────────────────────── */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th,
+td {
+  padding: 0.7rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+td code {
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+
+td code.snippet {
+  color: var(--accent);
+}
+
+/* ── footer ─────────────────────────────────────────────────────────────── */
+
+footer {
+  padding-top: 2.5rem;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+}
+
+footer p {
+  margin: 0 0 0.5rem;
+}
+
+.provenance {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  opacity: 0.8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --bg-raised: #f6f8fa;
+    --border: #d6dee7;
+    --text: #10161d;
+    --text-dim: #4d5b6b;
+    --accent: #10645c;
+    --accent-dim: #7fbdb6;
+    --warn: #8a5b00;
+  }
+}

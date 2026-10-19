@@ -1,0 +1,13 @@
+[Unit]
+Description=Scalar Commons factory nightly digest (STATE.md + BLOCKED reports -> secret gist)
+Documentation=file:///home/dev/scalar-commons-v4/factory/README.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/dev/scalar-commons-v4
+ExecStart=/home/dev/scalar-commons-v4/factory/tracker.sh --digest
+# Needs the gh token from the user's gh config (read from ~/.config/gh).
+# Does NOT need the API key: the digest calls no model.
+Nice=10
+StandardOutput=append:/home/dev/scalar-commons-v4/factory/logs/digest.systemd.log
+StandardError=append:/home/dev/scalar-commons-v4/factory/logs/digest.systemd.log

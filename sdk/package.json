@@ -1,0 +1,50 @@
+{
+  "name": "@scalar-commons/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript agent SDK for the Scalar Commons chain. polkadot-js based, no silent retries.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "RUN_INTEGRATION=1 vitest run",
+    "prepublishOnly": "npm run build",
+    "vectors": "npm run build && node scripts/gen-envelope-vectors.mjs"
+  },
+  "peerDependencies": {
+    "@polkadot/api": "^16.0.0",
+    "@polkadot/keyring": "^14.0.0",
+    "@polkadot/util": "^14.0.0",
+    "@polkadot/util-crypto": "^14.0.0"
+  },
+  "devDependencies": {
+    "@polkadot/api": "^16.5.0",
+    "@polkadot/keyring": "^14.0.0",
+    "@polkadot/util": "^14.0.0",
+    "@polkadot/util-crypto": "^14.0.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.7"
+  }
+}

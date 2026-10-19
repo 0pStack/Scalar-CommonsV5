@@ -1,0 +1,38 @@
+[Unit]
+Description=Scalar Commons explorer — web UI on 127.0.0.1:8081
+Documentation=file:///home/dev/scalar-commons-v4/deploy/products/README.md
+# The explorer reads straight off the node and holds no state of its own, so it
+# is safe to restart at any time and safe to start before alice is up: it
+# connects first and only then listens, so systemd sees a failed start rather
+# than a socket that serves errors.
+After=network-online.target scalar-alice.service
+Wants=network-online.target
+
+[Service]
+Type=exec
+WorkingDirectory=/home/dev/scalar-commons-v4/explorer
+
+# Defaults first, EnvironmentFile second — the file wins. Port 8081 is baked
+# because the explorer's in-code default is 8080, which is the indexer's.
+Environment=EXPLORER_HOST=127.0.0.1
+Environment=EXPLORER_PORT=8081
+Environment=EXPLORER_RPC_ENDPOINT=ws://127.0.0.1:9944
+# The /activity page reads history from the indexer; every other page reads the
+# node only. An indexer that is down makes that one page answer 502.
+Environment=EXPLORER_INDEXER_URL=http://127.0.0.1:8080
+EnvironmentFile=-%h/.config/scalar-commons/explorer.env
+
+# Relative to WorkingDirectory. The indexer and the faucet start from their
+# TypeScript sources, but the explorer's entrypoint is compiled output, so this
+# runs dist/, not src/ — install.sh refuses to install until that build exists.
+ExecStart=/usr/bin/node dist/index.js
+
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=yes
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-explorer
+
+[Install]
+WantedBy=default.target

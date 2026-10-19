@@ -1,0 +1,992 @@
+[
+ {
+  "file": "pallets/agents/src/lib.rs:431",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:436",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:441",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:446",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:452",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:459",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:464",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:471",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:504",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:535",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:542",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:555",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:570",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:574",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:578",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:582",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:586",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:592",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:598",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:603",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:609",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:623",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:814",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:861",
+  "lint": "unreachable",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:906",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (register)",
+  "bounded": "yes: ensure!(this_block < MaxRegistrationsPerBlock) precedes it",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Optional lint hygiene: saturating_add(1). Cannot overflow u32 given the guard."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:1364",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (slash_agent, root)",
+  "bounded": "yes: bps<=10_000 by ensure!, divisor is non-zero constant",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "None needed; division by literal 10_000 (bps = 100%)."
+ },
+ {
+  "file": "pallets/agents/src/lib.rs:1796",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (heartbeat multiplier)",
+  "bounded": "yes: over<=decay via min(), decay>=1 via max(1); 90*over fits u128",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Optional: saturating_mul(90). Comment that 90 = max decay percentage points."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:148",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:152",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:156",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:160",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:164",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:177",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:181",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:183",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:185",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:187",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:189",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:191",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:198",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:349",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/auto-params/src/lib.rs:355",
+  "lint": "unreachable",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/constitution/src/lib.rs:35",
+  "lint": "unreachable",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/constitution/src/lib.rs:106",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/constitution/src/lib.rs:122",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/constitution/src/lib.rs:152",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "no",
+  "bounded": "yes: modulo by non-zero literal 100",
+  "in_hook": "yes (on_initialize)",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "None needed; optionally checked_rem. Hook body is otherwise saturating."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:146",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:149",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:153",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:157",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:160",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:166",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:173",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:177",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:223",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:237",
+  "lint": "unreachable",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:337",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (settle_era, permissionless)",
+  "bounded": "yes: guarded by completions < 10, product <= 9_000",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "None needed; optionally saturating_mul."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:521",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (batch_claim weight)",
+  "bounded": "yes: k clamped to MaxBatchClaimSize",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Weight math in u64 with clamped k; use saturating_* in the weight block for hygiene."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:522",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (batch_claim weight)",
+  "bounded": "yes: k clamped",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "As :521."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:715",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (settle_era)",
+  "bounded": "yes: caller passes MaxProposalsPerEra.max(1) (emissions:308-309), never 0",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Divisor is a helper parameter; use checked_div(..).unwrap_or(0) for defence in depth so the helper is safe on its own."
+ },
+ {
+  "file": "pallets/emissions/src/lib.rs:796",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (settle_era)",
+  "bounded": "yes: ratio!=0 checked, so leading_zeros<=127",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "None needed."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:164",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:175",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:186",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:190",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:194",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:253",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:271",
+  "lint": "unreachable",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:399",
+  "lint": "indexing_slicing",
+  "reachable_from_extrinsic": "yes (confirm_delivery)",
+  "bounded": "yes: idx comes from position() on the same vec inside the same try_mutate closure; last use at :634 precedes swap_remove(idx)",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Optional: replace vec[idx] with vec.get(idx).ok_or(AgreementNotFound)? or hold &vec[idx] once. Not a reachable panic."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:402",
+  "lint": "indexing_slicing",
+  "reachable_from_extrinsic": "yes (confirm_delivery)",
+  "bounded": "yes: idx comes from position() on the same vec inside the same try_mutate closure; last use at :634 precedes swap_remove(idx)",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Optional: replace vec[idx] with vec.get(idx).ok_or(AgreementNotFound)? or hold &vec[idx] once. Not a reachable panic."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:507",
+  "lint": "indexing_slicing",
+  "reachable_from_extrinsic": "yes (cancel/refund path)",
+  "bounded": "yes: idx comes from position() on the same vec inside the same try_mutate closure; last use at :634 precedes swap_remove(idx)",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Optional: replace vec[idx] with vec.get(idx).ok_or(AgreementNotFound)? or hold &vec[idx] once. Not a reachable panic."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:596",
+  "lint": "indexing_slicing",
+  "reachable_from_extrinsic": "yes (settle_dispute_from_oracle (called from oracle resolution))",
+  "bounded": "yes: idx comes from position() on the same vec inside the same try_mutate closure; last use at :634 precedes swap_remove(idx)",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Optional: replace vec[idx] with vec.get(idx).ok_or(AgreementNotFound)? or hold &vec[idx] once. Not a reachable panic."
+ },
+ {
+  "file": "pallets/escrow/src/lib.rs:634",
+  "lint": "indexing_slicing",
+  "reachable_from_extrinsic": "yes (settle_dispute_from_oracle (called from oracle resolution))",
+  "bounded": "yes: idx comes from position() on the same vec inside the same try_mutate closure; last use at :634 precedes swap_remove(idx)",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "Optional: replace vec[idx] with vec.get(idx).ok_or(AgreementNotFound)? or hold &vec[idx] once. Not a reachable panic."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:140",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:143",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:154",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:157",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:168",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:172",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:175",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:178",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:182",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:225",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:248",
+  "lint": "unreachable",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:486",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (batch_submit_response weight)",
+  "bounded": "yes: n clamped to MaxBatchSubmissions",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "As emissions:521."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:487",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (batch_submit_response weight)",
+  "bounded": "yes: n clamped",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "As emissions:521."
+ },
+ {
+  "file": "pallets/oracle/src/lib.rs:623",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "yes (quorum resolution)",
+  "bounded": "yes: u32*u32 widened to u64; /100 is a percent",
+  "in_hook": "no",
+  "classification": "SAFE_JUSTIFIED",
+  "proposed_fix": "None needed; comment threshold is a percentage."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:110",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:114",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:155",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:179",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:204",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:208",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:212",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:216",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:220",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:224",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:280",
+  "lint": "expect_used",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "pallets/orchestrator/src/lib.rs:305",
+  "lint": "unreachable",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "Lint fires on the span of a FRAME macro expansion (#[pallet::storage|pallet|error|call] or pallet mod); no hand-written unwrap/expect/unreachable in this item. No fix."
+ },
+ {
+  "file": "runtime/src/lib.rs:472",
+  "lint": "arithmetic_side_effects",
+  "reachable_from_extrinsic": "no",
+  "bounded": "yes",
+  "in_hook": "no",
+  "classification": "FALSE_POSITIVE",
+  "proposed_fix": "None: Perbill * Weight is saturating in sp_arithmetic. File is protected; no change proposed."
+ },
+ {
+  "file": "pallets/agents/src/tests.rs",
+  "lint": "expect_used, unwrap_used (11 sites: lines 210,213,457,461,469,479,480,528,529,561,629)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "pallets/auto-params/src/tests.rs",
+  "lint": "expect_used, unwrap_used (4 sites: lines 97,100,110,125)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "pallets/emissions/src/tests.rs",
+  "lint": "arithmetic_side_effects, unwrap_used (3 sites: lines 184,187,236)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "pallets/emissions/src/tests_issue_164.rs",
+  "lint": "arithmetic_side_effects, unwrap_used (3 sites: lines 215,218,234)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "pallets/escrow/src/tests.rs",
+  "lint": "indexing_slicing, unwrap_used (5 sites: lines 165,168,274,276,386)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "pallets/oracle/src/tests.rs",
+  "lint": "unwrap_used (4 sites: lines 154,157,241,463)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "pallets/orchestrator/src/tests.rs",
+  "lint": "unwrap_used (6 sites: lines 152,155,229,341,492,501)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "tests/common.rs",
+  "lint": "arithmetic_side_effects, expect_used, panic, unwrap_used (11 sites: lines 36,50,391,394,400,421,428,433,437,438,445)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "tests/dispute_flow.rs",
+  "lint": "indexing_slicing, unwrap_used (5 sites: lines 49,59,85,156,171)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ },
+ {
+  "file": "tests/rank_promotion.rs",
+  "lint": "unwrap_used (1 sites: lines 28)",
+  "reachable_from_extrinsic": "no",
+  "bounded": "n/a",
+  "in_hook": "no",
+  "classification": "TEST_ONLY",
+  "proposed_fix": "None; test code."
+ }
+]

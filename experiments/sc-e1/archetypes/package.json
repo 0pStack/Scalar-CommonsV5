@@ -1,0 +1,14 @@
+{
+  "name": "@scalar-commons/sc-e1-archetypes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "SC-E1 archetype runners A-1..A-5 — deterministic seeded loops over the agent SDK with permissionless settle_era-with-backoff and manifest replay.",
+  "scripts": {
+    "run:manifest": "node --experimental-strip-types runner.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}

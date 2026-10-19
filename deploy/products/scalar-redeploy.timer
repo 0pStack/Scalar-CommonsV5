@@ -1,0 +1,19 @@
+[Unit]
+Description=Check for site changes on master every 10 minutes
+Documentation=file:///home/dev/scalar-commons-v4/deploy/products/README.md
+
+[Timer]
+# An idle tick is one `git fetch` and an exit, so 10 minutes costs almost
+# nothing and bounds how long a merged docs change can go unpublished.
+# OnActiveSec gives the first tick a reference point: with only OnBootSec (long
+# past on a running box) and OnUnitActiveSec (the service has never run), a
+# freshly enabled timer has nothing to count from and never fires.
+# Persistent=true so a tick missed while the box was down runs on boot.
+OnActiveSec=1min
+OnBootSec=3min
+OnUnitActiveSec=10min
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

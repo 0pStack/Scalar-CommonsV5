@@ -1,0 +1,98 @@
+# ci-devnode — DRAFT. Not enabled: this file lives under docs/ci-drafts/, not .github/workflows/.
+#
+# WHY: unit tests run against mock runtimes. The testkit lifecycles (register ->
+# escrow -> settle_era ...) only mean something against the real runtime, so this
+# builds scalar-node, starts `--dev --tmp`, and points the testkit at it via
+# SCALAR_WS. It is meant to be an informational check, not a required one.
+name: ci-devnode
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-devnode-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  devnode-testkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      SCALAR_WS: ws://127.0.0.1:9944
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /opt/hostedtoolcache/CodeQL /usr/share/dotnet /usr/local/lib/android
+
+      - uses: actions/checkout@v4
+
+      - name: Install protoc
+        run: sudo apt-get update && sudo apt-get install -y protobuf-compiler clang
+
+      - name: Resolve pinned toolchain
+        id: toolchain
+        run: echo "channel=$(grep -oP 'channel\s*=\s*"\K[^"]+' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.toolchain.outputs.channel }}
+          targets: wasm32v1-none
+          components: rust-src
+
+      # Cache keyed on the lockfile; the WASM runtime build dominates cold time.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: devnode
+
+      - name: Build scalar-node (release)
+        run: cargo build --release -p scalar-node
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: testkit/package-lock.json
+
+      - name: Install testkit dependencies
+        run: npm ci --prefix testkit
+
+      - name: Start dev node
+        run: |
+          ./target/release/scalar-node --dev --tmp --rpc-port 9944 > node.log 2>&1 &
+          echo $! > node.pid
+
+      - name: Wait for RPC
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf -H 'Content-Type: application/json' \
+                 -d '{"id":1,"jsonrpc":"2.0","method":"system_health","params":[]}' \
+                 http://127.0.0.1:9944 > /dev/null; then
+              echo "node up after ${i}x2s"; exit 0
+            fi
+            kill -0 "$(cat node.pid)" 2>/dev/null || { echo "node exited"; tail -50 node.log; exit 1; }
+            sleep 2
+          done
+          echo "node never answered"; tail -50 node.log; exit 1
+
+      - name: Run testkit against the dev node
+        run: npm test --prefix testkit
+
+      - name: Dump node log on failure
+        if: failure()
+        run: tail -200 node.log || true
+
+      - name: Stop node
+        if: always()
+        run: kill "$(cat node.pid)" 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: devnode-log
+          path: node.log
+          if-no-files-found: ignore

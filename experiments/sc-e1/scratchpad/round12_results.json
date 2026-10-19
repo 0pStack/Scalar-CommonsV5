@@ -1,0 +1,693 @@
+{
+ "PART0_anchor": {
+  "RUN-A gini": {
+   "mine": "0.5260849509298967",
+   "published": "0.5260849509298967",
+   "exact": true
+  },
+  "RUN-C sybil net": {
+   "mine": "-30.0",
+   "published": "-30.0",
+   "exact": true
+  },
+  "RUN-D wash net/era": {
+   "mine": "1556.4082243577097",
+   "published": "1556.4082243577097",
+   "exact": true
+  },
+  "RUN-D wash gross/era": {
+   "mine": "1696.4082243577097",
+   "published": "1696.4082243577097",
+   "exact": true
+  },
+  "RUN-A pool": {
+   "mine": "1000000.0",
+   "published": "1000000.0",
+   "exact": true
+  },
+  "ALL_BIT_EXACT": true
+ },
+ "PART1_pool": {
+  "n_star_arith": 100,
+  "first_pinned_n_by_run": 100,
+  "sweep": {
+   "1": 100000.0,
+   "10": 100000.0,
+   "50": 500000.0,
+   "99": 990000.0,
+   "100": 1000000.0,
+   "101": 1000000.0,
+   "200": 1000000.0,
+   "202": 1000000.0,
+   "1000": 1000000.0,
+   "10000": 1000000.0,
+   "1000000": 1000000.0
+  },
+  "pinned_for_n_ge_100": true,
+  "mechanism_A_variants": {
+   "V_min = k*P (pool-indexed)": "NO-OP for n>=100: P is the constant 1e6, so k*P is a constant. Re-parameterised flat guard, not a scaling one.",
+   "V_min = k*P/active_agents (per-capita)": "NOT a no-op: 1e6/n DECREASES in n, so the guard WEAKENS as the chain grows \u2014 the opposite of the OD-4 design intent.",
+   "V_min = k*median_honest_volume": "NOT a no-op (tracks a live quantity), but it is not pool-indexed at all; it is a different mechanism wearing Mechanism A's name, and OD-4 3.3 already flags it as cartel-gameable."
+  }
+ },
+ "PART2_hunt_1301": {
+  "closest": [
+   [
+    "n_wash=2,eras=25",
+    1303.8755853021325
+   ],
+   [
+    "n_wash=5,eras=25",
+    1297.4499503907764
+   ],
+   [
+    "n_wash=1,eras=25",
+    1306.0307051336224
+   ],
+   [
+    "n_wash=10,eras=25",
+    1286.8710918607085
+   ],
+   [
+    "n_wash=1,eras=30",
+    1277.8838414425352
+   ]
+  ],
+  "all": {
+   "n_wash=1,eras=5": 1777.1233487925106,
+   "n_wash=1,eras=10": 1559.352478353411,
+   "n_wash=1,eras=15": 1418.6181598979726,
+   "n_wash=1,eras=20": 1348.2510006702537,
+   "n_wash=1,eras=25": 1306.0307051336224,
+   "n_wash=1,eras=30": 1277.8838414425352,
+   "n_wash=1,eras=40": 1242.7002618286765,
+   "n_wash=2,eras=5": 1773.4468474382982,
+   "n_wash=2,eras=10": 1556.4082243577097,
+   "n_wash=2,eras=15": 1416.112313771278,
+   "n_wash=2,eras=20": 1345.964358478062,
+   "n_wash=2,eras=25": 1303.8755853021325,
+   "n_wash=2,eras=30": 1275.8164031848462,
+   "n_wash=2,eras=40": 1240.7424255382382,
+   "n_wash=5,eras=5": 1762.5016462389679,
+   "n_wash=5,eras=10": 1547.6375148924103,
+   "n_wash=5,eras=15": 1408.6444235026136,
+   "n_wash=5,eras=20": 1339.147877807715,
+   "n_wash=5,eras=25": 1297.4499503907764,
+   "n_wash=5,eras=30": 1269.6513321128177,
+   "n_wash=5,eras=40": 1234.9030592653692,
+   "n_wash=10,eras=5": 1744.5358569760806,
+   "n_wash=10,eras=10": 1533.2232131370613,
+   "n_wash=10,eras=15": 1396.3609235390875,
+   "n_wash=10,eras=20": 1327.9297787401006,
+   "n_wash=10,eras=25": 1286.8710918607085,
+   "n_wash=10,eras=30": 1259.498633941114,
+   "n_wash=10,eras=40": 1225.2830615416203
+  }
+ },
+ "PART2_baseline": {
+  "pool": 1000000.0,
+  "net_by_era_first10": [
+   1818.2575259155112,
+   1892.191146288678,
+   1807.2529728142108,
+   1719.803355739543,
+   1629.729236433548,
+   1536.910666743317,
+   1441.220276086966,
+   1342.522688304518,
+   1240.6738826523906,
+   1135.5204925984144
+  ],
+  "steady_state_net_per_era": 1135.5204925984144,
+  "cum_mean_10_eras_RUND": 1556.4082243577097,
+  "cum_mean_20_eras": 1345.964358478062,
+  "cum_mean_30_eras": 1275.8164031848462,
+  "note": "RUN-D 1556.408 is a 10-era CUMULATIVE MEAN that includes the +100% decaying onboarding boost. The steady-state (post-onboarding) figure is lower."
+ },
+ "PART3_honest_comparison": {
+  "rows": {
+   "honest worker, vol=100, 5 real buyers": {
+    "weight": 90.27,
+    "reward": 7940.80157496523,
+    "cost": 240.25,
+    "net": 7700.55157496523,
+    "capital": 10000,
+    "net_per_1k_capital": 770.0551574965231
+   },
+   "honest worker, vol=5000, 5 real buyers": {
+    "weight": 138.0,
+    "reward": 12088.720697992221,
+    "cost": 252.5,
+    "net": 11836.220697992221,
+    "capital": 10000,
+    "net_per_1k_capital": 1183.6220697992221
+   },
+   "washer, 1 sybil cp, NO gov": {
+    "weight": 23.4,
+    "reward": 2070.6132200690204,
+    "cost": 65.0,
+    "net": 2005.6132200690204,
+    "capital": 11000,
+    "net_per_1k_capital": 182.32847455172913
+   },
+   "washer, 1 sybil cp, votes gov": {
+    "weight": 85.8,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "capital": 11000,
+    "net_per_1k_capital": 662.3233683260612
+   },
+   "washer, 5 sybil cps, votes gov": {
+    "weight": 156.0,
+    "reward": 13643.99664147775,
+    "cost": 385.0,
+    "net": 13258.99664147775,
+    "capital": 15000,
+    "net_per_1k_capital": 883.9331094318501
+   }
+  },
+  "ring_beats_honest_per_capital": true
+ },
+ "PART3_closed_form": {
+  "activity_qualifying_bps": 5500,
+  "activity_unqualifying_bps": 4500,
+  "max_pct_weight_removable_by_any_Vmin": 18.181818181818183,
+  "net_at_Vmin_infinity": 5921.221117749696,
+  "conclusion": "MinQualifyingVol gates only effective_floor (1,000 bps of a 10,000 bps activity budget). No value of it, including infinity, drives the washer negative. This is independent of P and of the fee model."
+ },
+ "PART3_crux": {
+  "sigma_honest": 11277.6,
+  "sweep_1cp_chainfee": {
+   "0": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "qualifies": true
+   },
+   "50": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "qualifies": true
+   },
+   "100": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "qualifies": true
+   },
+   "500": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "qualifies": true
+   },
+   "1000": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "qualifies": true
+   },
+   "5000": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "qualifies": true
+   },
+   "10000": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 265.0,
+    "net": 7285.557051586673,
+    "qualifies": true
+   },
+   "50000": {
+    "vol": 50000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 365.0,
+    "net": 7185.557051586673,
+    "qualifies": true
+   },
+   "100000": {
+    "vol": 100000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 490.0,
+    "net": 7060.557051586673,
+    "qualifies": true
+   },
+   "1000000": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 70.2,
+    "gov": 20,
+    "reward": 6186.221117749696,
+    "cost": 265.0,
+    "net": 5921.221117749696,
+    "qualifies": false
+   }
+  },
+  "sweep_1cp_simfee": {
+   "0": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 63.3024,
+    "gov": 20,
+    "reward": 5581.778042636183,
+    "cost": 340.0,
+    "net": 5241.778042636183,
+    "qualifies": true
+   },
+   "50": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 63.3024,
+    "gov": 20,
+    "reward": 5581.778042636183,
+    "cost": 340.0,
+    "net": 5241.778042636183,
+    "qualifies": true
+   },
+   "100": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 63.3024,
+    "gov": 20,
+    "reward": 5581.778042636183,
+    "cost": 340.0,
+    "net": 5241.778042636183,
+    "qualifies": true
+   },
+   "500": {
+    "vol": 500,
+    "buyers": 1,
+    "n_esc": 5,
+    "weight": 65.163,
+    "gov": 20,
+    "reward": 5744.896547693009,
+    "cost": 860.0,
+    "net": 4884.896547693009,
+    "qualifies": true
+   },
+   "1000": {
+    "vol": 1000,
+    "buyers": 1,
+    "n_esc": 10,
+    "weight": 66.744,
+    "gov": 20,
+    "reward": 5883.46051565432,
+    "cost": 1510.0,
+    "net": 4373.46051565432,
+    "qualifies": true
+   },
+   "5000": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 51.2448,
+    "gov": 20,
+    "reward": 4523.391475889934,
+    "cost": 340.0,
+    "net": 4183.391475889934,
+    "qualifies": false
+   },
+   "10000": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 51.2448,
+    "gov": 20,
+    "reward": 4523.391475889934,
+    "cost": 340.0,
+    "net": 4183.391475889934,
+    "qualifies": false
+   },
+   "50000": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 51.2448,
+    "gov": 20,
+    "reward": 4523.391475889934,
+    "cost": 340.0,
+    "net": 4183.391475889934,
+    "qualifies": false
+   },
+   "100000": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 51.2448,
+    "gov": 20,
+    "reward": 4523.391475889934,
+    "cost": 340.0,
+    "net": 4183.391475889934,
+    "qualifies": false
+   },
+   "1000000": {
+    "vol": 160,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 51.2448,
+    "gov": 20,
+    "reward": 4523.391475889934,
+    "cost": 340.0,
+    "net": 4183.391475889934,
+    "qualifies": false
+   }
+  },
+  "sweep_5cp_chainfee": {
+   "0": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 385.0,
+    "net": 13258.99664147775,
+    "qualifies": true
+   },
+   "50": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 385.0,
+    "net": 13258.99664147775,
+    "qualifies": true
+   },
+   "5000": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 385.0,
+    "net": 13258.99664147775,
+    "qualifies": true
+   },
+   "100000": {
+    "vol": 100000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 610.0,
+    "net": 13033.99664147775,
+    "qualifies": true
+   },
+   "1000000": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 140.4,
+    "gov": 20,
+    "reward": 12296.374146085129,
+    "cost": 385.0,
+    "net": 11911.374146085129,
+    "qualifies": false
+   }
+  },
+  "abandons_floor_at": 1000000,
+  "profitable_at_every_min_qual_chainfee": true,
+  "profitable_at_every_min_qual_simfee": true,
+  "floor_free_plateau": {
+   "vol": 10000,
+   "buyers": 1,
+   "n_esc": 1,
+   "weight": 70.2,
+   "gov": 20,
+   "reward": 6186.221117749696,
+   "cost": 265.0,
+   "net": 5921.221117749696,
+   "qualifies": false
+  }
+ },
+ "PART4_round11_crosscheck": {
+  "gov_on_chain_fee": 7285.557051586673,
+  "gov_off_chain_fee": 2005.6132200690204,
+  "gov_on_sim_fee": 5241.778042636183,
+  "gov_off_sim_fee": 1194.670837867247,
+  "understatement_factor": 6.0983802572707075
+ },
+ "PART4_feasibility": {
+  "bond_required_by_apr": {
+   "0.05": 212738265.90633085,
+   "0.2": 53184566.47658271,
+   "1.0": 10636913.295316543
+  },
+  "max_stake_per_agent": 1000000.0,
+  "monetary_cost_reachable": false,
+  "note": "c* is not reachable as a price under MaxStakePerAgent; only a non-fungible identity/attestation constraint (unbuyable at any price) implements it."
+ },
+ "PART4_counterparty": {
+  "onchain_cost_today_cmn_per_era": 20.171232876712327,
+  "components": {
+   "base_registration_fee_onetime": 50.0,
+   "min_stake_locked": 1000.0,
+   "buyer_must_be_registered_agent": true,
+   "src": "pallets/escrow/src/lib.rs:290-293 (BuyerNotAgent)"
+  },
+  "net_vs_c": {
+   "0": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 385.0,
+    "net": 13258.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "1": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 390.0,
+    "net": 13253.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "10": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 435.0,
+    "net": 13208.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "50": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 635.0,
+    "net": 13008.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "100": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 885.0,
+    "net": 12758.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "200": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 1385.0,
+    "net": 12258.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "500": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 2885.0,
+    "net": 10758.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "1000": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 5385.0,
+    "net": 8258.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "1200": {
+    "vol": 10000,
+    "buyers": 5,
+    "n_esc": 5,
+    "weight": 156.0,
+    "gov": 20,
+    "reward": 13643.99664147775,
+    "cost": 6385.0,
+    "net": 7258.99664147775,
+    "qualifies": true,
+    "n_counterparties": 5
+   },
+   "1500": {
+    "vol": 10000,
+    "buyers": 3,
+    "n_esc": 3,
+    "weight": 124.8,
+    "gov": 20,
+    "reward": 10945.064197011156,
+    "cost": 4825.0,
+    "net": 6120.064197011156,
+    "qualifies": true,
+    "n_counterparties": 3
+   },
+   "2000": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 2265.0,
+    "net": 5285.557051586673,
+    "qualifies": true,
+    "n_counterparties": 1
+   },
+   "5000": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 5265.0,
+    "net": 2285.557051586673,
+    "qualifies": true,
+    "n_counterparties": 1
+   },
+   "10000": {
+    "vol": 10000,
+    "buyers": 1,
+    "n_esc": 1,
+    "weight": 85.8,
+    "gov": 20,
+    "reward": 7550.557051586673,
+    "cost": 10265.0,
+    "net": -2714.442948413327,
+    "qualifies": true,
+    "n_counterparties": 1
+   }
+  },
+  "c_star_default": 7285.557051586673,
+  "c_star_sim_fee": 5241.778042636183,
+  "c_star_floor_abandoned": 5921.221117749696,
+  "c_star_by_stake": {
+   "1000": 1714.8327179757719,
+   "10000": 7285.557051586673,
+   "100000": 22986.871219064124,
+   "1000000": 56361.82397511165
+  },
+  "gap_factor_vs_today": 361.18551087662286
+ },
+ "PART5_replication": {
+  "population": 272,
+  "pool": 1000000.0,
+  "A-4_wash": 1301.478635873615,
+  "A-1_honest": 7339.308265362478,
+  "A-2_staker": -10.0,
+  "A-3_sybil": -10.0,
+  "A-5_oracle": 7183.810809600246,
+  "published": {
+   "A-4": 1301.5,
+   "A-1": 7339.3,
+   "A-2": -10.0,
+   "A-3": -10.0,
+   "A-5": 7183.8
+  }
+ },
+ "PART5_cstar_context": {
+  "r11_conditional_gov_off": 621.1649091935412,
+  "r11_conditional_gov_on": 2373.895203219038,
+  "genesis_params_gov_on": 7285.557051586673,
+  "note": "ROUND11's ~1,200 is conditional on div_bps(1)=0 AND V_min=10,000 being shipped first. At genesis parameters the required counterparty cost is far higher."
+ }
+}

@@ -1,0 +1,16 @@
+{"from_id":"pallet-orchestrator","relation":"depends_on","to_id":"pallet-agents","note":"orchestrator reads agent registry"}
+{"from_id":"pallet-orchestrator","relation":"depends_on","to_id":"pallet-escrow","note":"task lifecycle creates escrow bonds"}
+{"from_id":"pallet-emissions","relation":"depends_on","to_id":"pallet-agents","note":"emissions weight formula uses agent stake/rank"}
+{"from_id":"pallet-escrow","relation":"depends_on","to_id":"pallet-agents","note":"escrow disputes reference agent identities"}
+{"from_id":"pallet-constitution","relation":"governs","to_id":"pallet-agents","note":"constitution sets root rules for agent registration"}
+{"from_id":"sc-e1-sim","relation":"implements","to_id":"R-SC-0001","note":"simulator runs the verified weight formula"}
+{"from_id":"verified-constants","relation":"documents","to_id":"R-SC-0001","note":"transcribed formula source of truth"}
+{"from_id":"sc-e1-sim","relation":"produces","to_id":"verdict-json","note":"simulation output"}
+{"from_id":"sc-e1-sim","relation":"produces","to_id":"sc-e1-v2-results","note":"results markdown"}
+{"from_id":"R-SC-0001","relation":"references","to_id":"pallet-emissions","note":"formula extracted from pallet-emissions"}
+{"from_id":"R-SC-0003","relation":"references","to_id":"pallet-agents","note":"stake-sybil defense depends on agent weight computation"}
+{"from_id":"R-SC-0004","relation":"references","to_id":"pallet-emissions","note":"wash trading profitability depends on pool ceiling"}
+{"from_id":"R-SC-0005","relation":"references","to_id":"pallet-oracle","note":"oracle bonus inertness due to OracleScoreProvider=()"}
+{"from_id":"OD-1","relation":"follows_from","to_id":"R-SC-0006","note":"fee model transcription resolves R-SC-0006"}
+{"from_id":"OD-2","relation":"follows_from","to_id":"R-SC-0005","note":"oracle provider resolves oracle inertness"}
+{"from_id":"OD-4","relation":"references","to_id":"R-SC-0004","note":"pool-scaled gaming cost RFC responds to wash trading finding"}

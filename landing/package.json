@@ -1,0 +1,35 @@
+{
+  "name": "@scalar-commons/landing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Public landing page for Scalar Commons. Every chain figure on the page is generated from runtime metadata read off a live node (chain-facts.json) — nothing is hand-typed. /observatory fetches its figures live in the browser.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test",
+    "dev:instrument": "node scripts/dev-instrument.mjs",
+    "fetch:chain-facts": "node scripts/fetch-chain-facts.mjs",
+    "verify:chain": "node scripts/verify-chain.mjs",
+    "fetch:chain-events": "node scripts/fetch-chain-events.mjs"
+  },
+  "dependencies": {
+    "d3": "^7.9.0",
+    "d3-array": "^3.2.4",
+    "d3-force": "^3.0.0",
+    "d3-scale": "^4.0.2",
+    "d3-shape": "^3.2.0",
+    "force-graph": "1.52.0",
+    "gsap": "3.15.0"
+  },
+  "devDependencies": {
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/source-serif-4": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0",
+    "@polkadot/api": "16.5.6",
+    "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

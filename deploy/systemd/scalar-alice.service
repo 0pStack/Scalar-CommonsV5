@@ -1,0 +1,49 @@
+[Unit]
+Description=Scalar Commons devnet validator — alice (bootnode + RPC)
+Documentation=file:///home/dev/scalar-commons-v4/deploy/README.md
+After=network-online.target
+Wants=network-online.target
+PartOf=scalar-devnet.target
+
+[Service]
+Type=exec
+WorkingDirectory=%h
+# Alice is the bootnode: her peer id is derived from the fixed node key in
+# %h/scalar-testnet/alice/node-key, so the --bootnodes multiaddr baked into
+# bob/charlie stays valid across restarts and reboots.
+#
+# RPC binds to 127.0.0.1 (substrate's default) — NOT --rpc-external. See
+# deploy/README.md "Public RPC"; flipping to 0.0.0.0 is a deliberate step to
+# take only after the ufw rules are in place.
+#
+# archive pruning: alice is the query/indexer endpoint and needs full history.
+# bob and charlie run default pruning to save disk.
+ExecStart=/home/dev/scalar-commons-v4/target/release/scalar-node \
+    --chain /home/dev/scalar-commons-v4/deploy/scalar-local-raw.json \
+    --base-path %h/scalar-testnet/alice \
+    --name scalar-alice \
+    --validator \
+    --alice \
+    --node-key-file %h/scalar-testnet/alice/node-key \
+    --port 30333 \
+    --rpc-port 9944 \
+    --prometheus-port 9615 \
+    --rpc-cors all \
+    --rpc-methods safe \
+    --rpc-rate-limit 300 \
+    --rpc-max-connections 100 \
+    --rpc-max-subscriptions-per-connection 64 \
+    --rpc-max-batch-request-len 16 \
+    --rpc-max-request-size 10 \
+    --rpc-message-buffer-capacity-per-connection 32 \
+    --state-pruning archive \
+    --blocks-pruning archive
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=scalar-alice
+
+[Install]
+WantedBy=scalar-devnet.target

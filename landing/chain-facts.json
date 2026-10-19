@@ -1,0 +1,585 @@
+{
+  "provenance": {
+    "source": "live-runtime-metadata",
+    "note": "Read from a running node with @polkadot/api; see scripts/fetch-chain-facts.mjs.",
+    "rpc": "ws://127.0.0.1:9944",
+    "chain": "Scalar Commons Local Testnet",
+    "specName": "scalar-commons",
+    "specVersion": 304,
+    "metadataVersion": 15,
+    "genesisHash": "0xff6882b49ad61dd3128a6e834b4f81704a3824ce358f2f69fe765ca07cf803d1",
+    "ss58Format": 42,
+    "readAtBlock": 433638,
+    "readAtBlockHash": "0x5400148f53befa5466e24058109062ce8a37d2af9add621c9c70cc72c1556a2a",
+    "fetchedAt": "2026-09-02T20:07:42.223Z"
+  },
+  "token": {
+    "symbol": "CMN",
+    "decimals": 12,
+    "plancksPerToken": "1000000000000"
+  },
+  "constants": {
+    "emissions": {
+      "supplyCap": "100000000000000000000000",
+      "initialEmissionsPerEra": "1000000000000000000",
+      "targetEmissionPerAgent": "10000000000000000",
+      "floorEmissionPerEra": "100000000000000000",
+      "eraDuration": "3600",
+      "maxBatchClaimSize": "100",
+      "oracleBonusBps": "2000",
+      "maxProposalsPerEra": "20",
+      "unitVolume": "10000000000000",
+      "minQualifyingVol": "50000000000000",
+      "velocityBonusBps": "3000",
+      "maxEmissionOverrideEras": "10",
+      "orchestratorEmissionMultiplier": "5000"
+    },
+    "agents": {
+      "minStake": "1000000000000000",
+      "fullFloorStake": "10000000000000000",
+      "maxStakePerAgent": "1000000000000000000",
+      "unstakeCooldown": "100800",
+      "baseRegistrationFee": "50000000000000",
+      "maxRegistrationsPerBlock": "10",
+      "maxAgents": "10000000",
+      "rank3MinCompletions": "50",
+      "minRank3OracleScore": "1000",
+      "rank3SpanGate": "432000",
+      "maxVolToStakeRatio": "10",
+      "heartbeatGracePeriod": "10800",
+      "heartbeatDecayPeriod": "1296000",
+      "maxUriLen": "256",
+      "maxNameLen": "64",
+      "maxCapabilitiesPerAgent": "20",
+      "maxDelegationPeriod": "1296000",
+      "slashAppealWindow": "10",
+      "maxProposalsPerEra": "20"
+    },
+    "escrow": {
+      "maxAgreementsPerPair": "10",
+      "maxAgreementSpan": "432000",
+      "minAgreementAmount": "10000000000000",
+      "minDeliveryBlocks": "10",
+      "buyerResponseWindow": "43200",
+      "disputeTimeoutWindow": "201600",
+      "disputeResponseWindow": "43200",
+      "disputeBountyBps": "200",
+      "minDisputeBounty": "1000000000000",
+      "disputeBurnBps": "0"
+    },
+    "oracle": {
+      "minOracleBounty": "1000000000000",
+      "maxOpenRequests": "1000",
+      "minChallengeWindow": "600",
+      "minConsensusThreshold": "50",
+      "maxResponsesPerRequest": "200",
+      "maxBatchSubmissions": "20"
+    },
+    "autoParams": {
+      "initialCompletionFeeBps": "25",
+      "initialAlpha": "1500",
+      "initialBeta": "5000",
+      "initialFloorBps": "1000",
+      "initialMinScoreEligible": "5",
+      "ringRatioThreshold": "3000",
+      "oracleParticipationLowThreshold": "4000",
+      "oracleParticipationHighThreshold": "9000",
+      "concentrationHighThreshold": "7000",
+      "concentrationLowThreshold": "5000",
+      "minQuestionsForOracleRule": "5",
+      "minAgentsForConcentrationRule": "50"
+    },
+    "orchestrator": {
+      "maxSubAgentsPerOrchestrator": "50",
+      "maxOrchestratorFeeBps": "500",
+      "linkApprovalWindow": "100800",
+      "maxPendingProposals": "20",
+      "supplyCap": "100000000000000000000000"
+    },
+    "constitution": {
+      "supplyCap": "100000000000000000000000",
+      "minUnstakeCooldown": "100800",
+      "minChallengeWindow": "600",
+      "minRegistrationBurn": "10000000000000",
+      "capWarningBuffer": "1000000000000000000000"
+    },
+    "balances": {
+      "existentialDeposit": "10000000000",
+      "maxLocks": "50",
+      "maxReserves": "50",
+      "maxFreezes": "8"
+    },
+    "babe": {
+      "epochDuration": "1800",
+      "expectedBlockTime": "6000",
+      "maxAuthorities": "100",
+      "maxNominators": "512"
+    },
+    "timestamp": {
+      "minimumPeriod": "3000"
+    }
+  },
+  "state": {
+    "validators": 5,
+    "registeredAgents": 3,
+    "totalIssuancePlancks": "6047320283354253295031",
+    "eraNumber": 0,
+    "lastSettledEra": null,
+    "alpha": 1500,
+    "beta": 5000,
+    "floorBps": 1000,
+    "completionFeeBps": 25
+  },
+  "pallets": [
+    {
+      "name": "system",
+      "index": 0,
+      "calls": [
+        "applyAuthorizedUpgrade",
+        "authorizeUpgrade",
+        "authorizeUpgradeWithoutChecks",
+        "killPrefix",
+        "killStorage",
+        "remark",
+        "remarkWithEvent",
+        "setCode",
+        "setCodeWithoutChecks",
+        "setHeapPages",
+        "setStorage"
+      ]
+    },
+    {
+      "name": "timestamp",
+      "index": 1,
+      "calls": [
+        "set"
+      ]
+    },
+    {
+      "name": "balances",
+      "index": 4,
+      "calls": [
+        "burn",
+        "forceAdjustTotalIssuance",
+        "forceSetBalance",
+        "forceTransfer",
+        "forceUnreserve",
+        "transferAll",
+        "transferAllowDeath",
+        "transferKeepAlive",
+        "upgradeAccounts"
+      ]
+    },
+    {
+      "name": "historical",
+      "index": 6,
+      "calls": []
+    },
+    {
+      "name": "authorityDiscovery",
+      "index": 8,
+      "calls": []
+    },
+    {
+      "name": "offences",
+      "index": 9,
+      "calls": []
+    },
+    {
+      "name": "voterList",
+      "index": 10,
+      "calls": [
+        "putInFrontOf",
+        "putInFrontOfOther",
+        "rebag"
+      ]
+    },
+    {
+      "name": "transactionPayment",
+      "index": 13,
+      "calls": []
+    },
+    {
+      "name": "vesting",
+      "index": 14,
+      "calls": [
+        "forceRemoveVestingSchedule",
+        "forceVestedTransfer",
+        "mergeSchedules",
+        "vest",
+        "vestOther",
+        "vestedTransfer"
+      ]
+    },
+    {
+      "name": "treasury",
+      "index": 15,
+      "calls": [
+        "checkStatus",
+        "payout",
+        "removeApproval",
+        "spend",
+        "spendLocal",
+        "voidSpend"
+      ]
+    },
+    {
+      "name": "sudo",
+      "index": 16,
+      "calls": [
+        "removeKey",
+        "setKey",
+        "sudo",
+        "sudoAs",
+        "sudoUncheckedWeight"
+      ]
+    },
+    {
+      "name": "utility",
+      "index": 17,
+      "calls": [
+        "asDerivative",
+        "batch",
+        "batchAll",
+        "dispatchAs",
+        "dispatchAsFallible",
+        "forceBatch",
+        "ifElse",
+        "withWeight"
+      ]
+    },
+    {
+      "name": "multisig",
+      "index": 18,
+      "calls": [
+        "approveAsMulti",
+        "asMulti",
+        "asMultiThreshold1",
+        "cancelAsMulti",
+        "pokeDeposit"
+      ]
+    },
+    {
+      "name": "scheduler",
+      "index": 19,
+      "calls": [
+        "cancel",
+        "cancelNamed",
+        "cancelRetry",
+        "cancelRetryNamed",
+        "schedule",
+        "scheduleAfter",
+        "scheduleNamed",
+        "scheduleNamedAfter",
+        "setRetry",
+        "setRetryNamed"
+      ]
+    },
+    {
+      "name": "preimage",
+      "index": 20,
+      "calls": [
+        "ensureUpdated",
+        "notePreimage",
+        "requestPreimage",
+        "unnotePreimage",
+        "unrequestPreimage"
+      ]
+    },
+    {
+      "name": "referenda",
+      "index": 21,
+      "calls": [
+        "cancel",
+        "kill",
+        "nudgeReferendum",
+        "oneFewerDeciding",
+        "placeDecisionDeposit",
+        "refundDecisionDeposit",
+        "refundSubmissionDeposit",
+        "setMetadata",
+        "submit"
+      ]
+    },
+    {
+      "name": "convictionVoting",
+      "index": 22,
+      "calls": [
+        "delegate",
+        "removeOtherVote",
+        "removeVote",
+        "undelegate",
+        "unlock",
+        "vote"
+      ]
+    },
+    {
+      "name": "rankedCollective",
+      "index": 23,
+      "calls": [
+        "addMember",
+        "cleanupPoll",
+        "demoteMember",
+        "exchangeMember",
+        "promoteMember",
+        "removeMember",
+        "vote"
+      ]
+    },
+    {
+      "name": "identity",
+      "index": 25,
+      "calls": [
+        "acceptUsername",
+        "addRegistrar",
+        "addSub",
+        "addUsernameAuthority",
+        "cancelRequest",
+        "clearIdentity",
+        "killIdentity",
+        "killUsername",
+        "provideJudgement",
+        "quitSub",
+        "removeExpiredApproval",
+        "removeSub",
+        "removeUsername",
+        "removeUsernameAuthority",
+        "renameSub",
+        "requestJudgement",
+        "setAccountId",
+        "setFee",
+        "setFields",
+        "setIdentity",
+        "setPrimaryUsername",
+        "setSubs",
+        "setUsernameFor",
+        "unbindUsername"
+      ]
+    },
+    {
+      "name": "agents",
+      "index": 26,
+      "calls": [
+        "addStake",
+        "completeUnstake",
+        "delegateVoting",
+        "executeSlash",
+        "heartbeat",
+        "recordGovVote",
+        "register",
+        "requestUnstake",
+        "setCapability",
+        "slashAppeal",
+        "updateMetadata"
+      ]
+    },
+    {
+      "name": "escrow",
+      "index": 27,
+      "calls": [
+        "claimRefund",
+        "confirmDelivery",
+        "createAgreement",
+        "disputeDelivery",
+        "extendDeadline",
+        "recordDelivery"
+      ]
+    },
+    {
+      "name": "oracle",
+      "index": 28,
+      "calls": [
+        "batchSubmitResponse",
+        "createOracleRequest",
+        "expireRequest",
+        "finaliseRequest",
+        "submitResponse"
+      ]
+    },
+    {
+      "name": "emissions",
+      "index": 29,
+      "calls": [
+        "batchClaim",
+        "claim",
+        "setEraEmissionOverride",
+        "settleEra"
+      ]
+    },
+    {
+      "name": "autoParams",
+      "index": 30,
+      "calls": [
+        "setBounds",
+        "setParam"
+      ]
+    },
+    {
+      "name": "orchestrator",
+      "index": 31,
+      "calls": [
+        "acceptOrchestratorLink",
+        "cancelLinkProposal",
+        "claimOrchestrator",
+        "declineLinkProposal",
+        "deregisterOrchestrator",
+        "proposeSubAgentLink",
+        "registerOrchestrator",
+        "removeSubAgentLink"
+      ]
+    },
+    {
+      "name": "nominationPools",
+      "index": 32,
+      "calls": [
+        "adjustPoolDeposit",
+        "applySlash",
+        "bondExtra",
+        "bondExtraOther",
+        "chill",
+        "claimCommission",
+        "claimPayout",
+        "claimPayoutOther",
+        "create",
+        "createWithPoolId",
+        "join",
+        "migrateDelegation",
+        "migratePoolToDelegateStake",
+        "nominate",
+        "poolWithdrawUnbonded",
+        "setClaimPermission",
+        "setCommission",
+        "setCommissionChangeRate",
+        "setCommissionClaimPermission",
+        "setCommissionMax",
+        "setConfigs",
+        "setMetadata",
+        "setState",
+        "unbond",
+        "updateRoles",
+        "withdrawUnbonded"
+      ]
+    },
+    {
+      "name": "whitelist",
+      "index": 33,
+      "calls": [
+        "dispatchWhitelistedCall",
+        "dispatchWhitelistedCallWithPreimage",
+        "removeWhitelistedCall",
+        "whitelistCall"
+      ]
+    },
+    {
+      "name": "staking",
+      "index": 34,
+      "calls": [
+        "bond",
+        "bondExtra",
+        "cancelDeferredSlash",
+        "chill",
+        "chillOther",
+        "deprecateControllerBatch",
+        "forceApplyMinCommission",
+        "forceNewEra",
+        "forceNewEraAlways",
+        "forceNoEras",
+        "forceUnstake",
+        "increaseValidatorCount",
+        "kick",
+        "manualSlash",
+        "migrateCurrency",
+        "nominate",
+        "payoutStakers",
+        "payoutStakersByPage",
+        "reapStash",
+        "rebond",
+        "restoreLedger",
+        "scaleValidatorCount",
+        "setController",
+        "setInvulnerables",
+        "setMinCommission",
+        "setPayee",
+        "setStakingConfigs",
+        "setValidatorCount",
+        "unbond",
+        "updatePayee",
+        "validate",
+        "withdrawUnbonded"
+      ]
+    },
+    {
+      "name": "babe",
+      "index": 35,
+      "calls": [
+        "planConfigChange",
+        "reportEquivocation",
+        "reportEquivocationUnsigned"
+      ]
+    },
+    {
+      "name": "grandpa",
+      "index": 36,
+      "calls": [
+        "noteStalled",
+        "reportEquivocation",
+        "reportEquivocationUnsigned"
+      ]
+    },
+    {
+      "name": "session",
+      "index": 37,
+      "calls": [
+        "purgeKeys",
+        "setKeys"
+      ]
+    },
+    {
+      "name": "safeMode",
+      "index": 38,
+      "calls": [
+        "enter",
+        "extend",
+        "forceEnter",
+        "forceExit",
+        "forceExtend",
+        "forceReleaseDeposit",
+        "forceSlashDeposit",
+        "releaseDeposit"
+      ]
+    },
+    {
+      "name": "txPause",
+      "index": 39,
+      "calls": [
+        "pause",
+        "unpause"
+      ]
+    },
+    {
+      "name": "constitution",
+      "index": 40,
+      "calls": []
+    },
+    {
+      "name": "rankedPolls",
+      "index": 41,
+      "calls": [
+        "cancel",
+        "kill",
+        "nudgeReferendum",
+        "oneFewerDeciding",
+        "placeDecisionDeposit",
+        "refundDecisionDeposit",
+        "refundSubmissionDeposit",
+        "setMetadata",
+        "submit"
+      ]
+    },
+    {
+      "name": "authorship",
+      "index": 99,
+      "calls": []
+    }
+  ]
+}

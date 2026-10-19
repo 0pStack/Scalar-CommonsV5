@@ -1,0 +1,31 @@
+{
+  "name": "@scalar-commons/explorer",
+  "version": "0.1.0",
+  "description": "Web block explorer for Scalar Commons. Server-rendered block, extrinsic and account views read straight off a live node — every type shape comes from runtime metadata, none are hand-written.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@polkadot/api": "15.10.2",
+    "@polkadot/types": "15.10.2",
+    "@polkadot/types-codec": "15.10.2",
+    "@polkadot/util": "^13.0.0",
+    "@polkadot/util-crypto": "^13.0.0"
+  },
+  "devDependencies": {
+    "@polkadot/keyring": "^13.0.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,21 @@
+[Unit]
+Description=Run the Scalar Commons emissions keeper every 15 minutes
+Documentation=file:///home/dev/scalar-commons-v4/deploy/products/README.md
+
+[Timer]
+# An emissions era is EraDuration = 3600 blocks = 6 hours at 6s/block, so this
+# fires roughly 24 times per era. That is deliberate over-polling: the script
+# exits without submitting when settlement is not due, so an extra tick costs
+# one RPC round trip and no fee, while a missed tick self-corrects within 15
+# minutes instead of delaying settlement by a whole era.
+#
+# Persistent=true so a tick missed while the box was down runs on boot rather
+# than being skipped — settlement being late is the failure mode this exists to
+# prevent.
+OnBootSec=2min
+OnUnitActiveSec=15min
+Persistent=true
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

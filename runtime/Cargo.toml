@@ -1,0 +1,211 @@
+[package]
+name    = "scalar-commons-runtime"
+version = "3.0.0"
+edition = "2021"
+
+[dependencies]
+# Encoding
+parity-scale-codec = { workspace = true, features = ["derive"] }
+scale-info         = { workspace = true, features = ["derive"] }
+
+# serde needed for AgentInfo/EraSnapshot #[cfg_attr(feature="std", derive(Serialize,Deserialize))]
+# required by jsonrpsee #[rpc] macro for JSON serialization of RPC responses
+serde = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+
+# FRAME core
+frame-support           = { workspace = true }
+frame-system            = { workspace = true }
+frame-executive         = { workspace = true }
+frame-benchmarking      = { workspace = true, optional = true }
+pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
+frame-system-rpc-runtime-api = { workspace = true }
+
+# Substrate primitives
+sp-core        = { workspace = true }
+sp-runtime     = { workspace = true }
+sp-io          = { workspace = true }
+sp-std         = { workspace = true }
+sp-arithmetic  = { workspace = true }
+sp-inherents   = { workspace = true }
+sp-api         = { workspace = true }
+sp-version = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
+sp-block-builder       = { workspace = true }
+sp-genesis-builder     = { workspace = true }
+sp-consensus-babe      = { workspace = true }
+sp-consensus-grandpa   = { workspace = true }
+# ROUND5: needed to declare AuthorityDiscoveryApi in impl_runtime_apis!.
+# pallet-authority-discovery has been wired since before Round 3, but the
+# runtime API the sc-authority-discovery worker calls was never declared, so
+# the node could not spawn the worker at all. See ROUND4.md gap 1.
+sp-authority-discovery = { workspace = true }
+sp-session             = { workspace = true }
+sp-staking             = { workspace = true }
+sp-offchain            = { workspace = true }
+sp-transaction-pool    = { workspace = true }
+
+# Standard pallets — consensus
+pallet-babe               = { workspace = true }
+pallet-grandpa            = { workspace = true }
+pallet-session            = { workspace = true }
+pallet-staking            = { workspace = true }
+pallet-im-online          = { workspace = true }
+pallet-authority-discovery = { workspace = true }
+pallet-offences           = { workspace = true }
+pallet-bags-list          = { workspace = true }
+pallet-election-provider-multi-phase = { workspace = true }
+frame-election-provider-support      = { workspace = true }
+
+# Standard pallets — tokens
+pallet-balances           = { workspace = true }
+pallet-transaction-payment = { workspace = true }
+pallet-timestamp          = { workspace = true }
+pallet-vesting            = { workspace = true }
+
+# Standard pallets — governance + admin
+pallet-sudo               = { workspace = true }
+pallet-scheduler          = { workspace = true }
+pallet-utility            = { workspace = true }
+pallet-multisig           = { workspace = true }
+pallet-referenda          = { workspace = true }
+pallet-conviction-voting  = { workspace = true }
+pallet-ranked-collective  = { workspace = true }
+pallet-salary             = { workspace = true }
+pallet-identity           = { workspace = true }
+pallet-preimage           = { workspace = true }
+pallet-treasury           = { workspace = true }
+
+# Custom pallets
+pallet-agents      = { workspace = true }
+pallet-escrow      = { workspace = true }
+pallet-oracle      = { workspace = true }
+pallet-emissions   = { workspace = true }
+pallet-auto-params         = { workspace = true }
+pallet-nomination-pools    = { workspace = true }
+pallet-orchestrator = { workspace = true }
+# spec 308: on-chain coordination messages (D15).
+pallet-messages     = { workspace = true }
+# V4: governance safety pallets (whitelist enables TC fast-track, safe-mode is emergency brake)
+pallet-whitelist        = { workspace = true }
+pallet-safe-mode        = { workspace = true }
+pallet-tx-pause         = { workspace = true }
+pallet-assets           = { workspace = true }
+# V4: constitution pallet (custom — 6 pre-dispatch invariants)
+# default-features = false is load-bearing: pallet-constitution defaults to
+# ["std"], and without this it stays on during the wasm-builder inner build,
+# dragging std into wasm32v1-none (getrandom/subtle then fail on `extern crate
+# std`). Every other runtime dependency already disables defaults.
+pallet-constitution     = { path = "../pallets/constitution", default-features = false }
+pallet-staking-reward-curve    = { version = "11.0.0" }
+pallet-authorship = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", version = "40.0.0", default-features = false }
+
+[build-dependencies]
+substrate-wasm-builder     = { workspace = true }
+pallet-staking-reward-curve = { version = "11.0.0" }
+
+[features]
+default = ["std"]
+std = [
+    "serde/std",
+    "parity-scale-codec/std", "scale-info/std",
+    "frame-support/std", "frame-system/std", "frame-executive/std",
+    "frame-system-rpc-runtime-api/std",
+    "sp-core/std", "sp-runtime/std", "sp-io/std", "sp-std/std",
+    "sp-arithmetic/std", "sp-inherents/std", "sp-api/std",
+    "sp-block-builder/std", "sp-genesis-builder/std",
+    "sp-consensus-babe/std", "sp-consensus-grandpa/std",
+    "sp-authority-discovery/std",
+    "sp-session/std", "sp-staking/std", "sp-offchain/std",
+    "sp-transaction-pool/std",
+    "pallet-babe/std", "pallet-grandpa/std", "pallet-session/std",
+    "pallet-staking/std", "pallet-im-online/std",
+    "pallet-authority-discovery/std", "pallet-offences/std",
+    "pallet-bags-list/std", "pallet-election-provider-multi-phase/std",
+    "frame-election-provider-support/std",
+    "pallet-balances/std", "pallet-transaction-payment/std",
+    "pallet-timestamp/std", "pallet-vesting/std",
+    "pallet-sudo/std", "pallet-scheduler/std", "pallet-utility/std",
+    "pallet-multisig/std", "pallet-referenda/std",
+    "pallet-conviction-voting/std", "pallet-ranked-collective/std",
+    "pallet-salary/std", "pallet-identity/std", "pallet-treasury/std",
+    "pallet-whitelist/std", "pallet-safe-mode/std", "pallet-tx-pause/std",
+    "pallet-assets/std", "pallet-constitution/std", "pallet-nomination-pools/std",
+    "pallet-agents/std", "pallet-escrow/std", "pallet-oracle/std",
+    "pallet-emissions/std", "pallet-auto-params/std",
+    "pallet-orchestrator/std",
+    "pallet-messages/std",
+    "sp-version/std",
+    "pallet-authorship/std",
+    "pallet-transaction-payment-rpc-runtime-api/std",
+    "pallet-preimage/std",
+    "frame-benchmarking?/std",
+]
+# ROUND5: completed the feature graph. Previously this listed 5 of the 40
+# dependencies that expose a `runtime-benchmarks` feature, which meant enabling
+# it built a runtime whose benchmark machinery disagreed with itself — the
+# reason ROUND4.md gap 5 recorded benchmarking as "not wired end to end".
+#
+# The rule applied is the kitchensink runtime's, mechanically: every dependency
+# that declares a `runtime-benchmarks` feature gets it forwarded. (The
+# kitchensink expresses this as one line, `polkadot-sdk/runtime-benchmarks`,
+# because it consumes the SDK umbrella crate; this workspace pins individual
+# crates, so the same graph is spelled out.) Membership was determined by
+# reading each crate's own Cargo.toml, not from memory.
+#
+# Four entries are for dependencies declared in [dependencies] but NOT present
+# in construct_runtime: pallet-assets, pallet-salary, pallet-im-online and
+# pallet-election-provider-multi-phase. They are forwarded anyway so the graph
+# stays uniform and cannot silently skew if one of them is later wired in.
+runtime-benchmarks = [
+    # FRAME core
+    "frame-support/runtime-benchmarks",
+    "frame-system/runtime-benchmarks",
+    "frame-benchmarking/runtime-benchmarks",
+    "frame-election-provider-support/runtime-benchmarks",
+    "sp-runtime/runtime-benchmarks",
+    "sp-staking/runtime-benchmarks",
+    # Consensus / staking
+    "pallet-babe/runtime-benchmarks",
+    "pallet-grandpa/runtime-benchmarks",
+    "pallet-staking/runtime-benchmarks",
+    "pallet-offences/runtime-benchmarks",
+    "pallet-bags-list/runtime-benchmarks",
+    "pallet-im-online/runtime-benchmarks",
+    "pallet-election-provider-multi-phase/runtime-benchmarks",
+    # Tokens
+    "pallet-balances/runtime-benchmarks",
+    "pallet-transaction-payment/runtime-benchmarks",
+    "pallet-timestamp/runtime-benchmarks",
+    "pallet-vesting/runtime-benchmarks",
+    "pallet-assets/runtime-benchmarks",
+    "pallet-nomination-pools/runtime-benchmarks",
+    # Governance / admin
+    "pallet-sudo/runtime-benchmarks",
+    "pallet-scheduler/runtime-benchmarks",
+    "pallet-utility/runtime-benchmarks",
+    "pallet-multisig/runtime-benchmarks",
+    "pallet-preimage/runtime-benchmarks",
+    "pallet-referenda/runtime-benchmarks",
+    "pallet-conviction-voting/runtime-benchmarks",
+    "pallet-ranked-collective/runtime-benchmarks",
+    "pallet-salary/runtime-benchmarks",
+    "pallet-identity/runtime-benchmarks",
+    "pallet-treasury/runtime-benchmarks",
+    "pallet-whitelist/runtime-benchmarks",
+    "pallet-safe-mode/runtime-benchmarks",
+    "pallet-tx-pause/runtime-benchmarks",
+    # Scalar Commons pallets
+    "pallet-agents/runtime-benchmarks",
+    "pallet-escrow/runtime-benchmarks",
+    "pallet-oracle/runtime-benchmarks",
+    "pallet-emissions/runtime-benchmarks",
+    "pallet-auto-params/runtime-benchmarks",
+    "pallet-orchestrator/runtime-benchmarks",
+    "pallet-messages/runtime-benchmarks",
+    "pallet-constitution/runtime-benchmarks",
+]
+try-runtime = [
+    "frame-support/try-runtime", "frame-system/try-runtime",
+    "frame-executive/try-runtime",
+    "pallet-agents/try-runtime", "pallet-emissions/try-runtime",
+    "pallet-messages/try-runtime",
+]

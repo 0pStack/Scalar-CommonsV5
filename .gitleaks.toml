@@ -1,0 +1,69 @@
+# gitleaks configuration for Scalar Commons.
+#
+# We keep the entire default ruleset. The only carve-out is for SS58 *public*
+# addresses.
+#
+# Why the carve-out is needed: a Substrate account id is a base58-encoded
+# public key, so it is a high-entropy string that usually sits next to a word
+# like "key". The default `generic-api-key` rule therefore flags it as a
+# credential. It is not one. `Sudo.Key`, validator stashes and agent accounts
+# are all readable by any stranger via `state_getStorage`, and our launch and
+# audit records quote them deliberately so a reader can verify for themselves
+# that the chain is not running on a well-known dev key (see PUBLIC-LAUNCH.md,
+# where the flagged line exists precisely to prove Sudo.Key is NOT Alice).
+#
+# Why the carve-out is safe. Its scope is deliberately narrow:
+#   * NOT a path allowlist -- PUBLIC-LAUNCH.md is still fully scanned.
+#   * NOT a rule disable -- generic-api-key still fires on every other value.
+#   * Bound to that one rule, via [[rules.allowlists]], so an SS58-shaped
+#     string is still reportable by any other rule.
+#   * Matches only the SS58 *shape*. A private key -- a SURI, a BIP39 seed
+#     phrase, or an 0x-hex secret -- does not match this pattern and still
+#     fails the gate. This is verified in CI, see .github/workflows/ci-fast.yml.
+#
+# Implementation note (gitleaks 8.28.0): the top-level `[[allowlists]]` form
+# with `targetRules` is silently dropped for rules that come from the default
+# config -- it only binds to rules defined in this file. The stub `[[rules]]`
+# block below is the form that actually merges an allowlist into a default
+# rule while leaving that rule's regex, entropy and stopwords intact. Do not
+# "simplify" this into a top-level allowlist: that would exempt SS58 strings
+# from every rule, not just this one. CI pins the gitleaks version so this
+# behaviour cannot drift underneath us.
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+  [[rules.allowlists]]
+  description = "SS58 public account addresses are on-chain public data, not secrets"
+  regexes = ['''\b5[1-9A-HJ-NP-Za-km-z]{46,47}\b''']
+
+  [[rules.allowlists]]
+  description = "Substrate storage keys are public derived constants, not secrets"
+  # Substrate storage keys: PUBLIC, and derived, not secret.
+  #
+  # A storage key is twox128(pallet) ++ twox128(item) -- a pure function of two
+  # names that anyone can recompute in a line of code. It carries no entropy,
+  # unlocks nothing, and appears in client code precisely because it is meant to
+  # be shared. gitleaks' generic-api-key rule sees a 64-character hex literal
+  # assigned to an identifier ending in _KEY and cannot tell it from a private
+  # key, which is a reasonable thing for it not to be able to tell.
+  #
+  # LISTED AS EXACT LITERALS, NOT AS A PATTERN, AND THAT IS THE WHOLE POINT.
+  # The tempting version of this entry is a regex like `0x[0-9a-f]{64}` -- and
+  # it would be a serious mistake, because that is also the exact shape of a
+  # 32-byte private key or a raw seed. Such a regex would exempt the single most
+  # dangerous thing this scanner exists to catch. Each value below is a specific
+  # constant whose public derivation is stated; adding one means computing it
+  # and saying which pallet and item it comes from.
+  #
+  #   Session::Validators = twox128("Session") ++ twox128("Validators")
+  #   Session::QueuedKeys = twox128("Session") ++ twox128("QueuedKeys")
+  #     (carried as a literal by two commits of the observatory page before it
+  #     computed its storage keys from the names; landing/src/observatory/scale.js)
+  regexes = [
+    '''0xcec5070d609dd3497f72bde07fc96ba088dcde934c658227ee1dfafcd6e16903''',
+    '''0xcec5070d609dd3497f72bde07fc96ba0e0cdd062e6eaf24295ad4ccfc41d4609''',
+  ]

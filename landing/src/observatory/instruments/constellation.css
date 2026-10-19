@@ -1,0 +1,6 @@
+/* The network graph (the agent panel's detail view) — rules beyond the design system's base for this instrument.
+   Tokens only; nothing here redefines :root. Its tip shares the agent field's rules (agent-field.css). */
+
+.constellation-canvas {
+  cursor: default;
+}

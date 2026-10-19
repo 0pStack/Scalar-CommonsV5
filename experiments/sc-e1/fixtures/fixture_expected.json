@@ -1,0 +1,75 @@
+{
+  "agents": {
+    "alice": {
+      "stake": 10000,
+      "active": true,
+      "registered_at_block": 1
+    },
+    "bob": {
+      "stake": 5000,
+      "active": true,
+      "registered_at_block": 2
+    },
+    "carol": {
+      "stake": 8000,
+      "active": true,
+      "registered_at_block": 6
+    }
+  },
+  "escrows": {
+    "t1": {
+      "agent": "alice",
+      "bond": 500,
+      "status": "completed"
+    }
+  },
+  "per_era": {
+    "1": {
+      "agents": {
+        "alice": {
+          "stake": 10000,
+          "active": true,
+          "registered_at_block": 1
+        },
+        "bob": {
+          "stake": 5000,
+          "active": true,
+          "registered_at_block": 2
+        }
+      },
+      "escrows": {
+        "t1": {
+          "agent": "alice",
+          "bond": 500,
+          "status": "completed"
+        }
+      }
+    },
+    "2": {
+      "agents": {
+        "alice": {
+          "stake": 10000,
+          "active": true,
+          "registered_at_block": 1
+        },
+        "bob": {
+          "stake": 5000,
+          "active": true,
+          "registered_at_block": 2
+        },
+        "carol": {
+          "stake": 8000,
+          "active": true,
+          "registered_at_block": 6
+        }
+      },
+      "escrows": {
+        "t1": {
+          "agent": "alice",
+          "bond": 500,
+          "status": "completed"
+        }
+      }
+    }
+  }
+}

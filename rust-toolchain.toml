@@ -1,0 +1,33 @@
+# Pinned toolchain for Scalar Commons.
+#
+# This pin is load-bearing, not hygiene. The workspace is pinned to Polkadot SDK
+# tag `polkadot-stable2503`, whose `sp-io` declares:
+#
+#     #[panic_handler]
+#     #[no_mangle]
+#     pub fn panic(info: &core::panic::PanicInfo) -> !
+#
+# Modern rustc rejects `#[no_mangle]` on internal language items outright, so
+# any toolchain new enough to enforce that cannot build this SDK tag at all:
+#
+#     error: `#[no_mangle]` cannot be used on internal language items
+#
+# CI previously used `dtolnay/rust-toolchain@stable` — a floating toolchain
+# against a fixed March-2025 SDK tag. That combination was guaranteed to break
+# on its own as stable advanced, with no commit to blame for the breakage. It
+# did: rustc 1.97.1 cannot compile this tree.
+#
+# 1.85.0 is contemporary with stable2503 and is verified to build the WASM
+# runtime. Do not bump this without also moving the SDK tag.
+#
+# `wasm32v1-none` is the correct WASM target here, not `wasm32-unknown-unknown`:
+# substrate-wasm-builder selects it whenever rustc >= 1.84 and the target is
+# installed (see `rustc_target()` in substrate/utils/wasm-builder/src/lib.rs).
+# Without it the builder silently falls back to `wasm32-unknown-unknown` plus
+# `-Z build-std`, which is slower and needs `rust-src` anyway.
+
+[toolchain]
+channel = "1.85.0"
+components = ["rust-src", "rustfmt", "clippy"]
+targets = ["wasm32v1-none"]
+profile = "minimal"

@@ -1,0 +1,7 @@
+{"block": 1, "era": 1, "event": "AgentRegistered", "agent": "alice", "stake": 10000}
+{"block": 2, "era": 1, "event": "AgentRegistered", "agent": "bob", "stake": 5000}
+{"block": 3, "era": 1, "event": "EscrowCreated", "task_id": "t1", "bond": 500}
+{"block": 4, "era": 1, "event": "EscrowCompleted", "task_id": "t1", "result": "success"}
+{"block": 5, "era": 1, "event": "EraSettled", "agent_count": 2}
+{"block": 6, "era": 2, "event": "AgentRegistered", "agent": "carol", "stake": 8000}
+{"block": 7, "era": 2, "event": "EraSettled", "agent_count": 3}

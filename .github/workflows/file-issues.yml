@@ -1,0 +1,59 @@
+name: File Engineering Issues
+on:
+  workflow_dispatch:
+permissions:
+  issues: write
+jobs:
+  file:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: File all issues
+        run: |
+          python3 - << 'PYEOF'
+          import subprocess
+          R="matty33/scalar-commons-v4"
+          def L(n,c,d): subprocess.run(["gh","label","create",n,"--color",c,"--description",d,"--repo",R,"--force"],capture_output=True)
+          def I(t,l,b):
+           r=subprocess.run(["gh","issue","create","--repo",R,"--title",t,"--label",l,"--body",b],capture_output=True,text=True)
+           print(("ok " if r.returncode==0 else "fail ")+t[:55]+" "+(r.stdout.strip() if r.returncode==0 else r.stderr.strip()[:80]))
+          L("agent-task","0075ca","Fires Claude swarm")
+          L("complex-task","e4e669","Routes to Opus")
+          L("economics","d93f0b","Economics layer")
+          L("adoption","0e8a16","Layer 5 adoption")
+          L("phase-2","5319e7","Phase 2 gated")
+          I("H-0a: CompletedAgreements — increment on confirm AND release","agent-task","Spec: SC-HARDENING-TASKS-v2.md H-0a\n\nIncrement CompletedAgreements on BOTH confirm and release paths in pallet-escrow.\n\n## Acceptance\n- Unit test: confirm count=1; release count=1\n- ci-fast green\n- Branch: feat/H-0a")
+          I("H-0b: GovVoteVerifier — real sr25519 signature verification","agent-task","Spec: SC-HARDENING-TASKS-v2.md H-0b\n\nReplace placeholder GovVoteVerifier::verify() with real sp_io::crypto::sr25519_verify.\n\n## Acceptance\n- Valid sig accepted, invalid rejected\n- ci-fast green\n- Branch: feat/H-0b")
+          I("H-0c: delegate_voting — activate and wire correctly","agent-task","Spec: SC-HARDENING-TASKS-v2.md H-0c\n\nActivate delegate_voting extrinsic and wire it correctly through governance pallet.\n\n## Acceptance\n- Delegation stored, vote counted for delegate\n- ci-fast green\n- Branch: feat/H-0c")
+          I("H-0d: QuorumNotMet — verify threshold arithmetic","agent-task","Spec: SC-HARDENING-TASKS-v2.md H-0d\n\nVerify and fix QuorumNotMet threshold check. Use saturating math, guard divisor with .max(1).\n\n## Acceptance\n- Boundary tests pass (0 voters, exactly-quorum, quorum-minus-1)\n- ci-fast green\n- Branch: feat/H-0d")
+          I("H-0e: OracleWeightCap — add missing weight cap for oracle extrinsics","agent-task","Spec: SC-HARDENING-TASKS-v2.md H-0e\n\nOracle extrinsics lack weight caps. Add WeightLimit to all oracle dispatchables.\n\n## Acceptance\n- Weight benchmarks compile (check only)\n- ci-fast green\n- Branch: feat/H-0e")
+          I("H-0f: EmissionDrainEdge — guard against zero-agent emission drain","agent-task","Spec: SC-HARDENING-TASKS-v2.md H-0f\n\nEmission pallet panics when agent count is zero. Guard with .max(1) on all divisors.\n\n## Acceptance\n- Zero-agent chain does not panic\n- ci-fast green\n- Branch: feat/H-0f")
+          I("H-1: Agent registration stake — enforce MinStake constant","agent-task","Spec: SC-MASTER-AUDIT.md FA-1\n\nEnforce MinStake constant during agent registration. Currently agents can register with zero stake.\n\n## Acceptance\n- Reject registration below MinStake\n- ci-fast green\n- Branch: feat/H-1")
+          I("H-2: Task assignment — prevent double-assignment","agent-task","Spec: SC-MASTER-AUDIT.md FA-2\n\nTask can be assigned to multiple agents simultaneously. Add mutex guard to assignment storage.\n\n## Acceptance\n- Second assignment returns AlreadyAssigned error\n- ci-fast green\n- Branch: feat/H-2")
+          I("H-7a: Genesis config — wire all pallets into chain_spec","agent-task","Spec: SC-MASTER-AUDIT.md H-7a\n\nPallets missing from genesis config (agents, escrow, oracle, emissions). Wire them all into chain_spec.\n\n## Acceptance\n- chain_spec compiles with all pallet genesis\n- ci-fast green\n- Branch: feat/H-7a")
+          I("H-7e: Error type consolidation — use shared ScError across pallets","agent-task","Spec: SC-MASTER-AUDIT.md H-7e\n\nEach pallet defines its own error enum. Consolidate to shared ScError type.\n\n## Acceptance\n- Single error enum, all pallets compile\n- ci-fast green\n- Branch: feat/H-7e")
+          I("H-3: Escrow timeout — implement expiry and claim-back","agent-task","Spec: SC-MASTER-AUDIT.md H-3\n\nEscrow funds locked indefinitely if agent never completes. Implement timeout with client claim-back.\n\n## Acceptance\n- After N blocks client can reclaim\n- ci-fast green\n- Branch: feat/H-3")
+          I("H-7c: Benchmarks — add weight benchmarks for all extrinsics","agent-task","Spec: SC-MASTER-AUDIT.md H-7c\n\nNo weight benchmarks exist. Add #[benchmarks] module to each pallet.\n\n## Acceptance\n- Benchmarks compile (check only)\n- ci-fast green\n- Branch: feat/H-7c")
+          I("H-4: Oracle dispute window — implement challenge period","agent-task","Spec: SC-MASTER-AUDIT.md H-4\n\nOracle result is final immediately. Add DisputeWindow blocks before finalisation.\n\n## Acceptance\n- Challenge submitted within window delays finalisation\n- ci-fast green\n- Branch: feat/H-4")
+          I("H-6/FA-2: Task state machine — enforce valid transitions only","agent-task","Spec: SC-MASTER-AUDIT.md FA-2/H-6\n\nTask transitions Created->Assigned->Completed are not enforced. Reject invalid transitions.\n\n## Acceptance\n- Invalid transition returns InvalidTransition error\n- ci-fast green\n- Branch: feat/H-6")
+          I("SC-1a: sc_agents_pallet — full FRAME integration","agent-task","Spec: SC-BUILD-MANIFEST.md SC-1a\n\nComplete FRAME integration for sc_agents_pallet: Config trait, storage macros, dispatchables, events, errors.\n\n## Acceptance\n- Pallet compiles standalone\n- ci-fast green\n- Branch: feat/SC-1a")
+          I("SC-1b: sc_escrow_pallet — full FRAME integration","agent-task","Spec: SC-BUILD-MANIFEST.md SC-1b\n\nComplete FRAME integration for sc_escrow_pallet.\n\n## Acceptance\n- Pallet compiles standalone\n- ci-fast green\n- Branch: feat/SC-1b")
+          I("SC-1c: sc_orchestrator_pallet — full FRAME integration","agent-task","Spec: SC-BUILD-MANIFEST.md SC-1c\n\nComplete FRAME integration for sc_orchestrator_pallet.\n\n## Acceptance\n- Pallet compiles standalone\n- ci-fast green\n- Branch: feat/SC-1c")
+          I("SC-1d: sc_emissions_pallet — full FRAME integration","agent-task","Spec: SC-BUILD-MANIFEST.md SC-1d\n\nComplete FRAME integration for sc_emissions_pallet.\n\n## Acceptance\n- Pallet compiles standalone\n- ci-fast green\n- Branch: feat/SC-1d")
+          I("SC-1e: sc_oracle_pallet — full FRAME integration","agent-task","Spec: SC-BUILD-MANIFEST.md SC-1e\n\nComplete FRAME integration for sc_oracle_pallet.\n\n## Acceptance\n- Pallet compiles standalone\n- ci-fast green\n- Branch: feat/SC-1e")
+          I("SC-3a: Runtime integration — wire all pallets into sc-runtime","agent-task","Spec: SC-BUILD-MANIFEST.md SC-3a\n\nWire all 5 pallets into sc-runtime/src/lib.rs with correct Config impls.\n\n## Acceptance\n- Runtime compiles\n- ci-fast green\n- Branch: feat/SC-3a")
+          I("SC-3b: Node integration — integrate runtime into sc-node","agent-task","Spec: SC-BUILD-MANIFEST.md SC-3b\n\nIntegrate sc-runtime into sc-node with proper executor, RPC, and chain spec.\n\n## Acceptance\n- Node compiles\n- ci-fast green\n- Branch: feat/SC-3b")
+          I("SC-4a: Workspace CI — ensure workspace-level cargo check passes","agent-task","Spec: SC-BUILD-MANIFEST.md SC-4a\n\nFull workspace cargo check must pass with 0 errors, 0 clippy -D warnings.\n\n## Acceptance\n- ci-fast green on master\n- Branch: feat/SC-4a")
+          I("SC-4b: Integration test harness — sc_mock_runtime test suite","agent-task","Spec: SC-BUILD-MANIFEST.md SC-4b\n\nCreate mock runtime and integration test suite covering agent lifecycle end-to-end.\n\n## Acceptance\n- Tests compile (check only)\n- ci-fast green\n- Branch: feat/SC-4b")
+          I("H-5v: Voting weight — use stake-weighted votes in oracle","agent-task","Spec: SC-MASTER-AUDIT.md H-5v\n\nOracle votes are 1-agent-1-vote. Replace with stake-weighted voting.\n\n## Acceptance\n- Weight proportional to staked balance\n- ci-fast green\n- Branch: feat/H-5v")
+          I("PQ-1: PoQ consensus stub — proof-of-quality scoring hook","agent-task","Spec: SC-BUILD-MANIFEST.md PQ-1\n\nAdd stub PoQ scoring hook to orchestrator pallet for future quality-weighted consensus.\n\n## Acceptance\n- Stub compiles, returns default score\n- ci-fast green\n- Branch: feat/PQ-1")
+          I("AD-1: Token economics — emission schedule implementation","economics","Spec: SC-BUILD-MANIFEST.md AD-1\n\nImplement emission schedule: per-block mint, halvening logic, treasury split.\n\n## Acceptance\n- Emission compiles with schedule constants\n- ci-fast green\n- Branch: feat/AD-1")
+          I("AD-2: Staking rewards — agent yield distribution","economics","Spec: SC-BUILD-MANIFEST.md AD-2\n\nDistribute staking rewards proportional to stake and task completion rate.\n\n## Acceptance\n- Reward calculation unit tested\n- ci-fast green\n- Branch: feat/AD-2")
+          I("ID-1: Agent identity — DID / on-chain identity binding","adoption","Spec: SC-BUILD-MANIFEST.md ID-1\n\nBind agent AccountId to DID or pallet-identity record for external verifiability.\n\n## Acceptance\n- Identity lookup returns agent metadata\n- ci-fast green\n- Branch: feat/ID-1")
+          I("VL-1: Verifiable log — task audit trail on-chain","adoption","Spec: SC-BUILD-MANIFEST.md VL-1\n\nEmit structured events for every task lifecycle transition so off-chain indexers can build audit logs.\n\n## Acceptance\n- Events emitted, tested\n- ci-fast green\n- Branch: feat/VL-1")
+          I("AD-3: Client SDK — TypeScript/Polkadot.js wrapper","adoption","Spec: SC-BUILD-MANIFEST.md AD-3\n\nMinimal TypeScript SDK: connect, register agent, create task, query status.\n\n## Acceptance\n- SDK compiles, doc example runs against local node\n- Branch: feat/AD-3")
+          I("AD-4: Governance pallet — on-chain parameter voting","complex-task","Spec: SC-BUILD-MANIFEST.md AD-4\n\nAdd governance pallet for on-chain voting on MinStake, EmissionRate, DisputeWindow constants.\n\n## Acceptance\n- Proposal + vote + enactment flow tested\n- ci-fast green\n- Branch: feat/AD-4")
+          I("SC-2 EPIC: ZK proof integration — PoQ zero-knowledge layer [PHASE 2]","complex-task,phase-2","Spec: SC-BUILD-MANIFEST.md SC-2\n\nPHASE 2 EPIC — gated on SC-4a green CI\n\nIntegrate ZK proof verification for quality attestation. Blocked until Layer 1-4 complete.\n\n## Gate\n- SC-4a (CI green) must be merged first\n- Branch: feat/SC-2-epic")
+          print("Done.")
+          PYEOF

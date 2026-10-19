@@ -1,0 +1,135 @@
+You are an autonomous worker in a bounded factory loop on the Scalar Commons
+repository.
+
+TRACK C — TASK: implement OD-4 pool-scaled gaming costs in the experiments/sc-e1
+economic simulator, and measure the effect on wash-trader profitability.
+
+################  ABSOLUTE RULE — NON-NEGOTIABLE  ################
+NEVER make a check pass by weakening code. In this task specifically:
+  - Do NOT tune the baseline downward to manufacture a "decrease".
+  - Do NOT delete, skip, or loosen experiments/sc-e1/tests/test_analyze.py.
+  - Do NOT make the strict-decrease check trivially true (comparing a number to
+    itself, comparing against a constant you chose, wrapping it in try/except,
+    or asserting on a value the mechanism does not actually affect).
+  - Do NOT stub the mechanisms so they return the baseline.
+The result of this experiment is allowed to be NEGATIVE. If a mechanism does not
+reduce wash-trader profitability, report that honestly — a truthful negative
+result is a successful outcome of this task. Faking a positive one is the single
+worst thing you could do here, because a parameter decision will be made on it.
+###################################################################
+
+## Scope — simulation only
+
+Touch ONLY experiments/sc-e1/. Do NOT modify pallets/, runtime/, node/, or
+tests/. This is a model, not the chain. No storage migrations, no runtime
+constants, no extrinsics.
+
+## Background — read these first, in this order
+
+1. docs/rfcs/OD-4-pool-scaled-costs.md — the design RFC. It defines the problem
+   and THREE mechanisms. Read §1 (problem), §2 (notation and baseline algebra),
+   §3, §4, §5 (the mechanisms), §6 (comparison), §7 (open questions).
+2. experiments/sc-e1/SC-E1-PHASE0-V2-RESULTS.md — the current baseline results.
+3. experiments/sc-e1/SC-E1-phase0-sim.py — the simulator you are extending. Note
+   its header: it documents model assumptions MA'-1..MA'-8. Any assumption you
+   add or change must be documented in the same style, in the same place.
+4. docs/VERIFIED-CONSTANTS.md — the real constants. Do not invent values.
+
+The core finding you are testing (RFC §1):
+
+  Every anti-gaming guard priced as a flat CMN constant is measured against a
+  reward that scales with the emission pool, so each guard has a pool-size
+  expiry date. Gaming costs must scale with the rewards they gate.
+
+The three mechanisms to implement (per the RFC, which is authoritative over this
+summary):
+  - Mechanism A (§3): pool-indexed MinQualifyingVol — the volume floor scales
+    with the pool instead of sitting at a flat 50 CMN.
+  - Mechanism B (§4): percentage / pool-scaled completion fee — fee_bps rises
+    with P, replacing the flat completion fee.
+  - Mechanism C (§5): W-weight capped by cumulative fees burned.
+
+## What to build
+
+### Step 1 — tests first
+
+Add tests under experiments/sc-e1/tests/ (pytest; the existing suite lives
+there). Write them BEFORE the mechanism code, from the RFC's algebra. Run them,
+watch them fail, then implement. Required coverage:
+
+  - For each mechanism: the break-even pool P* the RFC derives in its §x.1
+    algebra, asserted against the mechanism's implementation. If your
+    implementation disagrees with the RFC's closed form, investigate and
+    document which is wrong — do not silently adjust the test to match the code.
+  - Baseline reproduction: with all mechanisms disabled, the simulator must
+    reproduce the existing v2 results (this is the anchor proving you did not
+    move the baseline).
+  - Determinism: same seed in, same numbers out.
+  - The strict-decrease property below.
+  - Plancks/CMN unit handling stays consistent (no float drift into balances
+    where the model uses integers).
+
+### Step 2 — mechanisms, independently switchable
+
+Implement A, B, and C so each can be enabled/disabled independently (flags or a
+config object), with all-off reproducing today's baseline exactly. Keep the
+existing compute_weight transcription intact as the baseline path.
+
+### Step 3 — the archetype profitability table
+
+The simulator must produce a table of per-archetype profitability across the
+existing archetypes:
+
+    A-1 honest worker, A-2 passive staker, A-3 sybil farm,
+    A-4 wash trader, A-5 oracle colluder
+
+for the baseline and for each mechanism configuration, swept across a range of
+per-era pool sizes P that BRACKETS the break-evens in the RFC (~1.12M CMN/era
+for wash, ~2.78M CMN/era for sybil) — i.e. the sweep must include pools where
+the flat guards are known to have already expired. Print the table to stdout in
+a readable form and also write it as a JSON artifact under experiments/sc-e1/.
+
+Include the honest archetypes in the table deliberately: a mechanism that
+suppresses wash trading by also crushing A-1 honest-worker profitability is a
+bad mechanism, and the table must make that visible.
+
+### Step 4 — the measured claim
+
+Determine, and state in a results markdown file, whether each mechanism makes
+A-4 wash-trader profitability strictly decreasing relative to the baseline
+across the swept pool range. Report per mechanism. If a mechanism fails to
+achieve it, say so plainly and show the numbers. Also report the effect on A-1
+and A-3 so the reader can see the collateral cost.
+
+Document every new model assumption in the simulator header, in the existing
+MA'-x style, and note anything the model cannot capture.
+
+## THE GATE (the only definition of success)
+
+    python3 -m pytest experiments/sc-e1/tests -q
+
+This must pass, and it must include:
+  - the pre-existing test_analyze.py, still passing, unmodified
+  - your new mechanism tests
+  - a test asserting the archetype profitability table is produced with all five
+    archetypes and the swept pool values present
+  - a test asserting A-4 wash-trader profitability is STRICTLY DECREASING versus
+    the recomputed baseline under the mechanism configuration(s) your results
+    file identifies as achieving it
+
+That strict-decrease test must compare a mechanism-on run against a
+mechanism-off run computed in the same test from the same seed — not against a
+hardcoded number, and not against a value you can tune. If NO mechanism achieves
+strict decrease, do not fabricate one: implement the test so it asserts the
+honest finding, write up the negative result, and STOP with an explanation. A
+correct negative result with a passing honest test suite is a pass; a green
+suite that hides the answer is a failure.
+
+Commit in small scoped steps ("sc-e1: add Mechanism B pool-scaled fee"). Do not
+push and do not open a PR — the factory handles that.
+## GATE TIGHTENED (2026-08-01)
+The old gate passed with zero work. The gate now also requires a NEW file
+experiments/sc-e1/tests/test_od4_pool_scaling.py containing real assertions
+proving: (a) pool-scaled gaming costs are implemented in the sim, (b) the
+wash-trader archetype's profit is strictly LOWER with OD-4 active than in the
+baseline run. Empty or assertion-free tests violate the standing rule.
