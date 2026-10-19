@@ -55,6 +55,11 @@ npm ci --no-audit --no-fund
 FAUCET_ALLOW_DEV_SEED=true npm start   # local devnet; otherwise set FAUCET_SEED
 ```
 
+`npm start` compiles `src/` to `dist/` (`npm run build`) and then runs
+`node dist/index.js`, the same entry point the systemd unit uses. The sources
+import each other with `.js` specifiers, so running `src/index.ts` directly with
+`--experimental-strip-types` fails with `ERR_MODULE_NOT_FOUND`.
+
 Configuration (all validated at startup; only `FAUCET_SEED` is required — the process refuses to
 boot on a bad value rather than falling back to a default drip amount):
 
