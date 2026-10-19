@@ -1,3 +1,5 @@
+import { isLoopbackHostname } from '@scalar-commons/sdk';
+
 /**
  * True only when `ws` is a ws:// or wss:// URL whose hostname is exactly a
  * loopback name. A prefix regex would accept `ws://localhost.evil.example`;
@@ -12,5 +14,5 @@ export function isLoopbackWs(ws: string): boolean {
     return false;
   }
   if (url.protocol !== 'ws:' && url.protocol !== 'wss:') return false;
-  return url.hostname === '127.0.0.1' || url.hostname === 'localhost' || url.hostname === '[::1]';
+  return isLoopbackHostname(url.hostname);
 }

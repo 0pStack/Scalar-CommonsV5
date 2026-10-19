@@ -28,6 +28,7 @@ export { withRetry, type RetryOptions } from './retry.js';
 export { submitAndWatch, type SubmitResult } from './submit.js';
 export * from './messaging/index.js';
 export { CMN_DECIMALS, PLANCKS_PER_CMN, SS58_PREFIX } from './constants.js';
+export { isLoopbackHostname } from './net.js';
 
 /** Accumulator fixed-point scale used by pallet-emissions (`ACC_SCALE = 1 << 64`). */
 export const ACC_SCALE = 1n << 64n;

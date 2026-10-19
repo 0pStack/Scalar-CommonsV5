@@ -15,6 +15,7 @@ import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 
 import type { SubmitResult } from '../submit.js';
 import { SS58_PREFIX } from '../constants.js';
+import { isLoopbackHostname } from '../net.js';
 import {
   MAX_ONCHAIN_PAYLOAD,
   MESSAGE_KINDS,
@@ -89,8 +90,6 @@ export class OnChainTransport implements Transport {
 /** Looks up where to deliver: normally the recipient's registered service URI. */
 export type UriResolver = (to: string) => string | Promise<string>;
 
-const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
-
 /**
  * Binding (b): POST the full frame (`application/octet-stream`) to the
  * recipient's service URI. Plain `http` is refused except on loopback, so a
@@ -113,7 +112,7 @@ export class HttpsTransport implements Transport {
   async send(message: SignedMessage): Promise<void> {
     const uri = await this.resolve(encodeAddress(message.envelope.to, this.ss58));
     const url = new URL(uri);
-    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && LOOPBACK.has(url.hostname))) {
+    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))) {
       throw new Error(`refusing to deliver over ${url.protocol} to ${url.hostname}: https is required`);
     }
     const res = await this.fetchImpl(uri, {
