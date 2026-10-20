@@ -502,6 +502,13 @@ impl crate::escrow_bridge::DisputeCallback<u64, u64> for RecordingDisputeCallbac
         seq: u32,
         provider_wins: bool,
     ) -> frame_support::pallet_prelude::DispatchResult {
+        if sp_io::storage::exists(b"test:fail-dispute-callback") {
+            // Mutate on-chain state before failing, to test the caller's rollback.
+            sp_io::storage::set(b"test:callback-side-effect", b"must roll back");
+            return Err(sp_runtime::DispatchError::Other(
+                "injected callback failure",
+            ));
+        }
         DISPUTE_CALLS.with(|c| c.borrow_mut().push((*buyer, *provider, seq, provider_wins)));
         Ok(())
     }
@@ -1360,4 +1367,97 @@ fn finalise_weight_covers_the_worst_case_response_count() {
             "declared {declared:?} does not cover {reads} reads / {writes} writes at the bound"
         );
     });
+}
+
+/// Prepare a quorum without finalising it, so failures can be asserted at the boundary.
+fn atomic_oracle_request(dispute: bool, bounty: u64) -> [u8; 32] {
+    use crate::escrow_bridge::DisputeOracle;
+    for who in [ALICE, BOB, CAROL, DAVE] {
+        register(who);
+    }
+    let id = if dispute {
+        <Oracle as DisputeOracle<u64, u64, u64>>::post_dispute_question(
+            &ALICE, &BOB, 9, bounty, 10, None,
+        )
+        .unwrap()
+    } else {
+        create(ALICE, q_hash(), bounty, 3, 10);
+        q_hash()
+    };
+    for who in [BOB, CAROL, DAVE] {
+        assert_ok!(Oracle::submit_response(
+            RuntimeOrigin::signed(who),
+            id,
+            [7; 32],
+            0
+        ));
+    }
+    System::set_block_number(100);
+    id
+}
+
+#[test]
+fn atomic_oracle_callback_error_preserves_request_rewards_scores_and_events() {
+    ext_with_events().execute_with(|| {
+        let id = atomic_oracle_request(true, 300);
+        sp_io::storage::set(b"test:fail-dispute-callback", b"yes");
+        assert_noop!(
+            Oracle::finalise_request(RuntimeOrigin::signed(DAVE), id),
+            sp_runtime::DispatchError::Other("injected callback failure")
+        );
+        assert!(OracleRequests::<Test>::contains_key(id));
+        assert_eq!(OracleResponses::<Test>::iter_prefix(id).count(), 3);
+        assert!(!sp_io::storage::exists(b"test:callback-side-effect"));
+        // Retry pays exactly once once the cause is fixed.
+        sp_io::storage::clear(b"test:fail-dispute-callback");
+        let before = Balances::free_balance(CAROL);
+        assert_ok!(Oracle::finalise_request(RuntimeOrigin::signed(DAVE), id));
+        assert_eq!(Balances::free_balance(CAROL), before.saturating_add(100));
+        assert!(Oracle::finalise_request(RuntimeOrigin::signed(DAVE), id).is_err());
+        assert_eq!(Balances::free_balance(CAROL), before.saturating_add(100));
+    });
+}
+
+#[test]
+fn atomic_oracle_failed_payout_preserves_request() {
+    ext_with_events().execute_with(|| {
+        let id = atomic_oracle_request(false, 300);
+        // A responder has since been reaped: paying its absent balance account errors.
+        OracleResponses::<Test>::remove(id, BOB);
+        OracleResponses::<Test>::insert(id, 99, [7; 32]);
+        let before = sp_io::storage::root(sp_runtime::StateVersion::V1);
+        assert!(Oracle::finalise_request(RuntimeOrigin::signed(DAVE), id).is_err());
+        assert_eq!(sp_io::storage::root(sp_runtime::StateVersion::V1), before);
+    });
+}
+
+#[test]
+fn atomic_oracle_short_reserve_rejected_on_payout_refund_and_expiry() {
+    use frame_support::traits::ReservableCurrency;
+    for path in 0..3 {
+        ext_with_events().execute_with(|| {
+            let id = atomic_oracle_request(false, 300);
+            if path == 1 {
+                for (who, answer) in [(BOB, [1; 32]), (CAROL, [2; 32]), (DAVE, [3; 32])] {
+                    OracleResponses::<Test>::insert(id, who, answer);
+                }
+            } else if path == 2 {
+                OracleRequests::<Test>::mutate(id, |r| r.as_mut().unwrap().response_count = 0);
+            }
+            let all = Balances::reserved_balance(ALICE);
+            assert_eq!(Balances::unreserve(&ALICE, all), 0);
+            assert_ok!(Balances::reserve(&ALICE, 50));
+            let before = sp_io::storage::root(sp_runtime::StateVersion::V1);
+            let result = if path == 2 {
+                Oracle::expire_request(RuntimeOrigin::signed(DAVE), id)
+            } else {
+                Oracle::finalise_request(RuntimeOrigin::signed(DAVE), id)
+            };
+            assert!(
+                result.is_err(),
+                "short reserve accepted on oracle exit {path}"
+            );
+            assert_eq!(sp_io::storage::root(sp_runtime::StateVersion::V1), before);
+        });
+    }
 }

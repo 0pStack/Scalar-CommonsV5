@@ -156,7 +156,7 @@ parameter_types! {
     pub const DisputeRespWindow: u64 = 100;
     pub const DisputeBountyBps:  u32 = 200; // 2%
     pub const MinBounty:         u64 = 10;
-    pub const DisputeBurnBps:    u32 = 0;
+    pub static DisputeBurnBps:   u32 = 0;
 }
 
 impl super::Config for Test {
@@ -181,6 +181,7 @@ impl super::Config for Test {
 
 fn new_test_ext() -> sp_io::TestExternalities {
     set_fee_bps(0);
+    DisputeBurnBps::set(0);
     let mut storage = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
         .unwrap();
@@ -2030,4 +2031,102 @@ fn e18e2_accept_agreement_refuses_after_the_deadline() {
         assert_ok!(Escrow::cancel_pending(RuntimeOrigin::signed(ALICE), BOB, 0));
         assert_eq!(Balances::reserved_balance(ALICE), 0);
     });
+}
+
+/// Build a real delivered dispute; the mock oracle leaves the bounty in reserve.
+fn atomic_dispute() {
+    setup_agreement(1_000);
+    accept(ALICE, BOB, 0);
+    System::set_block_number(10);
+    assert_ok!(Escrow::record_delivery(
+        RuntimeOrigin::signed(BOB),
+        ALICE,
+        0,
+        [2; 32]
+    ));
+    assert_ok!(Escrow::dispute_delivery(
+        RuntimeOrigin::signed(ALICE),
+        BOB,
+        0
+    ));
+}
+
+/// #61: a callback is an ordinary Rust call, so its failure needs its own rollback.
+#[test]
+fn atomic_dispute_volume_failure_preserves_funds_and_agreement() {
+    new_test_ext().execute_with(|| {
+        atomic_dispute();
+        DisputeBurnBps::set(500); // 5% treasury fee makes its rollback observable too.
+                                  // A second agreement shares the buyer's reserve: failed settlement must not
+                                  // spend its backing and then leave the first agreement refundable a second time.
+        assert_ok!(Escrow::create_agreement(
+            RuntimeOrigin::signed(ALICE),
+            BOB,
+            1_000,
+            [3; 32],
+            500,
+            None
+        ));
+        pallet_agents::AgentStake::<Test>::remove(BOB); // provider was evicted
+        assert_noop!(
+            Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true),
+            pallet_agents::Error::<Test>::NotRegistered
+        );
+        assert_eq!(Balances::free_balance(TREASURY), 0);
+        assert_eq!(Agreements::<Test>::get(ALICE, BOB).len(), 2);
+        System::set_block_number(210);
+        assert_ok!(Escrow::claim_refund(RuntimeOrigin::signed(ALICE), BOB, 0));
+        assert_eq!(Agreements::<Test>::get(ALICE, BOB)[0].amount, 1_000);
+        assert!(Balances::reserved_balance(ALICE) >= 1_000);
+    });
+}
+
+/// #61: partial reserve operations must fail and roll back every affected ledger.
+#[test]
+fn atomic_escrow_short_reserve_rejected_on_every_exit() {
+    use frame_support::traits::ReservableCurrency;
+    for path in 0..8 {
+        new_test_ext().execute_with(|| {
+            if path < 2 {
+                setup_agreement(1_000); // pending cancel / reject
+            } else {
+                atomic_dispute();
+            }
+            // Force a real shortage, including the buyer's agent stake: pooled
+            // reserve cannot hide the partial transfer/unreserve return value.
+            let all = Balances::reserved_balance(ALICE);
+            assert_eq!(Balances::unreserve(&ALICE, all), 0);
+            assert_ok!(Balances::reserve(&ALICE, 100));
+            match path {
+                4 => {
+                    Agreements::<Test>::mutate(ALICE, BOB, |v| {
+                        v[0].status = AgreementStatus::Delivered
+                    });
+                    set_fee_bps(10_000); // 100% fee exercises slash_reserved only
+                }
+                5 => DisputeBurnBps::set(10_000), // 100% dispute fee
+                7 => Agreements::<Test>::mutate(ALICE, BOB, |v| {
+                    v[0].status = AgreementStatus::Delivered
+                }),
+                _ => {}
+            }
+            System::set_block_number(1_000);
+            let before = sp_io::storage::root(sp_runtime::StateVersion::V1);
+            let result = match path {
+                0 => Escrow::cancel_pending(RuntimeOrigin::signed(ALICE), BOB, 0),
+                1 => Escrow::reject_agreement(RuntimeOrigin::signed(BOB), ALICE, 0),
+                2 => Escrow::claim_refund(RuntimeOrigin::signed(ALICE), BOB, 0),
+                3 => Escrow::expire_agreement(RuntimeOrigin::signed(CAROL), ALICE, BOB, 0),
+                4 | 7 => Escrow::confirm_delivery(RuntimeOrigin::signed(ALICE), BOB, 0),
+                5 => Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true),
+                _ => Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, false),
+            };
+            assert!(result.is_err(), "short reserve accepted on exit {path}");
+            assert_eq!(
+                sp_io::storage::root(sp_runtime::StateVersion::V1),
+                before,
+                "partial mutation on exit {path}"
+            );
+        });
+    }
 }
