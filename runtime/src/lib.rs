@@ -206,7 +206,10 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //
     // transaction_version is NOT bumped: the new agents calls are appended after index 12 and
     // the new pallet sits at a previously unused index, so no existing call encoding moves.
-    spec_version: 309,
+    // 309 -> 310: shut down RankedPolls submissions and legacy track servicing
+    // (#59). Storage and call encodings are unchanged. Resolve old polls and
+    // scheduled enactments before upgrading; see docs/reference/ranked-polls-upgrade.md.
+    spec_version: 310,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -608,25 +611,19 @@ impl pallet_referenda::Config for Runtime {
 }
 
 // ─── pallet-referenda Instance2: RankedPolls (Technical Council) ──────────────
-// The TC's own poll set, carrying the ranked-collective tally. Separate from the
-// stake-weighted `Referenda` instance above because one referenda instance can
-// only have one Tally type — see the note on pallet_ranked_collective::Config.
-// Mirrors substrate/bin/node/runtime's `RankedPolls` (Instance2) at this tag.
-//
-// Deposits, queue depth, timeout and the track table are deliberately identical
-// to the stake instance: this is a transport for the same governance tracks under
-// a different electorate, not a second economic regime. No new constants.
-//
-// Routing is NOT shared (#18): `RankedTracksInfo` sends no origin to any track,
-// because a Root proposal here is decided by the collective alone and dispatched
-// as Root — a lone rank-2 agent's aye could carry it if no member objected.
+// RankedPolls stays at index 41 to preserve its storage, encoded calls and refunds.
+// It is shut down (#59): no caller may submit and no track is available to service
+// a legacy poll. Ranked headcount must not authorize Root. The tally type remains
+// separate from the stake-weighted Referenda instance for storage compatibility.
+// Resolve existing polls and Scheduler enactments before upgrading; see
+// docs/reference/ranked-polls-upgrade.md.
 impl pallet_referenda::Config<pallet_referenda::Instance2> for Runtime {
     type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
     type RuntimeCall = RuntimeCall;
     type RuntimeEvent = RuntimeEvent;
     type Scheduler = Scheduler;
     type Currency = Balances;
-    type SubmitOrigin = frame_system::EnsureSigned<AccountId>;
+    type SubmitOrigin = frame_system::EnsureNever<AccountId>;
     type CancelOrigin = EnsureRoot<AccountId>;
     type KillOrigin = EnsureRoot<AccountId>;
     type Slash = Treasury;
@@ -1962,16 +1959,12 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
-    /// 309, not 308: the 307 upgrade is live on prod (block 813625), and its
-    /// emergency rollback blob in `~/lab/upgrade-kit/` already carries 308 —
-    /// 306 code stamped 308 so it could out-rank the 307 it was built to undo.
-    /// Shipping messaging as 308 too would put two different runtimes behind one
-    /// version number, distinguishable only by hash, at the exact moment someone
-    /// is reaching for a rollback. So messaging takes 309 and the rollback keeps
-    /// 308. See issue #246.
+    /// 310 shuts down RankedPolls submissions and legacy track servicing (#59).
+    /// Messaging used 309; the emergency rollback blob retains 308. The shutdown
+    /// preserves existing storage and call encodings.
     #[test]
-    fn spec_version_is_309() {
-        assert_eq!(VERSION.spec_version, 309);
+    fn spec_version_is_310() {
+        assert_eq!(VERSION.spec_version, 310);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
@@ -2332,7 +2325,7 @@ mod tests {
                     proposal,
                     DispatchTime::After(1),
                 ),
-                pallet_referenda::Error::<Runtime, pallet_referenda::Instance2>::NoTrack
+                sp_runtime::DispatchError::BadOrigin
             );
 
             let index = submit_root_referendum();
