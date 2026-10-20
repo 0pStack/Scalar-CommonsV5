@@ -1030,8 +1030,11 @@ pub mod pallet {
                 UnstakeAt::<T>::get(&who).is_none(),
                 Error::<T>::UnstakeAlreadyPending
             );
+            // Free balance still includes the stake already locked, so the new
+            // stake must fit in what is left over (#58): checking `free >= amount`
+            // let the same coins be locked again and again, up to MaxStakePerAgent.
             ensure!(
-                T::Currency::free_balance(&who) >= amount,
+                T::Currency::free_balance(&who).saturating_sub(current_stake) >= amount,
                 Error::<T>::StakeTooLow
             );
             let new_stake = current_stake.saturating_add(amount);
