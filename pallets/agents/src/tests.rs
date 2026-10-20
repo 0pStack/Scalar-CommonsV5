@@ -786,8 +786,10 @@ fn execute_slash_records_slash_and_clears_open_appeals() {
 /// collective seat is cleared the account can re-register, so any leftover record
 /// leaks into the new registration: a stale `UnstakeAt` lets the new stake leave
 /// without serving `UnstakeCooldown`, stale `CompletedAgreements` counts toward
-/// promotion, and stale `AgentCapabilities` keep passing the oracle capability gate
-/// even before re-registering. `SlashRecords` is the one thing that must survive.
+/// promotion, and stale `AgentCapabilities` would pass the oracle capability gate for
+/// the re-registered agent without being declared again (an unregistered account is
+/// refused by the oracle's `is_agent` check first). `SlashRecords` is the one thing
+/// that must survive.
 #[test]
 fn evicting_slash_clears_agent_records_so_reregistration_starts_clean() {
     new_test_ext().execute_with(|| {

@@ -1552,8 +1552,9 @@ pub mod pallet {
                 // #18 N5: eviction ends the agent exactly as `complete_unstake` does —
                 // stake record, collective seat, and every per-agent record, through the
                 // same helper — so a re-registration starts clean. `SlashRecords` is not
-                // an agent record: it is written below and must outlive the agent so the
-                // slash stays appealable.
+                // an agent record: it is written below and outlives the agent. Note that
+                // `slash_appeal` requires registration, so an evicted account must
+                // re-register (stake + fee) before it can appeal, within the window.
                 Self::clear_agent_records(&who);
                 // spec 308: an evicted account is no longer an agent, so it must not keep a
                 // published messaging key. It could not clear it itself (clearing requires
@@ -2057,12 +2058,19 @@ pub mod pallet {
         // ── Internal ─────────────────────────────────────────────────────────
 
         /// End an agent: remove its stake record, its collective seat, and every
-        /// per-agent record, so the account is indistinguishable from one that never
-        /// registered. Shared by both exits — `complete_unstake` (voluntary) and the
-        /// evicting branch of `execute_slash` — because any record one exit forgets
-        /// leaks into the next registration (#18 N5): a stale `UnstakeAt` skips the
-        /// cooldown, stale `CompletedAgreements` counts toward promotion, and stale
-        /// `AgentCapabilities` keep passing the oracle gate with no stake behind them.
+        /// per-agent record this pallet keeps, so within this pallet the account looks
+        /// like one that never registered. Other pallets' state is NOT cleared here —
+        /// notably an orchestrator registration (pallet-orchestrator) survives the exit
+        /// and keeps earning orchestrator emissions; see #79.
+        ///
+        /// Shared by both exits — `complete_unstake` (voluntary) and the evicting
+        /// branch of `execute_slash` — because any record one exit forgets leaks into
+        /// the next registration (#18 N5): a stale `UnstakeAt` skips the cooldown,
+        /// stale `CompletedAgreements` counts toward promotion, and stale
+        /// `AgentCapabilities` would let the re-registered agent pass the oracle
+        /// capability gate without declaring those capabilities again. (While the
+        /// account is unregistered the oracle refuses it anyway: it checks `is_agent`
+        /// before capabilities.)
         ///
         /// Deliberately NOT here, because the two exits differ on them: the stake lock
         /// (eviction reduces it before withdrawing the slash), `MessagingKey` (eviction
