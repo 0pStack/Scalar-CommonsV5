@@ -121,6 +121,8 @@ fn one_rank_two_member_cannot_approve_an_ordinary_accounts_root_proposal() {
             0,
             true
         ));
+        System::set_block_number(2 + 8 * 3_600);
+        assert_ok!(RankedPolls::nudge_referendum(RuntimeOrigin::root(), 0));
         System::set_block_number(2 + 16 * 3_600);
         assert_ok!(RankedPolls::nudge_referendum(RuntimeOrigin::root(), 0));
         let outcome = pallet_referenda::ReferendumInfoFor::<Runtime, RankedInstance>::get(0);
