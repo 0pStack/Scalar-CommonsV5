@@ -34,12 +34,24 @@ export function normalizeAddress(address: unknown, ss58Format: number): string {
   if (trimmed.length === 0) {
     throw new InvalidAddressError('address must not be empty');
   }
+  // decodeAddress passes hex straight through and accepts 1/2/4/8/33-byte
+  // payloads. Only a 32-byte account id is a transfer destination: the shorter
+  // ones become account indices this runtime cannot look up, so the faucet would
+  // pay the fee for a transfer that fails (#72).
+  if (/^0x/i.test(trimmed)) {
+    throw new InvalidAddressError('address must be SS58, not hex');
+  }
+  let publicKey: Uint8Array;
   try {
-    // decodeAddress verifies the blake2 checksum and the length.
-    return encodeAddress(decodeAddress(trimmed), ss58Format);
+    // decodeAddress verifies the blake2 checksum.
+    publicKey = decodeAddress(trimmed);
   } catch (error) {
     throw new InvalidAddressError(
       `not a valid SS58 address: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
+  if (publicKey.length !== 32) {
+    throw new InvalidAddressError(`not an account address: decodes to ${publicKey.length} bytes, expected 32`);
+  }
+  return encodeAddress(publicKey, ss58Format);
 }

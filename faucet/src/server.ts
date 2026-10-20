@@ -13,6 +13,7 @@
  */
 
 import { createServer as createHttpServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import { isIP } from 'node:net';
 
 import { InvalidAddressError } from './address.js';
 import type { DripFailureCode, FaucetService } from './faucet.js';
@@ -36,6 +37,10 @@ export interface FaucetServerOptions {
 const STATUS_BY_CODE: Record<DripFailureCode, number> = {
   INVALID_ADDRESS: 400,
   RATE_LIMITED: 429,
+  // The faucet, not the caller, is out of budget: a 429 would tell an agent it
+  // had already been served (agent/src/onboard.ts reads it that way).
+  FAUCET_PAUSED: 503,
+  LIMITS_UNAVAILABLE: 503,
   INSUFFICIENT_FAUCET_FUNDS: 503,
   TRANSFER_FAILED: 502,
 };
@@ -52,7 +57,58 @@ function sendJson(res: ServerResponse, status: number, body: unknown, headers: R
   res.end(payload);
 }
 
-/** Resolves the requester's IP — the key the per-IP budget is spent against. */
+/**
+ * Collapses an IP to the bucket the per-IP budget is spent against (F11, #20).
+ *
+ * IPv4 is its own bucket. IPv6 is grouped by /64: one subscriber is normally
+ * handed a whole /64, so keying on the full address would hand them 2^64 fresh
+ * budgets. An IPv4-mapped address (::ffff:a.b.c.d, which a dual-stack socket
+ * reports for IPv4 peers) is the IPv4 address it carries. Anything that is not
+ * an IP passes through unchanged, so it still works as a key.
+ */
+export function ipBucket(ip: string): string {
+  const bare = ip.replace(/^\[|\]$/g, '').split('%')[0] ?? ip;
+  const family = isIP(bare);
+  if (family === 4) {
+    return bare;
+  }
+  if (family !== 6) {
+    return ip;
+  }
+  const hextets = expandIPv6(bare);
+  if (hextets.slice(0, 5).every((h) => h === 0) && hextets[5] === 0xffff) {
+    const [high = 0, low = 0] = hextets.slice(6);
+    return [high >> 8, high & 0xff, low >> 8, low & 0xff].join('.');
+  }
+  // RFC 5952 spelling of the /64: the four zero groups after the prefix are always
+  // the longest zero run, so the prefix's own trailing zeros fold into the same `::`.
+  let end = 4;
+  while (end > 0 && hextets[end - 1] === 0) end -= 1;
+  return `${hextets.slice(0, end).map((h) => h.toString(16)).join(':')}::/64`;
+}
+
+/** The eight hextets of an address `isIP` has already accepted as IPv6. */
+function expandIPv6(address: string): number[] {
+  let text = address.toLowerCase();
+  const v4 = /(\d+)\.(\d+)\.(\d+)\.(\d+)$/.exec(text);
+  if (v4) {
+    const [a = 0, b = 0, c = 0, d = 0] = v4.slice(1).map(Number);
+    text = `${text.slice(0, v4.index)}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const parse = (part: string): number[] => (part === '' ? [] : part.split(':').map((h) => parseInt(h, 16)));
+  const [head = '', tail] = text.split('::');
+  const left = parse(head);
+  if (tail === undefined) {
+    return left;
+  }
+  const right = parse(tail);
+  return [...left, ...new Array<number>(8 - left.length - right.length).fill(0), ...right];
+}
+
+/**
+ * Resolves the requester's IP. {@link ipBucket} turns it into the key the
+ * per-IP budget is spent against.
+ */
 export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
   if (trustProxy) {
     const header = req.headers['x-forwarded-for'];
@@ -172,6 +228,8 @@ export function createFaucetServer(options: FaucetServerOptions): Server {
         faucetFreePlancks: status.faucetFreePlancks.toString(),
         dripAmountPlancks: status.dripAmountPlancks.toString(),
         reservePlancks: status.reservePlancks.toString(),
+        paused: status.paused,
+        budget: status.budget,
       });
       return;
     }
@@ -212,7 +270,7 @@ export function createFaucetServer(options: FaucetServerOptions): Server {
     }
 
     const address = (body as Record<string, unknown>).address;
-    const result = await faucet.drip(address, clientIp(req, trustProxy));
+    const result = await faucet.drip(address, ipBucket(clientIp(req, trustProxy)));
 
     if (result.ok) {
       sendJson(res, 200, {
@@ -226,7 +284,7 @@ export function createFaucetServer(options: FaucetServerOptions): Server {
     }
 
     const headers: Record<string, string> = {};
-    if (result.code === 'RATE_LIMITED' && result.retryAfterMs !== undefined) {
+    if ((result.code === 'RATE_LIMITED' || result.code === 'FAUCET_PAUSED') && result.retryAfterMs !== undefined) {
       // Retry-After is in whole seconds, rounded up so a client that obeys it
       // does not come back a moment early and get refused again.
       headers['retry-after'] = String(Math.ceil(result.retryAfterMs / 1000));

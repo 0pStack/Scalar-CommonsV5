@@ -72,7 +72,10 @@ boot on a bad value rather than falling back to a default drip amount):
 | `FAUCET_DRIP_CMN` | `1500` |
 | `FAUCET_RESERVE_CMN` | `1000` |
 | `FAUCET_ADDRESS_MAX_REQUESTS` / `FAUCET_ADDRESS_WINDOW_MINUTES` | `1` / `60` |
-| `FAUCET_IP_MAX_REQUESTS` / `FAUCET_IP_WINDOW_MINUTES` | `5` / `60` |
+| `FAUCET_IP_MAX_REQUESTS` / `FAUCET_IP_WINDOW_MINUTES` | `5` / `60` — IPv6 is counted per /64 |
+| `FAUCET_GLOBAL_HOURLY_MAX` / `FAUCET_GLOBAL_DAILY_MAX` | `20` / `50` — the total across every requester; when spent, drips answer `503 FAUCET_PAUSED` and the journal gets one `ALERT` line |
+| `FAUCET_STATE_FILE` | `~/.local/state/scalar-commons/faucet-limits.json` — absolute path; keeps the limits across restarts; delete it to reset them |
+| `FAUCET_LOCK_WAIT_SECONDS` / `FAUCET_INCLUSION_TIMEOUT_SECONDS` / `FAUCET_FINALITY_TIMEOUT_SECONDS` | `10` / `18` / `24` — must add up to less than the 60 s agents and nginx wait |
 | `FAUCET_HOST` / `FAUCET_PORT` | `127.0.0.1` / `8080` |
 | `FAUCET_TRUST_PROXY` | `false` |
 

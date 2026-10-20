@@ -12,7 +12,19 @@
 
 import { InvalidAddressError, normalizeAddress } from './address.js';
 import { TransferFailedError, type ChainClient } from './chain.js';
-import type { RateLimitScope, SlidingWindowRateLimiter } from './rateLimiter.js';
+import type {
+  GlobalUsage,
+  RateLimitDecision,
+  RateLimitScope,
+  Reservation,
+  SlidingWindowRateLimiter,
+} from './rateLimiter.js';
+
+/** Where operator alerts and failures go; the journal, through `console`, by default. */
+export interface FaucetLogger {
+  warn(message: string): void;
+  error(message: string): void;
+}
 
 export interface FaucetServiceOptions {
   readonly chain: ChainClient;
@@ -27,11 +39,14 @@ export interface FaucetServiceOptions {
    * stays alive and the failure is visible instead of silent.
    */
   readonly reservePlancks?: bigint;
+  readonly logger?: FaucetLogger;
 }
 
 export type DripFailureCode =
   | 'INVALID_ADDRESS'
   | 'RATE_LIMITED'
+  | 'FAUCET_PAUSED'
+  | 'LIMITS_UNAVAILABLE'
   | 'INSUFFICIENT_FAUCET_FUNDS'
   | 'TRANSFER_FAILED';
 
@@ -62,6 +77,9 @@ export interface FaucetStatus {
   readonly faucetFreePlancks: bigint;
   readonly dripAmountPlancks: bigint;
   readonly reservePlancks: bigint;
+  /** True while a total (global) budget is spent and drips are refused. */
+  readonly paused: boolean;
+  readonly budget: readonly GlobalUsage[];
 }
 
 export class FaucetService {
@@ -69,6 +87,10 @@ export class FaucetService {
   private readonly limiter: SlidingWindowRateLimiter;
   private readonly dripAmountPlancks: bigint;
   private readonly reservePlancks: bigint;
+  private readonly logger: FaucetLogger;
+
+  /** Whether the current pause has been reported; reset once the budget has room. */
+  private alerted = false;
 
   constructor(options: FaucetServiceOptions) {
     if (options.dripAmountPlancks <= 0n) {
@@ -90,6 +112,7 @@ export class FaucetService {
     this.limiter = options.limiter;
     this.dripAmountPlancks = options.dripAmountPlancks;
     this.reservePlancks = reserve;
+    this.logger = options.logger ?? console;
   }
 
   /** Free balance of any account, straight from the node. */
@@ -100,6 +123,7 @@ export class FaucetService {
 
   async status(): Promise<FaucetStatus> {
     const info = this.chain.chainInfo();
+    const budget = this.limiter.usage();
     return {
       chain: info.chain,
       specName: info.specName,
@@ -110,6 +134,8 @@ export class FaucetService {
       faucetFreePlancks: await this.chain.freeBalance(this.chain.faucetAddress),
       dripAmountPlancks: this.dripAmountPlancks,
       reservePlancks: this.reservePlancks,
+      paused: budget.some(isSpent),
+      budget,
     };
   }
 
@@ -133,16 +159,43 @@ export class FaucetService {
 
     // ─ Guard 2: rate limits. Reserved synchronously, so two concurrent
     //   requests cannot both pass the same budget check. ─
-    const decision = this.limiter.tryAcquire(address, ip);
+    this.endPauseIfRoom();
+    let decision: RateLimitDecision;
+    try {
+      decision = this.limiter.tryAcquire(address, ip);
+    } catch (error) {
+      // The limits cannot be recorded (full disk, unwritable state file). A drip
+      // that is not on disk would be forgotten by a restart, so refuse — and keep
+      // the errno text and path for the journal, not for anonymous callers.
+      this.logger.error(`[faucet] cannot record rate limits, refusing drips: ${describeError(error)}`);
+      return {
+        ok: false,
+        code: 'LIMITS_UNAVAILABLE',
+        error: 'the faucet cannot record its rate limits right now; try again later',
+      };
+    }
     if (!decision.allowed) {
+      // Checked on every refusal, not only global ones: a spent total budget must
+      // be reported even when this requester's own limit is the longer wait.
+      this.alertIfSpent();
+      if (decision.scope === 'global') {
+        return {
+          ok: false,
+          code: 'FAUCET_PAUSED',
+          error: `the faucet has handed out its total budget for now; drips resume in ${Math.ceil(decision.retryAfterMs / 60_000)} min`,
+          scope: decision.scope,
+          retryAfterMs: decision.retryAfterMs,
+        };
+      }
       return {
         ok: false,
         code: 'RATE_LIMITED',
         error: `rate limit reached for this ${decision.scope}`,
-        ...(decision.scope === undefined ? {} : { scope: decision.scope }),
-        ...(decision.retryAfterMs === undefined ? {} : { retryAfterMs: decision.retryAfterMs }),
+        scope: decision.scope,
+        retryAfterMs: decision.retryAfterMs,
       };
     }
+    const { reservation } = decision;
 
     // From here on the slot is held, so every exit path must either complete the
     // drip or hand the slot back.
@@ -152,7 +205,7 @@ export class FaucetService {
       const free = await this.chain.freeBalance(this.chain.faucetAddress);
       const floor = this.reservePlancks + this.chain.existentialDeposit();
       if (free < this.dripAmountPlancks || free - this.dripAmountPlancks < floor) {
-        this.limiter.release(address, ip);
+        this.refund(reservation);
         return {
           ok: false,
           code: 'INSUFFICIENT_FAUCET_FUNDS',
@@ -162,6 +215,9 @@ export class FaucetService {
 
       // ─ Guards passed: now funds move. ─
       const receipt = await this.chain.transfer(address, this.dripAmountPlancks);
+      // A drip that spends a total budget starts the pause. Reported only once it
+      // has gone out: a grant that is refunded never spent anything.
+      this.alertIfSpent();
       return {
         ok: true,
         address,
@@ -171,7 +227,7 @@ export class FaucetService {
       };
     } catch (error) {
       // The transfer did not land, so the requester keeps their allowance.
-      this.limiter.release(address, ip);
+      this.refund(reservation);
       if (error instanceof TransferFailedError) {
         return { ok: false, code: 'TRANSFER_FAILED', error: error.message };
       }
@@ -182,4 +238,50 @@ export class FaucetService {
       };
     }
   }
+
+  /**
+   * Hands a slot back. A refund that cannot be persisted is reported rather than
+   * thrown: the drip's own outcome is what the caller needs to hear, and keeping
+   * the slot only errs toward a longer wait.
+   */
+  private refund(reservation: Reservation): void {
+    try {
+      this.limiter.release(reservation);
+    } catch (error) {
+      this.logger.error(`[faucet] could not refund a rate-limit slot: ${describeError(error)}`);
+    }
+  }
+
+  /** A pause ends once every total budget has room again, so the next one is reported afresh. */
+  private endPauseIfRoom(): void {
+    if (!this.limiter.usage().some(isSpent)) {
+      this.alerted = false;
+    }
+  }
+
+  /** Reports a spent total budget once per pause. */
+  private alertIfSpent(): void {
+    const spent = this.limiter.usage().filter(isSpent);
+    if (spent.length === 0 || this.alerted) {
+      return;
+    }
+    this.alerted = true;
+    const detail = spent.map((window) => `${window.used}/${window.maxRequests} per ${describeWindow(window.windowMs)}`);
+    this.logger.warn(`[faucet] ALERT total drip budget spent (${detail.join(', ')}); drips are paused until it frees up`);
+  }
+}
+
+/** A total budget with no slot left. */
+function isSpent(window: GlobalUsage): boolean {
+  return window.used >= window.maxRequests;
+}
+
+function describeError(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function describeWindow(windowMs: number): string {
+  if (windowMs === 60 * 60_000) return 'hour';
+  if (windowMs === 24 * 60 * 60_000) return 'day';
+  return `${Math.round(windowMs / 60_000)} min`;
 }

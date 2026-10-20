@@ -6,6 +6,9 @@
  * rate limit is a faucet that quietly hands out more than the operator intended.
  */
 
+import { homedir } from 'node:os';
+import { isAbsolute, join } from 'node:path';
+
 import { DEV_PHRASE } from '@polkadot/keyring/defaults';
 import { parseCmnToPlancks } from './amount.js';
 import type { RateLimitRule } from './rateLimiter.js';
@@ -19,10 +22,26 @@ export interface FaucetConfig {
   readonly reservePlancks: bigint;
   readonly perAddress: RateLimitRule;
   readonly perIp: RateLimitRule;
+  /** Total budgets across every requester (F11, #20). */
+  readonly global: readonly [hourly: RateLimitRule, daily: RateLimitRule];
+  /** How long a drip waits for its turn to check the balance and submit. */
+  readonly lockWaitMs: number;
+  /** How long a submitted transfer may take to reach a block. */
+  readonly inclusionTimeoutMs: number;
+  /** How long an included transfer may take to finalize. */
+  readonly finalityTimeoutMs: number;
+  /** Absolute path of the file that keeps rate-limit grants across restarts. */
+  readonly stateFile: string;
   readonly host: string;
   readonly port: number;
   readonly trustProxy: boolean;
 }
+
+/**
+ * Agents abort a drip request after 60 s (agent/src/onboard.ts) and nginx stops
+ * waiting for the faucet at 60 s, so a drip's waits must add up to less.
+ */
+const CALLER_DEADLINE_MS = 60_000;
 
 type Env = Record<string, string | undefined>;
 
@@ -39,6 +58,14 @@ function int(env: Env, key: string, fallback: number): number {
   const value = Number(raw.trim());
   if (!Number.isInteger(value) || value < 0) {
     throw new Error(`${key} must be a non-negative integer, got ${JSON.stringify(raw)}`);
+  }
+  return value;
+}
+
+function positiveInt(env: Env, key: string, fallback: number): number {
+  const value = int(env, key, fallback);
+  if (value < 1) {
+    throw new Error(`${key} must be at least 1, got ${value}`);
   }
   return value;
 }
@@ -101,6 +128,27 @@ export function configFromEnv(env: Env = process.env): FaucetConfig {
   }
   const perAddressWindowMinutes = int(env, 'FAUCET_ADDRESS_WINDOW_MINUTES', 60);
   const perIpWindowMinutes = int(env, 'FAUCET_IP_WINDOW_MINUTES', 60);
+  // F11 (#20): at the default drip, 50 a day caps the faucet's loss at 75 000 CMN
+  // per day however many addresses and IPs ask.
+  const hourlyMax = positiveInt(env, 'FAUCET_GLOBAL_HOURLY_MAX', 20);
+  const dailyMax = positiveInt(env, 'FAUCET_GLOBAL_DAILY_MAX', 50);
+  if (dailyMax < hourlyMax) {
+    throw new Error(`FAUCET_GLOBAL_DAILY_MAX (${dailyMax}) must be at least FAUCET_GLOBAL_HOURLY_MAX (${hourlyMax})`);
+  }
+  const lockWaitMs = positiveInt(env, 'FAUCET_LOCK_WAIT_SECONDS', 10) * 1000;
+  const inclusionTimeoutMs = positiveInt(env, 'FAUCET_INCLUSION_TIMEOUT_SECONDS', 18) * 1000;
+  const finalityTimeoutMs = positiveInt(env, 'FAUCET_FINALITY_TIMEOUT_SECONDS', 24) * 1000;
+  if (lockWaitMs + inclusionTimeoutMs + finalityTimeoutMs >= CALLER_DEADLINE_MS) {
+    throw new Error(
+      'FAUCET_LOCK_WAIT_SECONDS + FAUCET_INCLUSION_TIMEOUT_SECONDS + FAUCET_FINALITY_TIMEOUT_SECONDS must stay under ' +
+        'the 60 s agents and nginx wait for a drip',
+    );
+  }
+  const stateFile = str(env, 'FAUCET_STATE_FILE', join(homedir(), '.local', 'state', 'scalar-commons', 'faucet-limits.json'));
+  if (!isAbsolute(stateFile)) {
+    // Node does not expand `~`, and a relative path would move with the working directory.
+    throw new Error(`FAUCET_STATE_FILE must be an absolute path, got ${JSON.stringify(stateFile)}`);
+  }
 
   const config: FaucetConfig = {
     rpcEndpoint: str(env, 'FAUCET_RPC_ENDPOINT', 'ws://127.0.0.1:9944'),
@@ -116,6 +164,14 @@ export function configFromEnv(env: Env = process.env): FaucetConfig {
       maxRequests: int(env, 'FAUCET_IP_MAX_REQUESTS', 5),
       windowMs: perIpWindowMinutes * 60_000,
     },
+    global: [
+      { maxRequests: hourlyMax, windowMs: 60 * 60_000 },
+      { maxRequests: dailyMax, windowMs: 24 * 60 * 60_000 },
+    ],
+    lockWaitMs,
+    inclusionTimeoutMs,
+    finalityTimeoutMs,
+    stateFile,
     host: str(env, 'FAUCET_HOST', '127.0.0.1'),
     port: int(env, 'FAUCET_PORT', 8080),
     trustProxy: bool(env, 'FAUCET_TRUST_PROXY', false),
