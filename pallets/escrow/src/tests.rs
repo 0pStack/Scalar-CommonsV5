@@ -106,7 +106,7 @@ impl pallet_agents::Config for Test {
     type OnAgentRegistered = ();
     type OnAgentSlashed = ();
     type OnStakeChanged = ();
-    type AgentCollective = ();
+    type AgentCollective = FailingPromotionCollective;
     type OracleScoreGate = ();
     type GovVoteVerifier = MockGovVoteVerifier;
     type IdentityHandler = ();
@@ -2129,4 +2129,82 @@ fn atomic_escrow_short_reserve_rejected_on_every_exit() {
             );
         });
     }
+}
+
+/// Inject a late promotion error after the real volume/counter writes.
+pub struct FailingPromotionCollective;
+impl pallet_agents::AgentCollective<u64> for FailingPromotionCollective {
+    fn induct(_: &u64) -> frame_support::dispatch::DispatchResult {
+        Ok(())
+    }
+    fn rank_of(_: &u64) -> Option<u32> {
+        Some(0)
+    }
+    fn remove(_: &u64) {}
+    fn promote(_: &u64) -> frame_support::dispatch::DispatchResult {
+        if sp_io::storage::exists(b"test:fail-promotion") {
+            return Err(sp_runtime::DispatchError::Other(
+                "injected promotion failure",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[test]
+fn atomic_dispute_late_promotion_failure_rolls_back_volume_and_money() {
+    new_test_ext().execute_with(|| {
+        atomic_dispute();
+        DisputeBurnBps::set(500); // 5% fee
+        sp_io::storage::set(b"test:fail-promotion", b"yes");
+        assert_noop!(
+            Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true),
+            sp_runtime::DispatchError::Other("injected promotion failure")
+        );
+        assert_eq!(pallet_agents::EraEscrowVolume::<Test>::get(BOB), 0);
+        assert_eq!(pallet_agents::CompletedAgreements::<Test>::get(BOB), 0);
+        sp_io::storage::clear(b"test:fail-promotion");
+        let paid_before = Balances::free_balance(BOB);
+        assert_ok!(Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true));
+        assert_eq!(Balances::free_balance(BOB), paid_before.saturating_add(931));
+        assert_eq!(Balances::free_balance(TREASURY), 49);
+        assert_eq!(pallet_agents::CompletedAgreements::<Test>::get(BOB), 1);
+    });
+}
+
+#[test]
+fn atomic_dispute_callback_only_accepts_live_disputes_or_proven_closed_sequences() {
+    new_test_ext().execute_with(|| {
+        setup_agreement(1_000);
+        assert_noop!(
+            Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true),
+            Error::<Test>::WrongStatus
+        );
+    });
+    new_test_ext().execute_with(|| {
+        atomic_dispute();
+        assert_ok!(Escrow::create_agreement(
+            RuntimeOrigin::signed(ALICE),
+            BOB,
+            1_000,
+            [3; 32],
+            500,
+            None
+        ));
+        assert_ok!(Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true));
+        let before = sp_io::storage::root(sp_runtime::StateVersion::V1);
+        for verdict in [true, false] {
+            assert_ok!(Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, verdict));
+            assert_eq!(sp_io::storage::root(sp_runtime::StateVersion::V1), before);
+        }
+        assert_noop!(
+            Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 2, true),
+            Error::<Test>::AgreementNotFound
+        );
+        assert_noop!(
+            Escrow::settle_dispute_from_oracle(&ALICE, &CAROL, 0, true),
+            Error::<Test>::AgreementNotFound
+        );
+        assert_eq!(Agreements::<Test>::get(ALICE, BOB)[0].seq, 1);
+    });
 }
