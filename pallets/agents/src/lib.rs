@@ -1141,25 +1141,11 @@ pub mod pallet {
             );
 
             T::Currency::remove_lock(AGENT_LOCK_ID, &who);
-            T::AgentCollective::remove(&who); // remove from ranked-collective
-            AgentStake::<T>::remove(&who);
-            UnstakeAt::<T>::remove(&who);
-            StakeRegisteredAt::<T>::remove(&who);
-            CompletedAgreements::<T>::remove(&who);
-            LastHeartbeat::<T>::remove(&who);
-            AgentMetadata::<T>::remove(&who);
-            AgentCapabilities::<T>::remove(&who);
+            Self::clear_agent_records(&who);
             MessagingKey::<T>::remove(&who);
-            VotingDelegations::<T>::remove(&who);
             PendingSlashAppeals::<T>::remove(&who);
             let _ = OpenAppeals::<T>::clear_prefix(&who, MAX_OPEN_APPEALS, None);
             OpenAppealCount::<T>::remove(&who);
-
-            // Clear offchain discovery index
-            {
-                let key = [b"sc:agent:", &who.encode()[..]].concat();
-                sp_io::offchain_index::clear(&key);
-            }
 
             Self::deposit_event(Event::UnstakeCompleted {
                 who,
@@ -1499,14 +1485,17 @@ pub mod pallet {
         /// Root-gated, so this is not a fee surface — but it is still scheduled against a
         /// block's weight budget, and #195's cleanup made the old 5/5 an understatement of
         /// what a block must fit. spec 308 adds one read and one write: the
-        /// `MessagingKey::take` on the eviction branch.
+        /// `MessagingKey::take` on the eviction branch. #18 N5 adds 7 writes: the
+        /// eviction branch now runs `clear_agent_records`, which also removes
+        /// `UnstakeAt`, `StakeRegisteredAt`, `CompletedAgreements`, `LastHeartbeat`,
+        /// `AgentMetadata`, `AgentCapabilities` and `VotingDelegations` (17 / 26).
         ///
         /// Second term (#18 N5), `AgentCollective::remove` on the eviction branch: the same
         /// rank-linear 14 reads / 21 writes `complete_unstake` declares, for the same reason —
         /// the runtime unwinds the member one rank at a time. Pinned as a floor by
         /// `declared_weight_execute_slash_covers_appeal_cleanup`.
         #[pallet::call_index(10)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(17, 19)
+        #[pallet::weight(T::DbWeight::get().reads_writes(17, 26)
             .saturating_add(T::DbWeight::get().reads_writes(14, 21))
             .saturating_add(Weight::from_parts(100_000_000, 0)))]
         pub fn execute_slash(
@@ -1560,7 +1549,12 @@ pub mod pallet {
             if new_stake >= T::MinStake::get() {
                 AgentStake::<T>::insert(&who, new_stake);
             } else {
-                AgentStake::<T>::remove(&who);
+                // #18 N5: eviction ends the agent exactly as `complete_unstake` does —
+                // stake record, collective seat, and every per-agent record, through the
+                // same helper — so a re-registration starts clean. `SlashRecords` is not
+                // an agent record: it is written below and must outlive the agent so the
+                // slash stays appealable.
+                Self::clear_agent_records(&who);
                 // spec 308: an evicted account is no longer an agent, so it must not keep a
                 // published messaging key. It could not clear it itself (clearing requires
                 // registration), and the key would silently reappear on re-registration
@@ -1568,12 +1562,6 @@ pub mod pallet {
                 if MessagingKey::<T>::take(&who).is_some() {
                     Self::deposit_event(Event::MessagingKeyCleared { who: who.clone() });
                 }
-                // #18 N5: nor may it keep its collective seat. Rank is earned by stake and
-                // work; an account slashed out of the agent set has neither, so it must not
-                // keep the rank bonus or the governance standing the rank confers. Leaving
-                // the seat also made re-registration impossible: `register`'s `induct` fails
-                // on an existing member. Mirrors `complete_unstake`.
-                T::AgentCollective::remove(&who);
             }
 
             // Step 4: 50/50 split — treasury receives half, half burned on drop.
@@ -2067,6 +2055,40 @@ pub mod pallet {
         }
 
         // ── Internal ─────────────────────────────────────────────────────────
+
+        /// End an agent: remove its stake record, its collective seat, and every
+        /// per-agent record, so the account is indistinguishable from one that never
+        /// registered. Shared by both exits — `complete_unstake` (voluntary) and the
+        /// evicting branch of `execute_slash` — because any record one exit forgets
+        /// leaks into the next registration (#18 N5): a stale `UnstakeAt` skips the
+        /// cooldown, stale `CompletedAgreements` counts toward promotion, and stale
+        /// `AgentCapabilities` keep passing the oracle gate with no stake behind them.
+        ///
+        /// Deliberately NOT here, because the two exits differ on them: the stake lock
+        /// (eviction reduces it before withdrawing the slash), `MessagingKey` (eviction
+        /// announces the removal with `MessagingKeyCleared`), and the appeal records
+        /// (`execute_slash` clears those on every branch, eviction or not).
+        /// `SlashRecords` is never an agent record: it outlives the agent.
+        ///
+        /// Writes: 8 storage removals (plus the `AgentStake` counter) and the
+        /// rank-linear `AgentCollective::remove`; the offchain index clear is not a
+        /// state-trie write. Callers' declared weights count each of these.
+        fn clear_agent_records(who: &T::AccountId) {
+            T::AgentCollective::remove(who);
+            AgentStake::<T>::remove(who);
+            UnstakeAt::<T>::remove(who);
+            StakeRegisteredAt::<T>::remove(who);
+            CompletedAgreements::<T>::remove(who);
+            LastHeartbeat::<T>::remove(who);
+            AgentMetadata::<T>::remove(who);
+            AgentCapabilities::<T>::remove(who);
+            VotingDelegations::<T>::remove(who);
+
+            // Clear offchain discovery index
+            let key = [b"sc:agent:", &who.encode()[..]].concat();
+            sp_io::offchain_index::clear(&key);
+        }
+
         fn maybe_promote(
             who: &T::AccountId,
             completions: u32,
