@@ -1,7 +1,7 @@
 //! Custom governance origins for Scalar Commons v3.
 //!
 //! Track 0: AgentsCollective — Rank 2+ agents propose/vote on bounded params
-//!          (via the RankedPolls instance; see the note on `AgentsCollectiveOrigin`)
+//!          (not reachable today: RankedPolls routes no origin, #18)
 //! Track 1: GeneralAdmin    — majority stake governs network policy
 //! Track 2: Root            — structural changes, runtime upgrades
 
