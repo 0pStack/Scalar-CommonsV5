@@ -590,7 +590,10 @@ impl pallet_referenda::Config for Runtime {
     type Scheduler = Scheduler;
     type Currency = Balances;
     type SubmitOrigin = frame_system::EnsureSigned<AccountId>;
-    type CancelOrigin = governance::origins::AgentsOrRoot;
+    // Root only (#18 N2). A rank-2 agent is one signer, not a decision: letting it
+    // cancel would let a single account void any stake-weighted referendum,
+    // including one aimed at itself. Matches the RankedPolls instance below.
+    type CancelOrigin = EnsureRoot<AccountId>;
     type KillOrigin = EnsureRoot<AccountId>;
     type Slash = Treasury;
     type Votes = pallet_conviction_voting::VotesOf<Runtime>;
@@ -685,15 +688,22 @@ impl pallet_identity::Config for Runtime {
 
 // ImOnline removed M1
 
-// ─── pallet-whitelist (V4: TC fast-track — enables 6h governance path) ───────
-// WhitelistOrigin: Either Root (sudo during 14-day bootstrap) OR rank-2+ agents (TC post-day-14).
-// After sudo removal, only ranked_collective members at rank 2+ can whitelist calls.
-// DispatchWhitelistedOrigin: same — only TC can dispatch a whitelisted call.
+// ─── pallet-whitelist ─────────────────────────────────────────────────────────
+// Both origins are Root only (#18 N2): sudo during bootstrap, a passed root-track
+// referendum afterwards. `dispatch_whitelisted_call` executes AS Root, so whoever
+// holds these origins holds the chain — set_code, force_set_balance past the
+// supply cap, execute_slash on anyone.
+//
+// They previously accepted `EnsureRanked<_, _, 2>`, which is satisfied by ONE
+// signed rank-2 member, not by a collective vote — and rank 2 is granted
+// automatically for one completion plus 10 000 CMN of stake. A real TC fast-track
+// needs an origin produced by a RankedPolls decision; until one exists, there is
+// no fast-track.
 impl pallet_whitelist::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
-    type WhitelistOrigin = governance::origins::AgentsOrRoot;
-    type DispatchWhitelistedOrigin = governance::origins::AgentsOrRoot;
+    type WhitelistOrigin = EnsureRoot<AccountId>;
+    type DispatchWhitelistedOrigin = EnsureRoot<AccountId>;
     type Preimages = Preimage;
     type WeightInfo = pallet_whitelist::weights::SubstrateWeight<Runtime>;
 }
@@ -1065,9 +1075,16 @@ impl pallet_agents::pallet::AgentCollective<AccountId> for RankedCollectiveBridg
         <RankedCollective as frame_support::traits::RankedMembers>::rank_of(who).map(|r| r as u32)
     }
     fn remove(who: &AccountId) {
-        // do_remove_member_from_rank removes the member if their rank <= max_rank.
-        // u16::MAX ensures removal at any rank (0, 1, 2, 3, ...).
-        let _ = RankedCollective::do_remove_member_from_rank(who, u16::MAX);
+        // do_remove_member_from_rank(who, rank) clears the member's index entry at
+        // every rank 0..=rank and only then deletes the `Members` record — so `rank`
+        // must be the member's ACTUAL rank. It is not an upper bound: passing more
+        // (the old u16::MAX) hits a missing index one past the real rank, returns
+        // `Corruption` before `Members` is touched, and leaves the account ranked
+        // with its lower-rank indices gone (#18). Non-members have nothing to remove.
+        if let Some(rank) = <RankedCollective as frame_support::traits::RankedMembers>::rank_of(who)
+        {
+            let _ = RankedCollective::do_remove_member_from_rank(who, rank);
+        }
     }
 }
 
@@ -2104,6 +2121,194 @@ mod tests {
                     issuance.saturating_sub(<Balances as Currency<AccountId>>::total_issuance());
                 assert_eq!(burned, paid, "len {len}: every planck charged is burned");
             }
+        });
+    }
+
+    // ── #18 N2 / N5: rank is a membership, not a mandate ─────────────────────
+
+    use frame_support::{
+        assert_noop, assert_ok,
+        traits::{schedule::DispatchTime, Bounded, RankedMembers},
+    };
+    use sp_runtime::{traits::Hash, DispatchError};
+
+    /// Two funded accounts and nothing else. The governance tests build whatever
+    /// collective and referendum state they need on top.
+    fn gov_ext() -> sp_io::TestExternalities {
+        let mut storage = frame_system::GenesisConfig::<Runtime>::default()
+            .build_storage()
+            .unwrap();
+        pallet_balances::GenesisConfig::<Runtime> {
+            balances: vec![
+                (account(1), CMN.saturating_mul(100_000)),
+                (account(2), CMN.saturating_mul(100_000)),
+            ],
+            dev_accounts: None,
+        }
+        .assimilate_storage(&mut storage)
+        .unwrap();
+        let mut ext: sp_io::TestExternalities = storage.into();
+        ext.execute_with(|| System::set_block_number(1));
+        ext
+    }
+
+    /// Put `who` at collective rank 2 directly. The organic route (one escrow
+    /// completion, then 10 000 CMN of stake) lands on the same storage; what is
+    /// under test is what the rank lets a lone account do, not how it was earned.
+    fn make_rank_2(who: &AccountId) {
+        assert_ok!(RankedCollective::do_add_member(who.clone(), true));
+        assert_ok!(RankedCollective::do_promote_member(who.clone(), None, true));
+        assert_ok!(RankedCollective::do_promote_member(who.clone(), None, true));
+        assert_eq!(RankedCollective::rank_of(who), Some(2));
+    }
+
+    const N2_KEY: &[u8] = b":n2:root-reached";
+
+    /// A call only Root may make, with an effect the test can look for afterwards.
+    fn root_only_call() -> RuntimeCall {
+        RuntimeCall::System(frame_system::Call::set_storage {
+            items: vec![(N2_KEY.to_vec(), b"yes".to_vec())],
+        })
+    }
+
+    /// N2: one rank-2 account, acting alone, must not be able to whitelist a call
+    /// or dispatch a whitelisted one. `dispatch_whitelisted_call*` runs as Root, so
+    /// either power in a single signer's hands is the whole chain — including
+    /// `force_set_balance` past the supply cap.
+    #[test]
+    fn rank2_member_cannot_whitelist_or_dispatch_as_root() {
+        gov_ext().execute_with(|| {
+            make_rank_2(&account(1));
+            let call = root_only_call();
+            let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+
+            assert_noop!(
+                Whitelist::whitelist_call(RuntimeOrigin::signed(account(1)), hash),
+                DispatchError::BadOrigin
+            );
+
+            // Even with the call already whitelisted by Root, the lone member must
+            // not be the one who fires it.
+            assert_ok!(Whitelist::whitelist_call(RuntimeOrigin::root(), hash));
+            assert_noop!(
+                Whitelist::dispatch_whitelisted_call_with_preimage(
+                    RuntimeOrigin::signed(account(1)),
+                    Box::new(call),
+                ),
+                DispatchError::BadOrigin
+            );
+            assert_eq!(sp_io::storage::get(N2_KEY), None, "Root call executed");
+        });
+    }
+
+    /// Submit a Root-track referendum from `account(2)` and return its index.
+    fn submit_root_referendum() -> u32 {
+        let proposal = Bounded::Inline(root_only_call().encode().try_into().unwrap());
+        assert_ok!(Referenda::submit(
+            RuntimeOrigin::signed(account(2)),
+            Box::new(frame_system::RawOrigin::Root.into()),
+            proposal,
+            DispatchTime::After(1),
+        ));
+        pallet_referenda::ReferendumCount::<Runtime>::get().saturating_sub(1)
+    }
+
+    /// N2: one rank-2 account must not be able to cancel a stake-weighted
+    /// referendum — including the one that would strip its rank.
+    #[test]
+    fn rank2_member_cannot_cancel_referendum() {
+        gov_ext().execute_with(|| {
+            make_rank_2(&account(1));
+            let index = submit_root_referendum();
+            assert_noop!(
+                Referenda::cancel(RuntimeOrigin::signed(account(1)), index),
+                DispatchError::BadOrigin
+            );
+        });
+    }
+
+    /// The governed path survives the fix: Root (sudo during bootstrap, a passed
+    /// root-track referendum afterwards) can still whitelist, dispatch and cancel.
+    #[test]
+    fn root_can_still_whitelist_dispatch_and_cancel() {
+        gov_ext().execute_with(|| {
+            let call = root_only_call();
+            let hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+            assert_ok!(Whitelist::whitelist_call(RuntimeOrigin::root(), hash));
+            assert_ok!(Whitelist::dispatch_whitelisted_call_with_preimage(
+                RuntimeOrigin::root(),
+                Box::new(call),
+            ));
+            assert_eq!(sp_io::storage::get(N2_KEY).as_deref(), Some(&b"yes"[..]));
+
+            let index = submit_root_referendum();
+            assert_ok!(Referenda::cancel(RuntimeOrigin::root(), index));
+        });
+    }
+
+    /// N5: a slash that evicts an agent (stake below `MinStake`) must also take its
+    /// collective seat. Otherwise the evicted account keeps its rank bonus and its
+    /// governance standing, and `register` then fails on `induct` (AlreadyMember),
+    /// so it cannot even come back through the front door.
+    #[test]
+    fn slash_below_min_stake_removes_collective_membership() {
+        gov_ext().execute_with(|| {
+            let who = account(1);
+            assert_ok!(Agents::register(
+                RuntimeOrigin::signed(who.clone()),
+                AgentsMinStake::get()
+            ));
+            assert_ok!(RankedCollective::do_promote_member(who.clone(), None, true));
+            assert_ok!(RankedCollective::do_promote_member(who.clone(), None, true));
+            assert_eq!(RankedCollective::rank_of(&who), Some(2));
+
+            // 10_000 bps = 100% of stake: the agent is evicted.
+            assert_ok!(Agents::execute_slash(
+                RuntimeOrigin::root(),
+                who.clone(),
+                10_000
+            ));
+            assert_eq!(
+                RankedCollective::rank_of(&who),
+                None,
+                "evicted agent kept its rank"
+            );
+
+            assert_ok!(Agents::register(
+                RuntimeOrigin::signed(who.clone()),
+                AgentsMinStake::get()
+            ));
+            assert_eq!(RankedCollective::rank_of(&who), Some(0));
+        });
+    }
+
+    /// The voluntary exit must take the collective seat too. `complete_unstake` calls
+    /// `AgentCollective::remove`; the bridge behind it has to actually remove the
+    /// member at whatever rank it holds, or an unstaked rank-2 account walks away
+    /// with its stake and keeps its rank.
+    #[test]
+    fn complete_unstake_removes_collective_membership() {
+        gov_ext().execute_with(|| {
+            let who = account(1);
+            assert_ok!(Agents::register(
+                RuntimeOrigin::signed(who.clone()),
+                AgentsMinStake::get()
+            ));
+            assert_ok!(RankedCollective::do_promote_member(who.clone(), None, true));
+            assert_ok!(RankedCollective::do_promote_member(who.clone(), None, true));
+            assert_eq!(RankedCollective::rank_of(&who), Some(2));
+
+            assert_ok!(Agents::request_unstake(RuntimeOrigin::signed(who.clone())));
+            System::set_block_number(
+                System::block_number().saturating_add(AgentsUnstakeCooldown::get()),
+            );
+            assert_ok!(Agents::complete_unstake(RuntimeOrigin::signed(who.clone())));
+
+            assert_eq!(
+                RankedCollective::rank_of(&who),
+                None,
+                "unstaked agent kept its rank"
+            );
         });
     }
 }
