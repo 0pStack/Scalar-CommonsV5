@@ -6,7 +6,7 @@ use crate::{
 };
 use frame_support::{
     assert_noop, assert_ok,
-    traits::{schedule::DispatchTime, StorePreimage, VoteTally},
+    traits::{schedule::DispatchTime, ReservableCurrency, StorePreimage, VoteTally},
 };
 use pallet_referenda::{ReferendumInfo, TracksInfo};
 use sp_runtime::{BuildStorage, DispatchError, Perbill};
@@ -159,5 +159,68 @@ fn stake_referenda_still_accept_signed_root_proposals() {
             Balances::reserved_balance(account(2)),
             crate::SubmissionDeposit::get()
         );
+    });
+}
+/// A stored poll can predate the submission guard; its execution origin must stay contained.
+#[test]
+fn legacy_passing_root_poll_cannot_approve_and_deposits_remain_refundable() {
+    externalities().execute_with(|| {
+        add_rank_two(1);
+        let who = account(2);
+        let free_before = Balances::free_balance(&who);
+        let submission = crate::SubmissionDeposit::get();
+        let decision = CMN.saturating_mul(50_000);
+        assert_ok!(Balances::reserve(&who, submission.saturating_add(decision)));
+        let status: pallet_referenda::ReferendumStatusOf<Runtime, RankedInstance> =
+            pallet_referenda::ReferendumStatus {
+                track: 2,
+                origin: *root_origin(),
+                proposal: proposal(),
+                enactment: DispatchTime::After(1),
+                submitted: 1,
+                submission_deposit: pallet_referenda::Deposit {
+                    who: who.clone(),
+                    amount: submission,
+                },
+                decision_deposit: Some(pallet_referenda::Deposit {
+                    who: who.clone(),
+                    amount: decision,
+                }),
+                deciding: Some(pallet_referenda::DecidingStatus {
+                    since: 1,
+                    confirming: Some(2),
+                }),
+                tally: pallet_ranked_collective::TallyOf::<Runtime>::from_parts(1, 1, 0),
+                in_queue: false,
+                alarm: None,
+            };
+        pallet_referenda::ReferendumInfoFor::<Runtime, RankedInstance>::insert(
+            0,
+            ReferendumInfo::Ongoing(status),
+        );
+        pallet_referenda::ReferendumCount::<Runtime, RankedInstance>::put(1);
+        pallet_referenda::DecidingCount::<Runtime, RankedInstance>::insert(2, 1);
+        System::set_block_number(3);
+        assert_ok!(RankedPolls::nudge_referendum(RuntimeOrigin::root(), 0));
+        assert!(matches!(
+            pallet_referenda::ReferendumInfoFor::<Runtime, RankedInstance>::get(0),
+            Some(ReferendumInfo::Ongoing(_))
+        ));
+        assert_eq!(pallet_scheduler::Lookup::<Runtime>::iter().count(), 0);
+        assert_eq!(
+            Balances::reserved_balance(&who),
+            submission.saturating_add(decision)
+        );
+        assert_ok!(RankedPolls::cancel(RuntimeOrigin::root(), 0));
+        assert_ok!(RankedPolls::refund_submission_deposit(
+            RuntimeOrigin::signed(account(1)),
+            0,
+        ));
+        assert_ok!(RankedPolls::refund_decision_deposit(
+            RuntimeOrigin::signed(account(1)),
+            0,
+        ));
+        assert_eq!(Balances::reserved_balance(&who), 0);
+        assert_eq!(Balances::free_balance(&who), free_before);
     });
 }
