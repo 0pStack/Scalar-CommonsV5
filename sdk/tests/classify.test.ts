@@ -91,12 +91,19 @@ describe('withRetry — transient failures only', () => {
   it.each([
     new Error('application validation failed'),
     new TypeError('cannot encode this argument'),
+    new Error('transaction not included: status=Ready'),
+    Object.assign(new Error('WebSocket is not connected'), {
+      name: 'DispatchFailure',
+      code: 'ECONNRESET',
+    }),
     'untyped failure',
     { message: 'WebSocket is not connected' },
     null,
   ])('stops an unknown failure after one attempt: %s', async (err) => {
     const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-    const fn = vi.fn(async () => { throw err; });
+    const fn = vi.fn(async () => {
+      throw err;
+    });
     await expect(withRetry(fn, 'tx', { logger, retryDelayMs: 0 })).rejects.toBe(err);
     expect(fn).toHaveBeenCalledTimes(1);
     expect(logger.warn).not.toHaveBeenCalled();
@@ -105,23 +112,29 @@ describe('withRetry — transient failures only', () => {
 
   it.each([
     new Error('WebSocket is not connected'),
+    new Error('author_submitAndWatchExtrinsic: WebSocket is not connected'),
     new Error('disconnected from ws://localhost:9944: 1006:: Abnormal Closure'),
     new Error('No response received from RPC endpoint in 60s'),
     Object.assign(new Error('socket reset'), { code: 'ECONNRESET' }),
-    ...['Dropped', 'Invalid', 'Usurped'].map((status) =>
-      new Error(`transaction not included: status=${status}`)),
+    ...['Dropped', 'Invalid', 'Usurped'].map(
+      (status) => new Error(`transaction not included: status=${status}`),
+    ),
   ])('retries a recognizable transient failure: %s', async (err) => {
     const fn = vi.fn(async (attempt: number) => {
       if (attempt === 1) throw err;
       return 'included';
     });
-    await expect(withRetry(fn, 'tx', { logger: silent, retryDelayMs: 0 })).resolves.toBe('included');
+    await expect(withRetry(fn, 'tx', { logger: silent, retryDelayMs: 0 })).resolves.toBe(
+      'included',
+    );
     expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it('does not let transport-like dispatch docs override the dispatch boundary', async () => {
     const err = new DispatchFailure('future', 'NewError', 'WebSocket is not connected');
-    const fn = vi.fn(async () => { throw err; });
+    const fn = vi.fn(async () => {
+      throw err;
+    });
     await expect(withRetry(fn, 'tx', { logger: silent, retryDelayMs: 0 })).rejects.toBe(err);
     expect(fn).toHaveBeenCalledTimes(1);
   });

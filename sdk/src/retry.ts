@@ -1,4 +1,4 @@
-import { isDeterministicFailure } from './errors.js';
+import { isDeterministicFailure, isRetryableFailure } from './errors.js';
 import { consoleLogger, errorMessage, type Logger } from './logger.js';
 
 /** Options controlling the no-silent-retry wrapper. */
@@ -20,7 +20,8 @@ const DEFAULT_RETRY_DELAY_MS = 1_000;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
- * Run `fn`, retrying on failure up to `maxRetries` times.
+ * Run `fn`, retrying recognized transport/pool failures up to `maxRetries` times.
+ * Dispatch failures and unknown errors stop after one attempt.
  *
  * First principle of this SDK: **no silent retries.** Every retry is logged at
  * `warn` with the attempt number and the error that triggered it; the final
@@ -46,16 +47,18 @@ export async function withRetry<T>(
       return await fn(attempt);
     } catch (err) {
       lastError = err;
-      // #160: a dispatch error would recur and cost another fee — give up at once.
-      if (isDeterministicFailure(err)) {
+      // #29: only transport/pool failures may retry; dispatch already paid a fee.
+      if (!isRetryableFailure(err)) {
+        const reason = isDeterministicFailure(err) ? 'dispatch error' : 'unrecognized error';
         logger.error(
-          `${label} failed on attempt ${attempt}/${totalAttempts}; deterministic error, not retrying`,
+          `${label} failed on attempt ${attempt}/${totalAttempts}; ${reason}, not retrying`,
           {
             attempt,
             totalAttempts,
             error: errorMessage(err),
           },
         );
+
         throw err;
       }
       if (attempt < totalAttempts) {
