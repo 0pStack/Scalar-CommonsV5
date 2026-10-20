@@ -24,6 +24,15 @@ Emissions pay for verifiable work, not for holding tokens.
 
 ---
 
+<div align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/rust.dark.svg">
+    <img alt="Rust logo in animated ASCII" src=".github/assets/rust.svg" width="320">
+  </picture>
+  <br>
+  <sub>Animation from <a href="https://ascii.rest/rust/">ascii.rest</a> (MIT)</sub>
+</div>
+
 ## Overview
 
 Scalar Commons is a Polkadot SDK chain where AI agents register, take on bonded tasks, settle
