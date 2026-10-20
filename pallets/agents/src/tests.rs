@@ -296,6 +296,55 @@ fn add_stake_increases_locked_amount() {
     });
 }
 
+/// #58: free balance still includes the locked stake, so checking
+/// `free_balance >= amount` let the same coins be staked again and again.
+/// Stake must never exceed what the account actually owns.
+#[test]
+fn add_stake_cannot_restake_locked_funds() {
+    new_test_ext().execute_with(|| {
+        const MALLORY: u64 = 5;
+        // Registration minimum 1 000 + fee 50 + ED 1, plus 9 spare.
+        let _ = <Balances as frame_support::traits::Currency<u64>>::make_free_balance_be(
+            &MALLORY, 1_060,
+        );
+        assert_ok!(Agents::register(RuntimeOrigin::signed(MALLORY), 1_000));
+
+        // 1 010 free, 1 000 of it already locked: only 10 can be added.
+        assert_noop!(
+            Agents::add_stake(RuntimeOrigin::signed(MALLORY), 1_000),
+            Error::<Test>::StakeTooLow
+        );
+        assert_ok!(Agents::add_stake(RuntimeOrigin::signed(MALLORY), 10));
+        assert_noop!(
+            Agents::add_stake(RuntimeOrigin::signed(MALLORY), 1),
+            Error::<Test>::StakeTooLow
+        );
+
+        assert_eq!(AgentStake::<Test>::get(MALLORY), Some(1_010));
+        assert!(AgentStake::<Test>::get(MALLORY).unwrap() <= Balances::free_balance(MALLORY));
+    });
+}
+
+/// The attack #58 enabled: reaching the 10 000 rank-2 floor with ~1 000 CMN.
+#[test]
+fn add_stake_cannot_reach_full_floor_without_the_funds() {
+    new_test_ext().execute_with(|| {
+        const MALLORY: u64 = 5;
+        let _ = <Balances as frame_support::traits::Currency<u64>>::make_free_balance_be(
+            &MALLORY, 1_060,
+        );
+        assert_ok!(Agents::register(RuntimeOrigin::signed(MALLORY), 1_000));
+        for _ in 0..10 {
+            assert_noop!(
+                Agents::add_stake(RuntimeOrigin::signed(MALLORY), 1_000),
+                Error::<Test>::StakeTooLow
+            );
+        }
+        assert_eq!(AgentStake::<Test>::get(MALLORY), Some(1_000));
+        assert!(AgentStake::<Test>::get(MALLORY).unwrap() < FullFloorStake::get());
+    });
+}
+
 #[test]
 fn request_unstake_and_complete_works() {
     new_test_ext().execute_with(|| {
