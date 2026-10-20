@@ -66,11 +66,12 @@ fn ranked_tracks_cannot_route_root() {
 #[test]
 fn ordinary_account_cannot_submit_ranked_root_proposal() {
     externalities().execute_with(|| {
+        let proposal = proposal();
         assert_noop!(
             RankedPolls::submit(
                 RuntimeOrigin::signed(account(2)),
                 root_origin(),
-                proposal(),
+                proposal,
                 DispatchTime::After(1),
             ),
             DispatchError::BadOrigin
@@ -82,11 +83,12 @@ fn ordinary_account_cannot_submit_ranked_root_proposal() {
 fn ranked_member_cannot_submit_ranked_root_proposal() {
     externalities().execute_with(|| {
         add_rank_two(1);
+        let proposal = proposal();
         assert_noop!(
             RankedPolls::submit(
                 RuntimeOrigin::signed(account(1)),
                 root_origin(),
-                proposal(),
+                proposal,
                 DispatchTime::After(1),
             ),
             DispatchError::BadOrigin
@@ -114,7 +116,11 @@ fn one_rank_two_member_cannot_approve_an_ordinary_accounts_root_proposal() {
         ));
         System::set_block_number(1 + 8 * 3_600);
         assert_ok!(RankedPolls::nudge_referendum(RuntimeOrigin::root(), 0));
-        assert_ok!(RankedCollective::vote(RuntimeOrigin::signed(account(1)), 0, true));
+        assert_ok!(RankedCollective::vote(
+            RuntimeOrigin::signed(account(1)),
+            0,
+            true
+        ));
         System::set_block_number(2 + 16 * 3_600);
         assert_ok!(RankedPolls::nudge_referendum(RuntimeOrigin::root(), 0));
         let outcome = pallet_referenda::ReferendumInfoFor::<Runtime, RankedInstance>::get(0);
