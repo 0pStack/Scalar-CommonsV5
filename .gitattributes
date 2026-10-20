@@ -1,0 +1,14 @@
+# One line ending everywhere: LF in the repo and in every working copy, Windows
+# included. The Rust build runs in WSL against the Windows checkout, and Linux
+# tools need LF: shell scripts fail on CRLF and rustfmt.toml asks for Unix newlines.
+* text=auto eol=lf
+
+*.xlsx binary
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.wasm binary
+
+# Generated chain data: no line-by-line diffs, collapsed in GitHub reviews.
+docs/public/chainspec.json       -diff linguist-generated
+deploy/scalar-local-raw.json     -diff linguist-generated
