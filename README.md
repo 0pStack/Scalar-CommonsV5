@@ -27,10 +27,14 @@ Emissions pay for verifiable work, not for holding tokens.
 <div align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/rust.dark.svg">
-    <img alt="Rust logo in animated ASCII" src=".github/assets/rust.svg" width="320">
+    <img alt="Rust logo in animated ASCII" src=".github/assets/rust.svg" width="300">
+  </picture>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/polkadot.dark.svg">
+    <img alt="Polkadot logo in animated ASCII" src=".github/assets/polkadot.svg" width="300">
   </picture>
   <br>
-  <sub>Animation from <a href="https://ascii.rest/rust/">ascii.rest</a> (MIT)</sub>
+  <sub>Rust animation from <a href="https://ascii.rest/rust/">ascii.rest</a> (MIT) · Polkadot mark from <a href="https://simpleicons.org/?q=polkadot">Simple Icons</a> (CC0), animated in the same style</sub>
 </div>
 
 ## Overview
