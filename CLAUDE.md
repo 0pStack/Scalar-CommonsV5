@@ -26,7 +26,9 @@ Toolchain: Polkadot SDK `polkadot-stable2503` (sp-core 36.x, frame-system 40.x, 
 
 ## Commands
 
-All builds/tests run in **GitHub Codespaces or GitHub Actions — never assume a local machine.**
+**Pre-mainnet (now):** builds and tests may also run locally in WSL2, set up per the team setup guide. Prefer package-scoped runs while iterating (e.g. `cargo test -p scalar-commons-runtime`); CI on GitHub Actions still runs the full `cargo test --workspace` on every PR and remains the gate for merging.
+
+**From mainnet onward:** all builds/tests run in **GitHub Codespaces or GitHub Actions — never assume a local machine.** Release runtimes come only from CI.
 
 - Build: `cargo build --release` (WASM runtime builds as part of workspace)
 - Rust tests: `cargo test --workspace`
