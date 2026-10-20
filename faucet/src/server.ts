@@ -37,6 +37,10 @@ export interface FaucetServerOptions {
 const STATUS_BY_CODE: Record<DripFailureCode, number> = {
   INVALID_ADDRESS: 400,
   RATE_LIMITED: 429,
+  // The faucet, not the caller, is out of budget: a 429 would tell an agent it
+  // had already been served (agent/src/onboard.ts reads it that way).
+  FAUCET_PAUSED: 503,
+  LIMITS_UNAVAILABLE: 503,
   INSUFFICIENT_FAUCET_FUNDS: 503,
   TRANSFER_FAILED: 502,
 };
@@ -224,6 +228,8 @@ export function createFaucetServer(options: FaucetServerOptions): Server {
         faucetFreePlancks: status.faucetFreePlancks.toString(),
         dripAmountPlancks: status.dripAmountPlancks.toString(),
         reservePlancks: status.reservePlancks.toString(),
+        paused: status.paused,
+        budget: status.budget,
       });
       return;
     }
@@ -278,7 +284,7 @@ export function createFaucetServer(options: FaucetServerOptions): Server {
     }
 
     const headers: Record<string, string> = {};
-    if (result.code === 'RATE_LIMITED' && result.retryAfterMs !== undefined) {
+    if ((result.code === 'RATE_LIMITED' || result.code === 'FAUCET_PAUSED') && result.retryAfterMs !== undefined) {
       // Retry-After is in whole seconds, rounded up so a client that obeys it
       // does not come back a moment early and get refused again.
       headers['retry-after'] = String(Math.ceil(result.retryAfterMs / 1000));

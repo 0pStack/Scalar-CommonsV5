@@ -129,8 +129,17 @@ Dispenses devnet CMN from a pre-funded account.
   with `503 INSUFFICIENT_FAUCET_FUNDS`, re-checked against the node's live
   balance on every request. That is what stops the faucet draining its own
   account and dying mid-drip.
-- Rate limits are in-memory counters, per address and per IP, and reset on
-  restart. Devnet-grade, not public-internet-grade.
+- Rate limits are per address, per IP (IPv6 per /64) and in total — 20 drips an
+  hour and 50 a day by default (F11, #20). They are kept in
+  `~/.local/state/scalar-commons/faucet-limits.json`, so a restart no longer
+  resets them; deleting that file is the deliberate reset (do it after
+  `deploy/reset-chain.sh`, or a spent budget keeps the new chain's faucet paused
+  for up to a day). Run one faucet per state file. When a total budget
+  is spent, drips answer `503 FAUCET_PAUSED` and the journal gets one
+  `[faucet] ALERT` line per pause.
+- At startup the faucet refuses to run below its reserve, and warns when the
+  funding account holds more than the reserve plus one day's budget: keep the
+  hot wallet to that and the rest in cold storage.
 - `FAUCET_TRUST_PROXY` stays `false`. On a loopback bind every request already
   appears to come from `127.0.0.1`, so honouring `X-Forwarded-For` would let one
   caller forge unlimited distinct IPs and walk straight through the per-IP limit.
@@ -144,8 +153,10 @@ journalctl --user -u scalar-faucet -f
 Tunables: `FAUCET_HOST`, `FAUCET_PORT`, `FAUCET_RPC_ENDPOINT`, `FAUCET_SEED`,
 `FAUCET_SS58_FORMAT`, `FAUCET_DRIP_CMN`, `FAUCET_RESERVE_CMN`,
 `FAUCET_ADDRESS_MAX_REQUESTS`, `FAUCET_ADDRESS_WINDOW_MINUTES`,
-`FAUCET_IP_MAX_REQUESTS`, `FAUCET_IP_WINDOW_MINUTES`, `FAUCET_TRUST_PROXY`.
-See `faucet.env.example`.
+`FAUCET_IP_MAX_REQUESTS`, `FAUCET_IP_WINDOW_MINUTES`, `FAUCET_GLOBAL_HOURLY_MAX`,
+`FAUCET_GLOBAL_DAILY_MAX`, `FAUCET_STATE_FILE`, `FAUCET_LOCK_WAIT_SECONDS`,
+`FAUCET_INCLUSION_TIMEOUT_SECONDS`, `FAUCET_FINALITY_TIMEOUT_SECONDS`,
+`FAUCET_TRUST_PROXY`. See `faucet.env.example`.
 
 ---
 
