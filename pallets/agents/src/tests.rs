@@ -2718,7 +2718,8 @@ fn declared_weight_complete_unstake_covers_appeal_cleanup() {
     // 26 reads: this pallet's 12 — AgentStake, UnstakeAt, block_number,
     //   ActiveEscrowCount, the AgentStake counter, 5 × OpenAppeals `clear_prefix`,
     //   Locks + account for remove_lock — plus 14 for AgentCollective::remove
-    //   (3 per rank × 4 ranks, plus the 2 that end the rank walk).
+    //   (3 per rank × 4 ranks, plus the bridge's rank_of read of Members = 13,
+    //   and one read of headroom kept from the pre-#18 u16::MAX walk).
     // 40 writes: this pallet's 19 — AgentStake value + counter, UnstakeAt,
     //   StakeRegisteredAt, CompletedAgreements, LastHeartbeat, AgentMetadata,
     //   AgentCapabilities, MessagingKey (spec 308), VotingDelegations, PendingSlashAppeals,
@@ -2745,7 +2746,9 @@ fn declared_weight_execute_slash_covers_appeal_cleanup() {
     //   SlashRecords, 5 × OpenAppeals `clear_prefix`, and the balance side —
     //   Locks + account, account + TotalIssuance, TotalIssuance for the burn,
     //   treasury account + TotalIssuance, AgentWeightSnapshot for on_slashed.
-    let floor = worst_case_floor(17, 19);
+    // Plus, on the eviction branch (#18 N5), AgentCollective::remove — the same
+    //   rank-linear 14 reads / 21 writes counted for complete_unstake above.
+    let floor = worst_case_floor(17 + 14, 19 + 21);
     let declared = declared_weight(crate::Call::<Test>::execute_slash {
         who: ALICE,
         bps: 10_000,

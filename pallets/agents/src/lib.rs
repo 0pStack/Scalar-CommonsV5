@@ -1111,13 +1111,15 @@ pub mod pallet {
         ///
         /// Second term, `AgentCollective::remove`, kept separate because it is the one cost
         /// here that is *rank-linear* rather than flat, and a flat allowance would understate
-        /// it. The runtime wires this to `RankedCollective::do_remove_member_from_rank(who,
-        /// u16::MAX)`, which unwinds the member one rank at a time: per rank `MemberCount`
-        /// (read + write), `IdToIndex` and `IndexToId` (read, swap-insert and remove each),
-        /// i.e. 3 reads / 5 writes. `maybe_promote` caps agents at rank 3, so 4 levels =
-        /// 12 reads / 20 writes, plus the 2 reads of the iteration that ends the walk and
-        /// the final `Members` removal. A runtime wiring a collective with more ranks than
-        /// this one must revisit this term.
+        /// it. The runtime's bridge reads the member's rank (`Members`, 1 read) and passes it
+        /// to `RankedCollective::do_remove_member_from_rank(who, rank)`, which unwinds the
+        /// member one rank at a time, 0..=rank: per rank `MemberCount` (read + write),
+        /// `IdToIndex` and `IndexToId` (read, swap-insert and remove each), i.e. 3 reads /
+        /// 5 writes. `maybe_promote` caps agents at rank 3, so 4 levels = 12 reads / 20
+        /// writes, plus the `rank_of` read and the final `Members` removal: 13 reads / 21
+        /// writes, against 14 / 21 declared (one read of headroom, kept from when the bridge
+        /// passed `u16::MAX` and the walk ended on a failed lookup — #18). A runtime wiring
+        /// a collective with more ranks than this one must revisit this term.
         ///
         /// spec 308 adds one write to the first term: the `MessagingKey` removal.
         ///
@@ -1497,10 +1499,15 @@ pub mod pallet {
         /// Root-gated, so this is not a fee surface — but it is still scheduled against a
         /// block's weight budget, and #195's cleanup made the old 5/5 an understatement of
         /// what a block must fit. spec 308 adds one read and one write: the
-        /// `MessagingKey::take` on the eviction branch. Pinned as a floor by
+        /// `MessagingKey::take` on the eviction branch.
+        ///
+        /// Second term (#18 N5), `AgentCollective::remove` on the eviction branch: the same
+        /// rank-linear 14 reads / 21 writes `complete_unstake` declares, for the same reason —
+        /// the runtime unwinds the member one rank at a time. Pinned as a floor by
         /// `declared_weight_execute_slash_covers_appeal_cleanup`.
         #[pallet::call_index(10)]
         #[pallet::weight(T::DbWeight::get().reads_writes(17, 19)
+            .saturating_add(T::DbWeight::get().reads_writes(14, 21))
             .saturating_add(Weight::from_parts(100_000_000, 0)))]
         pub fn execute_slash(
             origin: OriginFor<T>,
@@ -1561,6 +1568,12 @@ pub mod pallet {
                 if MessagingKey::<T>::take(&who).is_some() {
                     Self::deposit_event(Event::MessagingKeyCleared { who: who.clone() });
                 }
+                // #18 N5: nor may it keep its collective seat. Rank is earned by stake and
+                // work; an account slashed out of the agent set has neither, so it must not
+                // keep the rank bonus or the governance standing the rank confers. Leaving
+                // the seat also made re-registration impossible: `register`'s `induct` fails
+                // on an existing member. Mirrors `complete_unstake`.
+                T::AgentCollective::remove(&who);
             }
 
             // Step 4: 50/50 split — treasury receives half, half burned on drop.
