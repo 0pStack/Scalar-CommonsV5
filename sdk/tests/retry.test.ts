@@ -27,7 +27,7 @@ describe('withRetry — no silent retries', () => {
     const result = await withRetry(
       async (attempt) => {
         attempts = attempt;
-        if (attempt < 3) throw new Error(`boom-${attempt}`);
+        if (attempt < 3) throw Object.assign(new Error(`boom-${attempt}`), { code: 'ECONNRESET' });
         return 'recovered';
       },
       'flaky-op',
@@ -52,7 +52,7 @@ describe('withRetry — no silent retries', () => {
     await expect(
       withRetry(
         async (attempt) => {
-          throw new Error(`fail-${attempt}`);
+          throw Object.assign(new Error(`fail-${attempt}`), { code: 'ECONNRESET' });
         },
         'doomed-op',
         { logger, maxRetries: 2, retryDelayMs: 0 },

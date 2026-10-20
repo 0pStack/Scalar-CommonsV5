@@ -100,23 +100,22 @@ describe('argument-only escrow guards are deterministic (#225)', () => {
 });
 
 /**
- * The other side of the boundary. These clear between attempts — a registration or a
- * capability can land while the retry loop is still running — so classifying them
- * would turn a recoverable failure into a hard one. The allowlist exists for this.
+ * #29: even when chain state could change, a dispatch failure already paid a fee.
+ * The caller must resolve it and explicitly choose whether to submit a new call.
  */
-describe('state-dependent errors stay retryable (#225)', () => {
-  const retryable: [string, string][] = [
+describe('state-dependent dispatch errors are not retried (#29)', () => {
+  const dispatchErrors: [string, string][] = [
     ['agents', 'NotRegistered'],
     ['escrow', 'BuyerNotAgent'],
     ['escrow', 'ProviderNotAgent'],
     ['escrow', 'ProviderLacksCapability'],
   ];
 
-  it.each(retryable)('%s.%s is not deterministic', (section, name) => {
-    expect(isDeterministicFailure(new DispatchFailure(section, name, ''))).toBe(false);
+  it.each(dispatchErrors)('%s.%s is a dispatch failure', (section, name) => {
+    expect(isDeterministicFailure(new DispatchFailure(section, name, ''))).toBe(true);
   });
 
-  it('agents.NotRegistered still costs the full four attempts', async () => {
+  it('agents.NotRegistered costs only one attempt', async () => {
     const logger = spyLogger();
     const err = new DispatchFailure('agents', 'NotRegistered', '');
     const fn = vi.fn(async () => {
@@ -126,9 +125,9 @@ describe('state-dependent errors stay retryable (#225)', () => {
     await expect(
       withRetry(fn, 'heartbeat', { logger, maxRetries: 3, retryDelayMs: 0 }),
     ).rejects.toBe(err);
-    expect(fn).toHaveBeenCalledTimes(4);
-    // Three retries announced, then one give-up: unchanged by #225.
-    expect(logger.calls.filter((c) => c.level === 'warn')).toHaveLength(3);
+    expect(fn).toHaveBeenCalledTimes(1);
+    // No repeated fee; the caller sees the original error immediately.
+    expect(logger.calls.filter((c) => c.level === 'warn')).toHaveLength(0);
     expect(logger.calls.filter((c) => c.level === 'error')).toHaveLength(1);
   });
 });

@@ -246,15 +246,15 @@ describe('ScalarCommonsClient — submit retries are logged, never silent', () =
     };
 
     const { api } = makeMockApi();
-    // Override register with a tx that fails once (module error) then succeeds.
+    // A pool rejection is transient and has not reached runtime dispatch.
     let attempt = 0;
     (api as unknown as { tx: { agents: { register: unknown } } }).tx.agents.register = () => ({
       signAndSend: (_s: unknown, cb: (r: unknown) => void) => {
         attempt += 1;
         if (attempt === 1) {
           cb({
-            status: { isInBlock: false, isInvalid: false, isDropped: false, isUsurped: false, type: 'Ready' },
-            dispatchError: { isModule: true, asModule: {} },
+            status: { isInBlock: false, isInvalid: false, isDropped: true, isUsurped: false, type: 'Dropped' },
+            dispatchError: undefined,
             txHash: { toHex: () => '0xtx' },
           });
         } else {
@@ -281,6 +281,32 @@ describe('ScalarCommonsClient — submit retries are logged, never silent', () =
     expect(res.blockHash).toBe('0xblock2');
     // The retry was surfaced (not silent).
     expect(logged.some((l) => l.startsWith('warn:') && l.includes('attempt 1/4'))).toBe(true);
+  });
+});
+
+/** Exercise the real submission boundary, not just the retry helper (#29). */
+describe('ScalarCommonsClient — dispatch failures stop resubmission', () => {
+  it.each([
+    { isModule: true, asModule: {} },
+    { isModule: false, type: 'Token' },
+    { isModule: false, type: 'Arithmetic' },
+  ])('does not resubmit an included dispatch failure: %j', async (dispatchError) => {
+    const { api } = makeMockApi();
+    const signAndSend = vi.fn((_signer: unknown, cb: (r: unknown) => void) => {
+      cb({
+        status: { isInBlock: true, type: 'InBlock' },
+        dispatchError,
+        txHash: { toHex: () => '0xfailed' },
+      });
+      return Promise.resolve(() => {});
+    });
+    (api as unknown as { tx: { agents: { register: unknown } } }).tx.agents.register = () => ({ signAndSend });
+    const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
+    const client = new ScalarCommonsClient(api, { logger, retryDelayMs: 0, maxRetries: 3 });
+    await expect(client.register(SIGNER, 10n)).rejects.toMatchObject({ name: 'DispatchFailure' });
+    expect(signAndSend).toHaveBeenCalledTimes(1);
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledTimes(1);
   });
 });
 
