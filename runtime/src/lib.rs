@@ -13,6 +13,9 @@ pub mod scalar_api;
 // as `governance::origins::*` / `governance::tracks::*`.
 pub mod governance;
 
+#[cfg(test)]
+mod filter_tests;
+
 use scalar_api::{AgentInfo, EraSnapshot};
 
 pub mod opaque {
