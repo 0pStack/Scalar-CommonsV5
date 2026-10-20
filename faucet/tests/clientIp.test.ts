@@ -24,7 +24,9 @@
 
 import { describe, expect, it } from 'vitest';
 import type { IncomingMessage } from 'node:http';
-import { clientIp } from '../src/server.ts';
+import type { AddressInfo } from 'node:net';
+import { clientIp, createFaucetServer, ipBucket } from '../src/server.ts';
+import type { FaucetService } from '../src/faucet.ts';
 
 const PEER = '198.51.100.7';
 
@@ -84,5 +86,80 @@ describe('clientIp: the rate-limit key must not be attacker-chosen', () => {
 
   it('never returns an empty string, even with no peer and no header', () => {
     expect(clientIp(req(undefined, {}), true)).toBe('unknown');
+  });
+});
+
+/**
+ * F11 (#20): one IPv6 subscriber is usually handed a whole /64, so keying the
+ * per-IP budget on the full address gives them 2^64 fresh buckets. The budget
+ * has to be spent against the /64 instead.
+ */
+describe('ipBucket: one IPv6 subscriber is one bucket (F11, #20)', () => {
+  it('leaves IPv4 untouched', () => {
+    expect(ipBucket('203.0.113.9')).toBe('203.0.113.9');
+  });
+
+  it('puts two addresses from the same /64 in one bucket', () => {
+    expect(ipBucket('2001:db8:1:2::1')).toBe(ipBucket('2001:db8:1:2:ffff:ffff:ffff:fffe'));
+  });
+
+  it('separates different /64s', () => {
+    expect(ipBucket('2001:db8:1:2::1')).not.toBe(ipBucket('2001:db8:1:3::1'));
+  });
+
+  it('treats compressed and expanded spellings of the same prefix alike', () => {
+    expect(ipBucket('2001:db8::1')).toBe(ipBucket('2001:0DB8:0000:0000:0000:0000:0000:0002'));
+  });
+
+  it('names the bucket by its /64 prefix', () => {
+    expect(ipBucket('2001:db8:a:b:1:2:3:4')).toBe('2001:db8:a:b::/64');
+    expect(ipBucket('2001:db8::1')).toBe('2001:db8::/64');
+  });
+
+  it('maps an IPv4-mapped IPv6 address back to its IPv4 address', () => {
+    expect(ipBucket('::ffff:203.0.113.9')).toBe('203.0.113.9');
+  });
+
+  it('ignores a zone index', () => {
+    expect(ipBucket('fe80::1%eth0')).toBe('fe80::/64');
+  });
+
+  it('groups by the /64 wherever the zero run falls', () => {
+    expect(ipBucket('2001:db8:1::5')).toBe(ipBucket('2001:DB8:1:0:5::'));
+    expect(ipBucket('2001:db8:1::5')).not.toBe(ipBucket('2001:db8:2::5'));
+  });
+
+  it('passes through anything it cannot parse, so it is still a key', () => {
+    expect(ipBucket('unknown')).toBe('unknown');
+    expect(ipBucket('2001:db8::zz')).toBe('2001:db8::zz');
+    expect(ipBucket('')).toBe('');
+  });
+});
+
+describe('POST /drip spends the per-IP budget against the /64 (F11, #20)', () => {
+  it('hands the faucet the same key for two addresses from one /64', async () => {
+    const seen: string[] = [];
+    const recorder = {
+      drip: async (_address: unknown, ip: string) => {
+        seen.push(ip);
+        return { ok: false, code: 'RATE_LIMITED', error: 'recorded' } as const;
+      },
+    } as unknown as FaucetService;
+
+    const server = createFaucetServer({ faucet: recorder, trustProxy: true });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    try {
+      for (const ip of ['2001:db8:1:2::1', '2001:db8:1:2::2']) {
+        await fetch(`http://127.0.0.1:${port}/drip`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
+          body: JSON.stringify({ address: 'any' }),
+        });
+      }
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+    expect(seen).toEqual(['2001:db8:1:2::/64', '2001:db8:1:2::/64']);
   });
 });
