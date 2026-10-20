@@ -99,7 +99,8 @@ callers.
 WebSocket frames, and `$request_body` is unavailable in its rewrite phase. The
 proxy contributes TLS and rate limiting, nothing more.
 
-So the check is only meaningful while safe mode is on. Confirm the flag is
+This check concerns the node's `--rpc-methods safe` flag, not the on-chain
+`SafeMode` pallet. Confirm the RPC flag is
 actually live on the running process, not merely present in the unit file:
 
 ```bash
@@ -360,9 +361,52 @@ consults about root access must not describe a state the chain is not in.
 
 ---
 
+## (g) Emergency filters enforce calls and preserve recovery
+
+This check applies to the reviewed spec-311 runtime (or a reviewed later
+artifact retaining the fix for #60). In spec 310 and earlier, SafeMode/TxPause
+storage could change while the base filter never consulted either pallet.
+A runtime version, stored flag or successful pause extrinsic alone is not
+behavioral verification.
+
+Use controlled funded test accounts on an isolated staging chain, preserving
+an authorized recovery signer. Record the runtime artifact hash, finalized
+blocks, outer and inner dispatch results, balances and cleanup evidence.
+
+1. Through Root, pause `Balances.transfer_allow_death` with TxPause. Submit that
+   transfer from an ordinary signed account. It must fail with
+   `system.CallFiltered` and leave the destination balance unchanged. Unpause
+   it and verify the signed transfer succeeds.
+2. Enter SafeMode through Root. The ordinary transfer must fail while blocks
+   continue. System, Sudo and both brake controls must remain available. Leaving
+   SafeMode must not lift an independent TxPause entry.
+3. Attempt to pause `Timestamp.set`, `System.remark`, `Sudo.sudo`,
+   `SafeMode.force_exit` and `TxPause.unpause`. The inner Root calls must return
+   `Unpausable`. Settlement and claim names listed in
+   [the filter reference](../../docs/reference/emergency-filters.md) are also
+   protected. Inspect `sudo.Sudid`, not just outer extrinsic success.
+4. Review CI evidence from the exact source artifact: the Executive tests must
+   accept `timestamp.set` at issuance `cap + 1`, keep signed Sudo recovery
+   usable, and reject unsafe historical staking payouts before claim markers,
+   ledger or beneficiary balances change. Both payout entry variants and the
+   pinned SDK's rounding case are covered. Do not manufacture an over-cap state
+   on a live chain to run this check.
+
+**Pass:** signed ordinary calls are actually blocked by the selected brake,
+cleanup restores them, inherents/recovery remain live, and the matched Executive
+regression run passes. **Fail:** accepting a paused signed call, freezing block
+production, pausing recovery, or relying on a storage flag without a dispatch.
+
+Before an upgrade, inventory existing SafeMode and TxPause state. Noncritical
+pauses that were previously inert begin enforcing immediately; whitelisted
+legacy entries remain stored but ignored. This PR changes no live chain state.
+
+---
+
 ## Result
 
-Exposure is correct only when (a), (b), (c), (d), (e) and (f) all pass **and**
+Exposure and runtime recovery are verified only when (a), (b), (c), (d), (e),
+(f) and (g) all pass **and**
 the `nmap` sweep in (b) shows 9944–9948 unreachable from off-host. If any check
 fails, roll back per INSTALL.md before debugging in place.
 
@@ -371,7 +415,10 @@ broken, but (e) failing means anyone on the internet owns the chain.
 
 ### Last full run
 
-scalarnet.io, 2026-09-09. All checks pass; the complete PASS/FAIL table with raw
+The historical run below predates check (g); it does not verify the new runtime
+filter composition.
+
+scalarnet.io, 2026-09-09. Checks (a)–(f) passed; the complete PASS/FAIL table with raw
 evidence is in `docs/history/PUBLIC-LAUNCH.md`. The off-host sweep, which
 cannot be run from the server itself, was confirmed from an external host at
 14:40 CEST: **9944/9945/9948/8080/8082 unreachable, port 80 answers, ws upgrade

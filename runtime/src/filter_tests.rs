@@ -1,8 +1,9 @@
 //! Executive regressions for emergency filtering and cap-safe mint admission (#60).
 
 use crate::{
-    AccountId, Address, Balance, Balances, Executive, Header, Runtime, RuntimeCall, RuntimeOrigin,
-    SafeMode, Signature, SignedExtra, Staking, TxPause, UncheckedExtrinsic, CMN, SUPPLY_CAP,
+    AccountId, Address, Balance, Balances, Executive, Header, Runtime, RuntimeCall, RuntimeEvent,
+    RuntimeOrigin, SafeMode, Signature, SignedExtra, Staking, System, TxPause, UncheckedExtrinsic,
+    CMN, SUPPLY_CAP,
 };
 use frame_support::{assert_ok, traits::tokens::fungible::hold::Inspect as InspectHold};
 use parity_scale_codec::Encode;
@@ -156,6 +157,12 @@ fn leaving_safe_mode_does_not_disable_a_surgical_pause() {
 #[test]
 fn over_cap_timestamp_inherent_still_applies_through_executive() {
     externalities().execute_with(|| {
+        assert_ok!(SafeMode::force_enter(RuntimeOrigin::root()));
+        let legacy: pallet_tx_pause::RuntimeCallNameOf<Runtime> = (
+            b"Timestamp".to_vec().try_into().unwrap(),
+            b"set".to_vec().try_into().unwrap(),
+        );
+        pallet_tx_pause::PausedCalls::<Runtime>::insert(legacy, ());
         pallet_balances::TotalIssuance::<Runtime>::put(SUPPLY_CAP.saturating_add(1));
         apply_ok(timestamp());
         assert_eq!(crate::Timestamp::get(), crate::MILLISECS_PER_BLOCK);
@@ -196,6 +203,9 @@ fn emergency_controls_inherents_and_economic_liveness_are_unpausable() {
             ("Emissions", "claim"),
             ("Emissions", "batch_claim"),
             ("Orchestrator", "claim_orchestrator"),
+            ("NominationPools", "claim_payout"),
+            ("NominationPools", "claim_payout_other"),
+            ("NominationPools", "claim_commission"),
             ("Staking", "payout_stakers"),
             ("Staking", "payout_stakers_by_page"),
         ] {
@@ -379,5 +389,93 @@ fn zero_reward_does_not_require_mint_headroom() {
         let before = Balances::free_balance(account(2));
         apply_ok(signed(payout(false), 1, 0));
         assert_eq!(Balances::free_balance(account(2)), before);
+    });
+}
+
+#[test]
+fn over_cap_nonminting_transfer_remains_live() {
+    externalities().execute_with(|| {
+        apply_ok(timestamp());
+        pallet_balances::TotalIssuance::<Runtime>::put(
+            SUPPLY_CAP.saturating_add(CMN.saturating_mul(1_000)),
+        );
+        let before = Balances::free_balance(account(2));
+        apply_ok(signed(transfer(), 1, 0));
+        assert_eq!(
+            Balances::free_balance(account(2)),
+            before.saturating_add(CMN)
+        );
+    });
+}
+
+#[test]
+fn ordinary_utility_batch_cannot_bypass_a_paused_inner_call() {
+    externalities().execute_with(|| {
+        apply_ok(timestamp());
+        assert_ok!(TxPause::pause(RuntimeOrigin::root(), transfer_name()));
+        let before = Balances::free_balance(account(2));
+        let batch = RuntimeCall::Utility(pallet_utility::Call::batch {
+            calls: vec![transfer()],
+        });
+        apply_ok(signed(batch, 1, 0));
+        assert_eq!(Balances::free_balance(account(2)), before);
+        assert!(System::events().iter().any(|record| matches!(
+            &record.event,
+            RuntimeEvent::Utility(pallet_utility::Event::BatchInterrupted { index: 0, error })
+                if *error == frame_system::Error::<Runtime>::CallFiltered.into()
+        )));
+    });
+}
+
+#[test]
+fn protected_emissions_batch_keeps_its_real_mint_clamp() {
+    externalities().execute_with(|| {
+        apply_ok(timestamp());
+        for n in [2, 3] {
+            assert_ok!(crate::Agents::register(
+                RuntimeOrigin::signed(account(n)),
+                crate::AgentsMinStake::get(),
+            ));
+        }
+        assert_ok!(SafeMode::force_enter(RuntimeOrigin::root()));
+        pallet_emissions::AccRewardPerStake::<Runtime>::put(
+            pallet_emissions::ACC_SCALE.saturating_mul(10),
+        );
+        for n in [2, 3] {
+            pallet_emissions::AgentWeightSnapshot::<Runtime>::insert(account(n), 1);
+        }
+        pallet_balances::TotalIssuance::<Runtime>::put(SUPPLY_CAP.saturating_sub(5));
+        let first = Balances::free_balance(account(2));
+        let second = Balances::free_balance(account(3));
+        let call = RuntimeCall::Emissions(pallet_emissions::Call::batch_claim {
+            agents: vec![account(2), account(3)],
+        });
+        apply_ok(signed(call, 1, 0));
+        assert_eq!(Balances::free_balance(account(2)), first.saturating_add(5));
+        assert_eq!(Balances::free_balance(account(3)), second);
+        assert!(Balances::total_issuance() <= SUPPLY_CAP);
+    });
+}
+
+#[test]
+fn protected_orchestrator_claim_keeps_its_real_mint_clamp() {
+    externalities().execute_with(|| {
+        apply_ok(timestamp());
+        assert_ok!(SafeMode::force_enter(RuntimeOrigin::root()));
+        pallet_orchestrator::OrchestratorGlobalAcc::<Runtime>::put(
+            pallet_orchestrator::ACC_SCALE.saturating_mul(10),
+        );
+        pallet_orchestrator::OrchestratorWeightSnapshot::<Runtime>::insert(account(2), 1);
+        pallet_balances::TotalIssuance::<Runtime>::put(SUPPLY_CAP.saturating_sub(5));
+        let call = RuntimeCall::Orchestrator(pallet_orchestrator::Call::claim_orchestrator {});
+        apply_ok(signed(call, 2, 0));
+        assert!(System::events().iter().any(|record| matches!(
+            &record.event,
+            RuntimeEvent::Orchestrator(pallet_orchestrator::Event::OrchestratorRewardClaimed {
+                amount: 5,
+                ..
+            })
+        )));
+        assert!(Balances::total_issuance() <= SUPPLY_CAP);
     });
 }

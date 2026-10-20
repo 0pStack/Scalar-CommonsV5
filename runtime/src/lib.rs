@@ -212,7 +212,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // 309 -> 310: shut down RankedPolls submissions and legacy track servicing
     // (#59). Storage and call encodings are unchanged. Resolve old polls and
     // scheduled enactments before upgrading; see docs/reference/ranked-polls-upgrade.md.
-    spec_version: 310,
+    // 310 -> 311: wire both emergency filters, preserve recovery and admit legacy
+    // staking mints conservatively (#60). No storage or call encoding changes.
+    spec_version: 311,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -246,21 +248,35 @@ parameter_types! {
 }
 
 // ─── frame_system ─────────────────────────────────────────────────────────────
-/// V4: BaseCallFilter wraps the constitution check.
-/// Blocks any call that would breach the supply cap invariant.
-/// All other calls pass through to their respective pallets.
-/// Per-call invariants (self-deal, cooldown, burn) are enforced within individual pallets.
+/// Admit legacy staking mint calls before claim markers or funds change (#60).
+/// Ordinary non-minting calls must stay live even if issuance already exceeds the cap.
+/// Root dispatch bypasses FRAME filters and remains a privileged trust boundary.
 pub struct ConstitutionalFilter;
 impl frame_support::traits::Contains<RuntimeCall> for ConstitutionalFilter {
-    fn contains(_call: &RuntimeCall) -> bool {
-        // Invariant 1: supply cap. Checked on every extrinsic dispatch.
-        // Returns false to BLOCK the call if cap is already breached.
-        pallet_constitution::Pallet::<Runtime>::base_call_allowed()
+    fn contains(call: &RuntimeCall) -> bool {
+        match call {
+            RuntimeCall::Staking(
+                pallet_staking::Call::payout_stakers { era, .. }
+                | pallet_staking::Call::payout_stakers_by_page { era, .. },
+            ) => {
+                let pot =
+                    pallet_staking::ErasValidatorReward::<Runtime>::get(era).unwrap_or_default();
+                // Perbill multiplication rounds to nearest. Twice the whole era pot
+                // bounds a page even for old clipped exposures of arbitrary width.
+                // A pot-only bound is unsafe: three 1/3 shares of 2 can mint 3 plancks.
+                pot.checked_mul(2)
+                    .is_some_and(pallet_constitution::Pallet::<Runtime>::mint_within_cap)
+            }
+            _ => true,
+        }
     }
 }
 
 impl frame_system::Config for Runtime {
-    type BaseCallFilter = ConstitutionalFilter;
+    type BaseCallFilter = frame_support::traits::InsideBoth<
+        ConstitutionalFilter,
+        frame_support::traits::InsideBoth<SafeMode, TxPause>,
+    >;
     type BlockWeights = BlockWeights;
     type BlockLength = BlockLength;
     type RuntimeOrigin = RuntimeOrigin;
@@ -722,30 +738,45 @@ parameter_types! {
     /// No deposits are taken, so there is nothing to hold back on release.
     pub const NoReleaseDelay: Option<BlockNumber> = None;
 }
-/// Calls permitted through SafeMode when the chain is paused.
-/// Only governance calls pass — agents can still vote to exit safe mode.
+/// Recovery and earned-reward liveness must not depend on lifting a pause (#60).
+/// Matching a name grants no privilege: each pallet still checks the call's origin.
+fn is_liveness_call(pallet: &[u8], call: &[u8]) -> bool {
+    match pallet {
+        b"Timestamp" | b"System" | b"Sudo" | b"SafeMode" | b"TxPause" | b"Referenda"
+        | b"ConvictionVoting" | b"RankedCollective" | b"Whitelist" => true,
+        b"Emissions" => matches!(call, b"settle_era" | b"claim" | b"batch_claim"),
+        b"Orchestrator" => call == b"claim_orchestrator",
+        b"NominationPools" => matches!(
+            call,
+            b"claim_payout" | b"claim_payout_other" | b"claim_commission"
+        ),
+        b"Staking" => matches!(call, b"payout_stakers" | b"payout_stakers_by_page"),
+        _ => false,
+    }
+}
+
+/// Calls permitted through SafeMode so blocks, recovery and reward claims stay live.
 pub struct SafeModeWhitelistedCalls;
 impl frame_support::traits::Contains<RuntimeCall> for SafeModeWhitelistedCalls {
     fn contains(call: &RuntimeCall) -> bool {
-        matches!(
-            call,
-            // Governance must stay live so TC can act and resolve the emergency
-            RuntimeCall::Referenda(_)        |
-            RuntimeCall::ConvictionVoting(_) |
-            RuntimeCall::Whitelist(_)        |
-            RuntimeCall::SafeMode(_)         |
-            // TC (ranked-collective) must be able to vote to exit SafeMode
-            // post-sudo-removal — otherwise there is a deadlock where SafeMode
-            // blocks the only actors who can exit it.
-            RuntimeCall::RankedCollective(_) |
-            // Sudo must stay live during the 14-day bootstrap window
-            RuntimeCall::Sudo(_)             |
-            // System utility calls (timestamp inherent, etc.) must pass
-            RuntimeCall::Timestamp(_)        |
-            RuntimeCall::System(_)
+        let metadata = frame_support::traits::GetCallMetadata::get_call_metadata(call);
+        is_liveness_call(
+            metadata.pallet_name.as_bytes(),
+            metadata.function_name.as_bytes(),
         )
     }
 }
+
+/// Calls that can never be paused, including old stored entries for protected names.
+pub struct UnpausableCalls;
+impl frame_support::traits::Contains<pallet_tx_pause::RuntimeCallNameOf<Runtime>>
+    for UnpausableCalls
+{
+    fn contains(name: &pallet_tx_pause::RuntimeCallNameOf<Runtime>) -> bool {
+        is_liveness_call(name.0.as_slice(), name.1.as_slice())
+    }
+}
+
 // stable2503 reshaped this Config. The old origin-gated entry
 // (EnterOrigin/ExitOrigin/MaxDuration/EnteredDeposit/ExtendDeposit) is gone;
 // entry is now either permissionless-with-deposit or via a Force*Origin that
@@ -786,20 +817,15 @@ impl pallet_safe_mode::Config for Runtime {
 }
 
 // ─── pallet-tx-pause (V4: surgical pause of specific extrinsics) ──────────────
-// stable2503 drift: `FullNameOf` was removed (the pallet derives call names
-// itself now) and `WhitelistedCalls: Contains<RuntimeCallNameOf<Self>>` was
-// added — the set of calls that may NEVER be paused.
-//
-// `()` is the faithful port: the previous config carried no such protection, so
-// every call was pausable, and `()` preserves exactly that. See docs/history/ROUND3.md — this
-// interacts with first principle #3 ("no root-gated liveness") and is flagged
-// there for review rather than silently changed here.
+// The surgical pause cannot disable inherents, recovery, governance or earned
+// reward claims. Shared names also protect SafeMode liveness. The SDK ignores
+// legacy paused entries for these names without deleting their storage (#60).
 impl pallet_tx_pause::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type RuntimeCall = RuntimeCall;
     type PauseOrigin = EnsureRoot<AccountId>; // TC → root
     type UnpauseOrigin = EnsureRoot<AccountId>;
-    type WhitelistedCalls = ();
+    type WhitelistedCalls = UnpausableCalls;
     type MaxNameLen = ConstU32<256>;
     type WeightInfo = pallet_tx_pause::weights::SubstrateWeight<Runtime>;
 }
@@ -930,8 +956,8 @@ impl pallet_staking::Config for Runtime {
     // nothing. See docs/history/TESTNETAUDIT.md §6 I-2 and issue #120.
     //
     // `()` implements EraPayout returning (Zero, Zero): no validator payout, no
-    // remainder to the treasury. pallet-emissions becomes the only mint path,
-    // which is what every published document already claims.
+    // remainder to the treasury. Ongoing rewards use the capped emissions and
+    // orchestrator claim paths; historical staking liabilities remain below.
     //
     // The REWARD_CURVE above is retained deliberately and is now unused by this
     // Config. It is the record of what the inflation schedule WAS, which the
@@ -946,13 +972,12 @@ impl pallet_staking::Config for Runtime {
     // TWO CONSEQUENCES, both deliberate, both recorded here so the next reader
     // does not have to rediscover them:
     //
-    // 1. `payout_stakers` is now the ONLY live staking mint path, and it has no
-    //    cap check at its own call site — pallet_constitution's gate is post-hoc
-    //    and only fires once issuance already exceeds the cap. With ~94B CMN of
-    //    headroom the ~14.6M cannot breach it, but "every mint is cap-checked"
-    //    is not true of that path. Deliberately NOT fixed here: a migration
-    //    clearing ErasValidatorReward is a storage change, and this upgrade is
-    //    scoped to the Config type. Tracked on issue #120, which stays open.
+    // 1. Both historical payout entry calls remain live. ConstitutionalFilter
+    //    admits ordinary dispatch only when twice the whole era pot fits below
+    //    the cap (#60), covering nearest rounding without modifying claim markers
+    //    or ledgers. Root bypass remains trusted. Existing rewards are preserved;
+    //    no liability-clearing migration is performed. See the filter reference
+    //    for the conservative bound and the historical #120 provenance.
     //
     // 2. Validator compensation is now exactly zero. Era payout is (0, 0) and
     //    transaction fees are burned (OnChargeTransaction = FungibleAdapter with
@@ -1962,12 +1987,11 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
-    /// 310 shuts down RankedPolls submissions and legacy track servicing (#59).
-    /// Messaging used 309; the emergency rollback blob retains 308. The shutdown
-    /// preserves existing storage and call encodings.
+    /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
+    /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_310() {
-        assert_eq!(VERSION.spec_version, 310);
+    fn spec_version_is_311() {
+        assert_eq!(VERSION.spec_version, 311);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
