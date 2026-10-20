@@ -65,7 +65,7 @@ describe('escrow.SpanTooLong is deterministic (#225)', () => {
     const errors = logger.calls.filter((c) => c.level === 'error');
     expect(errors).toHaveLength(1);
     expect(errors[0]?.message).toContain('attempt 1/4');
-    expect(errors[0]?.message).toContain('deterministic error, not retrying');
+    expect(errors[0]?.message).toContain('dispatch error, not retrying');
     expect(errors[0]?.meta).toMatchObject({ attempt: 1, totalAttempts: 4 });
     expect(errors[0]?.meta?.error).toContain('escrow.SpanTooLong');
   });

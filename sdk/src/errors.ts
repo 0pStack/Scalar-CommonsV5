@@ -1,15 +1,14 @@
 /**
- * A dispatch error the runtime returned for an extrinsic that *was* included in a block.
+ * A dispatch error returned by the runtime after an extrinsic reached a block.
  *
- * Economic why: inclusion already charged the fee. The outcome is decided by chain
- * state and the call's arguments, so resubmitting the same call earns the same
- * error and burns another fee (#160). These errors are therefore never retried.
+ * Inclusion already charged a fee. Surface the failure to the caller instead of
+ * paying again automatically, even if later chain state could change the result.
  */
 export class DispatchFailure extends Error {
   constructor(
-    /** Pallet name, e.g. `escrow` (`system` for non-module errors such as `BadOrigin`). */
+    /** Pallet name (`system` for non-module errors such as `BadOrigin`). */
     readonly section: string,
-    /** Error variant, e.g. `MinDeliveryBlocksNotElapsed`, `BadOrigin`, `InsufficientBalance`. */
+    /** Runtime error variant, including variants unknown to this SDK version. */
     readonly errorName: string,
     docs: string,
   ) {
@@ -19,50 +18,38 @@ export class DispatchFailure extends Error {
 }
 
 /**
- * Dispatch errors that are a pure function of chain state and call arguments (#160).
+ * Compatibility predicate: every dispatch failure stops automatic retries (#29).
  *
- * Every name here is a guard whose verdict follows from the call's own arguments and a
- * runtime constant, so attempt four fails exactly as attempt one did — three fees later:
- *
- *  - `MinDeliveryBlocksNotElapsed`, `BadOrigin` — the original #160 pair.
- *  - `SpanTooLong` — `deliver_by` beyond `MaxAgreementSpan`. Reachable since E21 (#198)
- *    replaced spec 306's silent clamp with an error; see the release note for #219.
- *  - `DeadlineTooEarly` — `deliver_by` inside `MinDeliveryBlocks`, the same comparison
- *    from the other side.
- *  - `SelfDeal` — buyer equals provider: the signer against an argument, no state at all.
- *  - `AmountTooLow` — `amount` below `MinAgreementAmount`.
- *
- * Deliberately *not* here, though the guards look similar (#225 audit):
- *  - `BuyerNotAgent`, `ProviderNotAgent`, `ProviderLacksCapability`, `NotRegistered` —
- *    a registration or a capability can land while the retry loop is still running.
- *  - `SeqOverflow`, `DeadlinePassed`, `DeadlineWouldExceedMaxSpan` — decided against
- *    stored state (a counter, the head block, an agreement's `created_at`), not constants.
- *  - `StakeTooLow`, `InvalidSlashBps` — each pallet raises these from a second,
- *    state-dependent guard as well, and this match is by name, not by `section`.
+ * The historical name describes the retry policy, not whether future chain state
+ * can change the result. Keep this export for existing SDK consumers.
  */
-const DETERMINISTIC_NAMES = new Set([
-  'MinDeliveryBlocksNotElapsed',
-  'BadOrigin',
-  'SpanTooLong',
-  'DeadlineTooEarly',
-  'SelfDeal',
-  'AmountTooLow',
+export function isDeterministicFailure(err: unknown): boolean {
+  return err instanceof DispatchFailure;
+}
+
+/** Node transport codes; an arbitrary application error is not a retry signal. */
+const TRANSPORT_CODES = new Set([
+  'ECONNRESET', 'ECONNREFUSED', 'ECONNABORTED', 'EPIPE',
+  'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN',
 ]);
 
 /**
- * True when retrying `err` cannot change the outcome: a {@link DispatchFailure}
- * whose name is in {@link DETERMINISTIC_NAMES} or starts with `Insufficient`
- * (#160, extended by #225).
+ * Retry only recognized transport failures or pre-dispatch pool statuses (#29).
  *
- * The list stays deliberately explicit rather than "every dispatch error": other
- * module errors (e.g. `NotRegistered`) can clear between attempts, and classifying
- * one of those would convert a recoverable failure into a hard one — strictly worse
- * than the duplicate fee it saves. A name is admitted only when its guard compares
- * call arguments against a runtime constant, and only for calls this SDK submits.
- * Transport failures and pool statuses (`Dropped`, `Invalid`, `Usurped`) never
- * reached dispatch and stay retryable.
+ * polkadot-js WsProvider emits plain Errors, so recognize its specific connection
+ * and request-timeout messages (including an RPC method prefix), plus Node socket
+ * codes. Pool messages are constructed by our submission boundary. Fail closed
+ * for unknown errors; never infer retryability from a runtime variant's name.
  */
-export function isDeterministicFailure(err: unknown): boolean {
-  if (!(err instanceof DispatchFailure)) return false;
-  return DETERMINISTIC_NAMES.has(err.errorName) || err.errorName.startsWith('Insufficient');
+export function isRetryableFailure(err: unknown): boolean {
+  if (!(err instanceof Error) || isDeterministicFailure(err) || err.name === 'DispatchFailure') {
+    return false;
+  }
+  const code = 'code' in err ? err.code : undefined;
+  if (typeof code === 'string' && TRANSPORT_CODES.has(code)) return true;
+
+  return /^transaction not included: status=(Dropped|Invalid|Usurped)$/.test(err.message)
+    || /(?:^|: )WebSocket is not connected$/.test(err.message)
+    || /(?:^|: )disconnected from wss?:\/\/\S+: \d+::(?: .*)?$/.test(err.message)
+    || /(?:^|: )No response received from RPC endpoint in \d+(?:\.\d+)?s$/.test(err.message);
 }

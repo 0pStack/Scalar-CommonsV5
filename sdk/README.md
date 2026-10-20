@@ -46,35 +46,24 @@ await client.acceptEscrow(a, b.address, 0, hash);
 await client.completeEscrow(b, a.address, 0);
 ```
 
-## Retries and deterministic errors
+## Retry policy
 
-Transient failures (transport, `Dropped`/`Invalid`/`Usurped` pool statuses) are retried
-up to `maxRetries` times, each retry logged. Dispatch errors whose verdict the runtime
-reaches from the call's own arguments and a runtime constant are **never** retried: they
-arrive as a `DispatchFailure` (with `section` and `errorName`) after one attempt, because
-resubmitting only pays another fee (#160). `isDeterministicFailure(err)` exposes the rule.
+Only recognized transport failures and `Dropped`/`Invalid`/`Usurped` pool statuses
+are retried, up to `maxRetries` times. Every retry is logged with its attempt
+number and the triggering error. Known WebSocket connection/response-timeout
+messages and Node socket error codes identify transport failures.
 
-The classified set:
+**Every runtime dispatch error stops after one attempt**, including module
+variants unknown to this SDK and non-module errors such as Token or Arithmetic.
+The original `DispatchFailure` exposes `section` and `errorName`. Dispatch already
+paid a fee; the SDK must not pay again automatically just because a registration,
+capability or other chain state might change (#29). The caller can inspect the
+failure, resolve its cause and explicitly decide whether to submit a new call.
 
-| Error | Why retrying cannot help |
-|---|---|
-| `MinDeliveryBlocksNotElapsed` | Delivery inside `MinDeliveryBlocks` of creation (#160). |
-| `BadOrigin` | The signer is the wrong origin for the call (#160). |
-| `Insufficient*` | Balance/stake below what the call needs (#160). |
-| `escrow.SpanTooLong` | `deliverBy` is beyond `MaxAgreementSpan` (#225). |
-| `escrow.DeadlineTooEarly` | `deliverBy` is inside `MinDeliveryBlocks` (#225). |
-| `escrow.SelfDeal` | Buyer equals provider — signer against an argument (#225). |
-| `escrow.AmountTooLow` | `amount` is below `MinAgreementAmount` (#225). |
-
-`SpanTooLong` became reachable with E21, which replaced spec 306's silent deadline clamp
-with an error — see the release note for
-[#219](https://github.com/tejaspatil1936/scalar-commons-v4/issues/219) for what that means
-for a client that used to rely on the clamp.
-
-The set is an allowlist, not "every module error". Errors that can clear between attempts
-stay retryable — `agents.NotRegistered`, `escrow.BuyerNotAgent`,
-`escrow.ProviderLacksCapability` all pass once a registration or a capability lands, and
-classifying one of those would turn a recoverable failure into a hard one.
+Unknown errors also stop immediately. `isRetryableFailure(err)` exposes the
+transport/pool allowlist. The compatibility export `isDeterministicFailure(err)`
+now returns true for every `DispatchFailure`; its historical name describes the
+retry policy, rather than promising that chain state can never change.
 
 ## Build from source
 

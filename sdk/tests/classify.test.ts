@@ -87,6 +87,8 @@ describe('withRetry — transient failures only', () => {
   it.each([
     new Error('application validation failed'),
     new TypeError('cannot encode this argument'),
+    new Error('transaction not included: status=Ready'),
+    Object.assign(new Error('WebSocket is not connected'), { name: 'DispatchFailure', code: 'ECONNRESET' }),
     'untyped failure',
     { message: 'WebSocket is not connected' },
     null,
@@ -101,6 +103,7 @@ describe('withRetry — transient failures only', () => {
 
   it.each([
     new Error('WebSocket is not connected'),
+    new Error('author_submitAndWatchExtrinsic: WebSocket is not connected'),
     new Error('disconnected from ws://localhost:9944: 1006:: Abnormal Closure'),
     new Error('No response received from RPC endpoint in 60s'),
     Object.assign(new Error('socket reset'), { code: 'ECONNRESET' }),
