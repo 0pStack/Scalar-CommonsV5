@@ -782,6 +782,48 @@ fn execute_slash_records_slash_and_clears_open_appeals() {
     });
 }
 
+/// #18 N5: an evicting slash must leave nothing of the old agent behind. Once the
+/// collective seat is cleared the account can re-register, so any leftover record
+/// leaks into the new registration: a stale `UnstakeAt` lets the new stake leave
+/// without serving `UnstakeCooldown`, stale `CompletedAgreements` counts toward
+/// promotion, and stale `AgentCapabilities` would pass the oracle capability gate for
+/// the re-registered agent without being declared again (an unregistered account is
+/// refused by the oracle's `is_agent` check first). `SlashRecords` is the one thing
+/// that must survive.
+#[test]
+fn evicting_slash_clears_agent_records_so_reregistration_starts_clean() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        assert_ok!(Agents::register(RuntimeOrigin::signed(ALICE), 1_000));
+        assert_ok!(Agents::set_capability(
+            RuntimeOrigin::signed(ALICE),
+            7,
+            true
+        ));
+        CompletedAgreements::<Test>::insert(ALICE, 5);
+        assert_ok!(Agents::request_unstake(RuntimeOrigin::signed(ALICE)));
+        let old_unstake_at = UnstakeAt::<Test>::get(ALICE).unwrap();
+
+        // 10_000 bps = 100%: evicted.
+        assert_ok!(Agents::execute_slash(RuntimeOrigin::root(), ALICE, 10_000));
+        assert!(AgentCapabilities::<Test>::get(ALICE).is_empty());
+        assert_eq!(CompletedAgreements::<Test>::get(ALICE), 0);
+        assert_eq!(UnstakeAt::<Test>::get(ALICE), None);
+        assert_eq!(
+            SlashRecords::<Test>::get(ALICE, EraNumber::<Test>::get()),
+            Some(10_000)
+        );
+
+        // Past the OLD cooldown, a fresh registration must not inherit it.
+        System::set_block_number(old_unstake_at);
+        assert_ok!(Agents::register(RuntimeOrigin::signed(ALICE), 1_000));
+        assert_noop!(
+            Agents::complete_unstake(RuntimeOrigin::signed(ALICE)),
+            Error::<Test>::NoUnstakeRequest
+        );
+    });
+}
+
 #[test]
 fn register_sets_last_heartbeat() {
     // #161: spec 306 already starts the heartbeat clock in `register` (lib.rs, D8). This test
@@ -2718,7 +2760,8 @@ fn declared_weight_complete_unstake_covers_appeal_cleanup() {
     // 26 reads: this pallet's 12 — AgentStake, UnstakeAt, block_number,
     //   ActiveEscrowCount, the AgentStake counter, 5 × OpenAppeals `clear_prefix`,
     //   Locks + account for remove_lock — plus 14 for AgentCollective::remove
-    //   (3 per rank × 4 ranks, plus the 2 that end the rank walk).
+    //   (3 per rank × 4 ranks, plus the bridge's rank_of read of Members = 13,
+    //   and one read of headroom kept from the pre-#18 u16::MAX walk).
     // 40 writes: this pallet's 19 — AgentStake value + counter, UnstakeAt,
     //   StakeRegisteredAt, CompletedAgreements, LastHeartbeat, AgentMetadata,
     //   AgentCapabilities, MessagingKey (spec 308), VotingDelegations, PendingSlashAppeals,
@@ -2745,7 +2788,12 @@ fn declared_weight_execute_slash_covers_appeal_cleanup() {
     //   SlashRecords, 5 × OpenAppeals `clear_prefix`, and the balance side —
     //   Locks + account, account + TotalIssuance, TotalIssuance for the burn,
     //   treasury account + TotalIssuance, AgentWeightSnapshot for on_slashed.
-    let floor = worst_case_floor(17, 19);
+    // Plus, on the eviction branch (#18 N5), clear_agent_records: 7 more writes —
+    //   UnstakeAt, StakeRegisteredAt, CompletedAgreements, LastHeartbeat,
+    //   AgentMetadata, AgentCapabilities, VotingDelegations — and
+    //   AgentCollective::remove, the same rank-linear 14 reads / 21 writes counted
+    //   for complete_unstake above.
+    let floor = worst_case_floor(17 + 14, 19 + 7 + 21);
     let declared = declared_weight(crate::Call::<Test>::execute_slash {
         who: ALICE,
         bps: 10_000,

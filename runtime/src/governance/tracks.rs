@@ -153,3 +153,33 @@ impl pallet_referenda::TracksInfo<crate::Balance, crate::BlockNumber> for Tracks
         }
     }
 }
+
+/// Tracks for the RankedPolls instance (Technical Council poll set).
+///
+/// Same track table as [`TracksInfo`], but no origin routes to any of them (#18).
+/// RankedPolls is voted on by the rank-2+ collective alone, and a passed poll is
+/// dispatched with the origin it was submitted with. Sharing `TracksInfo` let a
+/// signed account submit a Root proposal there, so a single rank-2 agent's aye
+/// could carry `set_code` or `force_set_balance` past the supply cap whenever no
+/// member voted nay. Root decisions belong to the stake-weighted `Referenda`.
+///
+/// `tracks()` still serves the table so any poll already on chain can be decided
+/// or killed; it is `track_for` alone that closes the door to new ones. When a
+/// collective-only origin exists, route it here — never `Root`.
+pub struct RankedTracksInfo;
+
+impl pallet_referenda::TracksInfo<crate::Balance, crate::BlockNumber> for RankedTracksInfo {
+    type Id = u16;
+    type RuntimeOrigin =
+        <crate::RuntimeOrigin as frame_support::traits::OriginTrait>::PalletsOrigin;
+
+    fn tracks(
+    ) -> impl Iterator<Item = Cow<'static, Track<Self::Id, crate::Balance, crate::BlockNumber>>>
+    {
+        TRACKS_DATA.iter().map(Cow::Borrowed)
+    }
+
+    fn track_for(_origin: &Self::RuntimeOrigin) -> Result<Self::Id, ()> {
+        Err(())
+    }
+}
