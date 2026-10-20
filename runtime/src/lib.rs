@@ -613,9 +613,13 @@ impl pallet_referenda::Config for Runtime {
 // only have one Tally type — see the note on pallet_ranked_collective::Config.
 // Mirrors substrate/bin/node/runtime's `RankedPolls` (Instance2) at this tag.
 //
-// Deposits, queue depth, timeout and tracks are deliberately identical to the
-// stake instance: this is a transport for the same governance tracks under a
-// different electorate, not a second economic regime. No new constants.
+// Deposits, queue depth, timeout and the track table are deliberately identical
+// to the stake instance: this is a transport for the same governance tracks under
+// a different electorate, not a second economic regime. No new constants.
+//
+// Routing is NOT shared (#18): `RankedTracksInfo` sends no origin to any track,
+// because a Root proposal here is decided by the collective alone and dispatched
+// as Root — a lone rank-2 agent's aye could carry it if no member objected.
 impl pallet_referenda::Config<pallet_referenda::Instance2> for Runtime {
     type WeightInfo = pallet_referenda::weights::SubstrateWeight<Self>;
     type RuntimeCall = RuntimeCall;
@@ -632,7 +636,7 @@ impl pallet_referenda::Config<pallet_referenda::Instance2> for Runtime {
     type MaxQueued = ConstU32<100>;
     type UndecidingTimeout = UndecidingTimeout;
     type AlarmInterval = ConstU32<1>;
-    type Tracks = governance::tracks::TracksInfo;
+    type Tracks = governance::tracks::RankedTracksInfo;
     type Preimages = Preimage;
     type BlockNumberProvider = System;
 }
@@ -2309,6 +2313,30 @@ mod tests {
                 None,
                 "unstaked agent kept its rank"
             );
+        });
+    }
+
+    /// #18: the TC poll set must not be a road to Root. RankedPolls is voted on by
+    /// the rank-2+ collective alone, so a Root proposal there could pass on one
+    /// agent's aye if no member objects, and is dispatched as Root. No origin may
+    /// route to a RankedPolls track; the stake-weighted `Referenda` keeps its Root
+    /// track.
+    #[test]
+    fn ranked_polls_route_no_origin_but_stake_referenda_still_route_root() {
+        gov_ext().execute_with(|| {
+            let proposal = Bounded::Inline(root_only_call().encode().try_into().unwrap());
+            assert_noop!(
+                RankedPolls::submit(
+                    RuntimeOrigin::signed(account(2)),
+                    Box::new(frame_system::RawOrigin::Root.into()),
+                    proposal,
+                    DispatchTime::After(1),
+                ),
+                pallet_referenda::Error::<Runtime, pallet_referenda::Instance2>::NoTrack
+            );
+
+            let index = submit_root_referendum();
+            assert!(pallet_referenda::ReferendumInfoFor::<Runtime>::contains_key(index));
         });
     }
 }
