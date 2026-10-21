@@ -214,7 +214,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // scheduled enactments before upgrading; see docs/reference/ranked-polls-upgrade.md.
     // 310 -> 311: wire both emergency filters, preserve recovery and admit legacy
     // staking mints conservatively (#60). No storage or call encoding changes.
-    spec_version: 311,
+    // 311 -> 312: atomic escrow/oracle settlement and checked reserve operations (#61).
+    // No storage migration; existing call and event encodings are preserved.
+    spec_version: 312,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -1987,11 +1989,12 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
+    /// 312 makes escrow/oracle settlement atomic and checks reserve operations (#61).
     /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
     /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_311() {
-        assert_eq!(VERSION.spec_version, 311);
+    fn spec_version_is_312() {
+        assert_eq!(VERSION.spec_version, 312);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.

@@ -195,3 +195,117 @@ fn dispute_buyer_wins() {
         );
     });
 }
+
+/// #61: exercise the actual Oracle -> Escrow -> Agents callback, not a recording mock.
+#[test]
+fn atomic_dispute_real_callback_failure_then_timeout_does_not_strand_oracle() {
+    use frame_support::traits::Get;
+    new_test_ext().execute_with(|| {
+        for who in [ALICE, BOB, CAROL, DAVE, EVE] {
+            register(who, FULL_STAKE);
+        }
+        for _ in 0..2 {
+            assert_ok!(pallet_escrow::Pallet::<TestRuntime>::create_agreement(
+                RuntimeOrigin::signed(ALICE),
+                BOB,
+                1_000u64.saturating_mul(CMN),
+                [1; 32],
+                500,
+                None
+            ));
+        }
+        assert_ok!(pallet_escrow::Pallet::<TestRuntime>::accept_agreement(
+            RuntimeOrigin::signed(BOB),
+            ALICE,
+            0
+        ));
+        go_to_block(10);
+        assert_ok!(pallet_escrow::Pallet::<TestRuntime>::record_delivery(
+            RuntimeOrigin::signed(BOB),
+            ALICE,
+            0,
+            [2; 32]
+        ));
+        assert_ok!(pallet_escrow::Pallet::<TestRuntime>::dispute_delivery(
+            RuntimeOrigin::signed(ALICE),
+            BOB,
+            0
+        ));
+        let id = pallet_escrow::Agreements::<TestRuntime>::get(ALICE, BOB)[0]
+            .dispute_request_id
+            .unwrap();
+        let hash = sp_io::hashing::blake2_256(b"scalar:dispute:provider_wins");
+        for who in [CAROL, DAVE, EVE] {
+            assert_ok!(pallet_oracle::Pallet::<TestRuntime>::submit_response(
+                RuntimeOrigin::signed(who),
+                id,
+                hash,
+                0
+            ));
+        }
+        let req = pallet_oracle::OracleRequests::<TestRuntime>::get(id).unwrap();
+        go_to_block(
+            req.response_deadline
+                .saturating_add(req.challenge_window)
+                .saturating_add(1)
+                .max(frame_system::Pallet::<TestRuntime>::block_number()),
+        );
+        pallet_agents::AgentStake::<TestRuntime>::remove(BOB); // eviction makes volume credit fail
+        frame_support::assert_noop!(
+            pallet_oracle::Pallet::<TestRuntime>::finalise_request(
+                RuntimeOrigin::signed(CAROL),
+                id
+            ),
+            pallet_agents::Error::<TestRuntime>::NotRegistered
+        );
+        // A failed finalisation must not destroy either the escrow refund or the
+        // oracle quorum. Once escrow times out, the closed-sequence witness lets
+        // jurors collect their bounty without paying the provider/refunding again.
+        let timeout: u64 = <TestRuntime as pallet_escrow::Config>::DisputeTimeoutWindow::get();
+        go_to_block(10u64.saturating_add(timeout));
+        assert_ok!(pallet_escrow::Pallet::<TestRuntime>::claim_refund(
+            RuntimeOrigin::signed(ALICE),
+            BOB,
+            0
+        ));
+        go_to_block(
+            req.response_deadline
+                .saturating_add(req.challenge_window)
+                .saturating_add(1)
+                .max(frame_system::Pallet::<TestRuntime>::block_number()),
+        );
+        let reserved = pallet_balances::Pallet::<TestRuntime>::reserved_balance(ALICE);
+        let provider = pallet_balances::Pallet::<TestRuntime>::free_balance(BOB);
+        let juror = pallet_balances::Pallet::<TestRuntime>::free_balance(CAROL);
+        assert_ok!(pallet_oracle::Pallet::<TestRuntime>::finalise_request(
+            RuntimeOrigin::signed(CAROL),
+            id
+        ));
+        assert_eq!(
+            pallet_balances::Pallet::<TestRuntime>::free_balance(BOB),
+            provider
+        );
+        let paid = req.bounty.checked_div(3).expect("three jurors");
+        assert_eq!(
+            pallet_balances::Pallet::<TestRuntime>::free_balance(CAROL),
+            juror.saturating_add(paid)
+        );
+        assert_eq!(
+            pallet_balances::Pallet::<TestRuntime>::reserved_balance(ALICE),
+            reserved.saturating_sub(paid.saturating_mul(3))
+        );
+        assert_eq!(
+            pallet_escrow::Agreements::<TestRuntime>::get(ALICE, BOB)[0].seq,
+            1
+        );
+        assert!(
+            pallet_balances::Pallet::<TestRuntime>::reserved_balance(ALICE)
+                >= 1_000u64.saturating_mul(CMN)
+        );
+        assert!(pallet_oracle::Pallet::<TestRuntime>::finalise_request(
+            RuntimeOrigin::signed(CAROL),
+            id
+        )
+        .is_err());
+    });
+}

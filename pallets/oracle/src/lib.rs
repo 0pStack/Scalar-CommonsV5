@@ -24,7 +24,7 @@ pub mod pallet {
     use frame_support::{pallet_prelude::*, traits::ReservableCurrency};
     use frame_system::pallet_prelude::*;
     use pallet_agents::pallet as agents_pallet;
-    use sp_runtime::traits::Saturating;
+    use sp_runtime::traits::{Saturating, Zero};
     use sp_std::vec::Vec;
 
     pub type BalanceOf<T> = pallet_agents::pallet::BalanceOf<T>;
@@ -248,6 +248,8 @@ pub mod pallet {
         /// Prevents front-running attacks that overwrite existing requests
         /// and permanently lock the original creator's bounty reserve.
         DuplicateRequest,
+        /// Preserve the request if its bounty cannot be paid or refunded in full.
+        IncompleteReserveOperation,
     }
 
     // ── finalise_request worst-case weight (#223) ────────────────────────────
@@ -514,12 +516,13 @@ pub mod pallet {
                     .checked_div(&winner_count.into())
                     .unwrap_or_default();
                 for winner in &winners {
-                    let _ = <T as agents_pallet::Config>::Currency::repatriate_reserved(
+                    let remainder = <T as agents_pallet::Config>::Currency::repatriate_reserved(
                         &req.creator,
                         winner,
                         share,
                         frame_support::traits::tokens::BalanceStatus::Free,
-                    );
+                    )?;
+                    ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
                     Self::update_accuracy(winner, capability, true);
                 }
             }
@@ -531,19 +534,23 @@ pub mod pallet {
                 OracleResults::<T>::insert(request_id, winning_hash);
                 EraFinalisedQuestions::<T>::mutate(|c| *c = c.saturating_add(1));
             } else {
-                <T as agents_pallet::Config>::Currency::unreserve(&req.creator, req.bounty);
+                let remainder =
+                    <T as agents_pallet::Config>::Currency::unreserve(&req.creator, req.bounty);
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
             }
 
             if let Some(ctx) = &req.dispute_context {
                 let provider_wins_hash =
                     sp_io::hashing::blake2_256(crate::escrow_bridge::PROVIDER_WINS_PREIMAGE);
                 let provider_wins = winning_hash == provider_wins_hash;
-                let _ = T::DisputeCallback::on_dispute_resolved(
+                // Propagate the error so FRAME rolls back payouts, scores and
+                // callback writes together; the request remains retryable.
+                T::DisputeCallback::on_dispute_resolved(
                     &ctx.buyer,
                     &ctx.provider,
                     ctx.seq,
                     provider_wins,
-                );
+                )?;
             }
 
             OracleRequests::<T>::remove(request_id);
@@ -570,7 +577,9 @@ pub mod pallet {
             );
             let now = frame_system::Pallet::<T>::block_number();
             ensure!(now > req.response_deadline, Error::<T>::RequestExpired);
-            <T as agents_pallet::Config>::Currency::unreserve(&req.creator, req.bounty);
+            let remainder =
+                <T as agents_pallet::Config>::Currency::unreserve(&req.creator, req.bounty);
+            ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
             OracleRequests::<T>::remove(request_id);
             let _ = OracleResponses::<T>::clear_prefix(request_id, 10_000, None);
             Self::deposit_event(Event::OracleRequestExpired { id: request_id });
