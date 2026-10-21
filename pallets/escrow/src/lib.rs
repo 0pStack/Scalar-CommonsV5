@@ -367,6 +367,9 @@ pub mod pallet {
         AgreementNotExpired,
         /// A partial reserve movement must not close an underfunded obligation.
         IncompleteReserveOperation,
+        /// The dispute bounty is larger than the agreement backing it, so releasing it
+        /// would draw on reserves that belong to other obligations (#16).
+        BountyExceedsAmount,
     }
 
     #[pallet::call]
@@ -571,6 +574,13 @@ pub mod pallet {
             Ok(())
         }
 
+        /// Buyer contests a recorded delivery and hands the verdict to the oracle.
+        ///
+        /// The jurors' bounty comes out of the agreement, not on top of it: escrow
+        /// releases it and the oracle reserves it again under its own request, so each
+        /// unit of the buyer's reserve has exactly one owner. Reserving it twice left a
+        /// bounty locked on every dispute outcome and made disputing cost the buyer two
+        /// bounties instead of one (#16).
         #[pallet::call_index(3)]
         #[pallet::weight(T::DbWeight::get().reads_writes(4, 3)
             .saturating_add(Weight::from_parts(200_000_000, 0)))]
@@ -596,6 +606,13 @@ pub mod pallet {
                     .checked_div(&10_000u32.into())
                     .unwrap_or_default();
                 let bounty = bounty_raw.max(T::MinDisputeBounty::get());
+                // MinDisputeBounty can exceed a small agreement; releasing more than this
+                // agreement reserved would free another obligation's backing.
+                ensure!(bounty <= a.amount, Error::<T>::BountyExceedsAmount);
+                // Release the bounty from escrow's backing before the oracle reserves it.
+                // If posting the question fails, the extrinsic's transaction undoes this.
+                let remainder = <T as agents_pallet::Config>::Currency::unreserve(&buyer, bounty);
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
                 a.amount = a.amount.saturating_sub(bounty);
                 a.status = AgreementStatus::Disputed;
                 a.dispute_opened_at = Some(now);
