@@ -40,6 +40,24 @@ function parseInteger(name: string, raw: string): number {
 }
 
 /**
+ * Parses a position or identifier (`offset`, `?blockNumber=`): it must be exact.
+ *
+ * Unlike `limit`, these cannot be clamped — there is no "nearest" offset — and a
+ * double past 2^53 has already been silently rounded. Past 2^63 SQLite refuses
+ * to bind it at all, which used to surface as a 500 for what is a client error.
+ */
+function parseIndex(name: string, raw: string): number {
+  const value = parseInteger(name, raw);
+  if (value < 0) {
+    throw new InvalidQueryError(`${name} must not be negative, got ${value}`);
+  }
+  if (!Number.isSafeInteger(value)) {
+    throw new InvalidQueryError(`${name} must be at most ${Number.MAX_SAFE_INTEGER}, got "${raw}"`);
+  }
+  return value;
+}
+
+/**
  * Reads `limit`/`offset` from a query string.
  *
  * An over-large `limit` is clamped rather than refused — clients paging through
@@ -47,7 +65,8 @@ function parseInteger(name: string, raw: string): number {
  * because silently returning nothing looks identical to "the chain has nothing"
  * and hides the bug from whoever wrote the query.
  *
- * @throws {InvalidQueryError} on non-integer, negative, or zero-limit input.
+ * @throws {InvalidQueryError} on non-integer, negative, or zero-limit input, or
+ *   an offset beyond `Number.MAX_SAFE_INTEGER`.
  */
 export function parsePage(params: URLSearchParams): Page {
   const rawLimit = params.get('limit');
@@ -64,10 +83,7 @@ export function parsePage(params: URLSearchParams): Page {
 
   let offset = 0;
   if (rawOffset !== null) {
-    offset = parseInteger('offset', rawOffset);
-    if (offset < 0) {
-      throw new InvalidQueryError(`offset must not be negative, got ${offset}`);
-    }
+    offset = parseIndex('offset', rawOffset);
   }
 
   return { limit, offset };
@@ -79,9 +95,5 @@ export function parseOptionalInteger(params: URLSearchParams, name: string): num
   if (raw === null) {
     return undefined;
   }
-  const value = parseInteger(name, raw);
-  if (value < 0) {
-    throw new InvalidQueryError(`${name} must not be negative, got ${value}`);
-  }
-  return value;
+  return parseIndex(name, raw);
 }
