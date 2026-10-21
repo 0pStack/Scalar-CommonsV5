@@ -285,7 +285,7 @@ fn atomic_dispute_real_callback_failure_then_timeout_does_not_strand_oracle() {
             pallet_balances::Pallet::<TestRuntime>::free_balance(BOB),
             provider
         );
-        let paid = req.bounty / 3;
+        let paid = req.bounty.checked_div(3).expect("three jurors");
         assert_eq!(
             pallet_balances::Pallet::<TestRuntime>::free_balance(CAROL),
             juror.saturating_add(paid)
