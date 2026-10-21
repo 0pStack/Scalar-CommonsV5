@@ -2208,3 +2208,28 @@ fn atomic_dispute_callback_only_accepts_live_disputes_or_proven_closed_sequences
         assert_eq!(Agreements::<Test>::get(ALICE, BOB)[0].seq, 1);
     });
 }
+
+#[test]
+fn atomic_failed_creation_cannot_forge_closed_sequence_witness() {
+    new_test_ext().execute_with(|| {
+        System::set_block_number(1);
+        register_both();
+        let before = sp_io::storage::root(sp_runtime::StateVersion::V1);
+        // Above the buyer's free balance; failure happens after sequence allocation.
+        assert!(Escrow::create_agreement(
+            RuntimeOrigin::signed(ALICE),
+            BOB,
+            200_000,
+            [1; 32],
+            500,
+            None
+        )
+        .is_err());
+        assert_eq!(sp_io::storage::root(sp_runtime::StateVersion::V1), before);
+        assert_eq!(NextSeq::<Test>::get(ALICE, BOB), 0);
+        assert_noop!(
+            Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true),
+            Error::<Test>::AgreementNotFound
+        );
+    });
+}

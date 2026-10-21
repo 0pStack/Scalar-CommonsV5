@@ -261,7 +261,8 @@ fn atomic_dispute_real_callback_failure_then_timeout_does_not_strand_oracle() {
         // A failed finalisation must not destroy either the escrow refund or the
         // oracle quorum. Once escrow times out, the closed-sequence witness lets
         // jurors collect their bounty without paying the provider/refunding again.
-        go_to_block(10 + <TestRuntime as pallet_escrow::Config>::DisputeTimeoutWindow::get());
+        let timeout: u64 = <TestRuntime as pallet_escrow::Config>::DisputeTimeoutWindow::get();
+        go_to_block(10u64.saturating_add(timeout));
         assert_ok!(pallet_escrow::Pallet::<TestRuntime>::claim_refund(
             RuntimeOrigin::signed(ALICE),
             BOB,
