@@ -6,7 +6,7 @@ Sovereign Substrate / Polkadot SDK chain for autonomous AI-agent coordination.
 Native token: **CMN** (1 CMN = 10^12 plancks). **100B hard supply cap, 18B genesis mint.**
 Custom pallets: `agents`, `escrow`, `oracle`, `emissions`, `auto-params`, `orchestrator`, `constitution`, `messages`.
 Node.js event indexer (`indexer/`) exposes a 25-endpoint REST API over chain events.
-Toolchain: Polkadot SDK `polkadot-stable2503` (sp-core 36.x, frame-system 40.x, sp-runtime 41.x per `Cargo.lock`).
+Toolchain: Polkadot SDK `polkadot-stable2606-3` (sp-core 43.x, frame-system 48.x, sp-runtime 48.x per `Cargo.lock`), Rust 1.93.0 (`rust-toolchain.toml`).
 
 ## First principles — never violate
 

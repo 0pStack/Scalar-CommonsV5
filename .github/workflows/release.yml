@@ -2,7 +2,7 @@
 #
 # WHY THIS EXISTS: the validator guide (docs/guide/run-a-validator.md) asks an
 # outsider to run `scalar-node`. Until this workflow the only way to get one was
-# a from-source build on the pinned 1.85.0 toolchain against polkadot-stable2503
+# a from-source build on the pinned 1.93.0 toolchain against polkadot-stable2606-3
 # — tens of minutes and ~30 GB of disk before a node even starts. A release
 # turns that into a download plus a checksum check, and the source build stays
 # documented as the fallback.
@@ -79,7 +79,7 @@ jobs:
           {
             echo "Prebuilt \`scalar-node\` for Linux x86_64 (glibc >= 2.35), built by"
             echo "\`.github/workflows/release.yml\` from \`${GITHUB_SHA}\` on the pinned"
-            echo "toolchain (rust ${CHANNEL}, polkadot-stable2503)."
+            echo "toolchain (rust ${CHANNEL}, polkadot-stable2606-3)."
             echo
             echo "\`${VERSION}\`"
             echo

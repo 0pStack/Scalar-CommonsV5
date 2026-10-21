@@ -20,8 +20,8 @@ runtime-upgrade subscription, so prefer `ws://` for anything programmatic.
 
 The reference devnet endpoint — alice, port 9944 — runs with `--rpc-methods safe`, set
 explicitly in `deploy/systemd/scalar-alice.service`. That withholds the unsafe method set —
-`author_insertKey`, `author_rotateKeys`, `author_hasKey`, `author_hasSessionKeys`,
-`babe_epochAuthorship`, `system_addReservedPeer` and friends — which answer with
+`author_insertKey`, `author_rotateKeys`, `author_rotateKeysWithOwner`, `author_hasKey`,
+`author_hasSessionKeys`, `babe_epochAuthorship`, `system_addReservedPeer` and friends — which answer with
 `-32601 RPC call is unsafe to be called externally`.
 
 **A node you start yourself does not behave that way.** The flag defaults to `auto`, and
@@ -240,7 +240,8 @@ because the runtime is the only authority on layout, and it changes with `spec_v
 | `author_submitExtrinsic` | Fire-and-forget submission. |
 | `author_submitAndWatchExtrinsic` | Submission with status updates. What the SDK uses. |
 | `author_pendingExtrinsics` | Current pool contents. |
-| `author_rotateKeys` | Generate session keys in the node's keystore. **Unsafe.** |
+| `author_rotateKeys` | Generate session keys in the node's keystore. Runtimes before spec 313. **Unsafe.** |
+| `author_rotateKeysWithOwner` | Generate session keys plus the ownership proof `session.setKeys` checks from spec 313; takes the owner's 32-byte account id, returns `{ keys, proof }`. **Unsafe.** |
 | `author_insertKey` | Insert a key into the keystore. **Unsafe.** |
 | `author_hasKey`, `author_hasSessionKeys` | Check what the keystore holds. **Unsafe.** |
 | `transaction_v1_broadcast`, `transactionWatch_v1_submitAndWatch` | New JSON-RPC spec equivalents. |

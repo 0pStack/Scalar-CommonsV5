@@ -247,10 +247,11 @@ Two steps: author blocks, then register the keys you author with.
 ```
 
 `--rpc-methods safe` is not redundant. The flag's default is `auto`, and `auto` serves
-*every* method — including the keystore-mutating ones, `author_insertKey` and
-`author_rotateKeys` — whenever RPC is listening on loopback. Omit the flag and a validator
-that looks locked down because it never passed `--rpc-external` is still one reachable
-loopback connection away from having its keystore written to. Setting `safe` explicitly is
+*every* method — including the keystore-mutating ones, `author_insertKey`,
+`author_rotateKeys` and `author_rotateKeysWithOwner` — whenever RPC is listening on
+loopback. Omit the flag and a validator that looks locked down because it never passed
+`--rpc-external` is still one reachable loopback connection away from having its keystore
+written to. Setting `safe` explicitly is
 what alice's unit does (`deploy/systemd/scalar-alice.service`), and it costs a validator
 nothing: block authoring does not go through RPC. Step 2 below is the one moment you need
 the unsafe set, and it says how to take it back off.
@@ -269,10 +270,15 @@ Session keys are a 3-tuple on this runtime: GRANDPA, BABE and authority-discover
 (`ImOnline` was removed, so any 4-key example from upstream Substrate docs does not apply
 here.)
 
-Generate them *inside the validator's own keystore* — that is what `author_rotateKeys`
-does, and it is why the private halves never leave the machine.
+Generate them *inside the validator's own keystore* — that is what
+`author_rotateKeysWithOwner` does, and it is why the private halves never leave the machine.
+It takes one parameter, `owner`: the stash account that will submit `session.setKeys`, as
+its raw 32-byte account id in hex (`0x` + 64 hex chars; with polkadot.js,
+`u8aToHex(decodeAddress(stashAddress))`). The node signs a proof that the keys belong to
+that account, and from spec 313 on `setKeys` rejects keys without one.
 
-`author_rotateKeys` is in the unsafe set, so the node you started in step 1 will refuse it:
+`author_rotateKeysWithOwner` is in the unsafe set, so the node you started in step 1 will
+refuse it:
 
 ```json
 {"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"RPC call is unsafe to be called externally"}}
@@ -286,18 +292,25 @@ on loopback for its duration — `unsafe` exposes `author_insertKey` and
 
 ```bash
 curl -sH 'Content-Type: application/json' \
-     -d '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeys","params":[]}' \
+     -d '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeysWithOwner","params":["0x<stash account id>"]}' \
      http://127.0.0.1:9960
 ```
 
-The returned hex blob is the concatenated *public* keys. Register it on chain from your
-stash account with `session.setKeys(keys, proof)`, then declare your intent to validate
-through `staking.validate`. Confirm the node holds what you registered — this one is
-unsafe too, so do it before you restart onto `safe`:
+The result is an object, `{"keys":"0x…","proof":"0x…"}`. `keys` is the concatenated
+*public* keys. Register both on chain with `session.setKeys(keys, proof)`, signed by the
+same stash you passed as `owner` — any other signer fails with `InvalidProof` — then
+declare your intent to validate through `staking.validate`.
+
+On runtimes before spec 313, call `author_rotateKeys` with no params instead; it returns
+the keys hex alone, and `setKeys` takes `'0x'` as the proof. Keys registered that way stay
+valid after the upgrade.
+
+Confirm the node holds what you registered — this one is unsafe too, so do it before you
+restart onto `safe`:
 
 ```bash
 curl -sH 'Content-Type: application/json' \
-     -d '{"jsonrpc":"2.0","id":1,"method":"author_hasSessionKeys","params":["0x<blob>"]}' \
+     -d '{"jsonrpc":"2.0","id":1,"method":"author_hasSessionKeys","params":["0x<keys>"]}' \
      http://127.0.0.1:9960
 ```
 
