@@ -6,19 +6,19 @@ edition = "2021"
 [dependencies]
 parity-scale-codec = { version = "3.6.12", default-features = false, features = ["derive"] }
 scale-info = { version = "2.11", default-features = false, features = ["derive"] }
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
-frame-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
-sp-std = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
+frame-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
+sp-std = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
 # sp-io: hashing::blake2_256 for question/outcome commitment hashes
 # (lib.rs:278,378,428).
-sp-io = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
+sp-io = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
 pallet-agents = { path = "../agents", default-features = false }
 # pallet-escrow: oracle re-exports the DisputeOracle/DisputeCallback traits and
 # the PROVIDER_WINS preimage constant it resolves disputes against
 # (lib.rs:466-468). escrow does not depend on oracle, so this is acyclic.
 pallet-escrow = { path = "../escrow", default-features = false }
-frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false, optional = true }
+frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false, optional = true }
 
 # Crates the test mock in src/tests.rs needs but the pallet itself does not.
 # std is on here (no `default-features = false`) because test runtimes execute
@@ -27,9 +27,9 @@ frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag =
 # feature.
 [dev-dependencies]
 # sp_core::H256 — frame_system::Config::Hash in the mock (tests.rs:7).
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3" }
 # pallet_balances — the mock's Currency and AccountData (tests.rs:31,59).
-pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503" }
+pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3" }
 
 [features]
 default = ["std"]

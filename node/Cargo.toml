@@ -14,7 +14,7 @@ name = "scalar_node"
 path = "src/lib.rs"
 
 # The binary the whole project is named after. Ported from the kitchensink
-# reference node (`substrate/bin/node/cli` at tag polkadot-stable2503), which
+# reference node (`substrate/bin/node/cli` at tag polkadot-stable2606-3), which
 # is the only SDK node whose consensus shape matches this runtime:
 # Babe + Grandpa + Staking + Session + Historical + Offences + BagsList.
 [[bin]]
@@ -83,7 +83,7 @@ sp-timestamp         = { workspace = true, default-features = true }
 # crate here, so the pin is identical; runtime/Cargo.toml already declares
 # sp-version, pallet-authorship and pallet-transaction-payment-rpc-runtime-api
 # the same way. Promoting it to a workspace entry is cosmetic follow-up.
-frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503" }
+frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3" }
 
 # ── Runtime-API traits the RPC layer needs to name in its bounds ─────────────
 frame-system-rpc-runtime-api = { workspace = true, default-features = true }
