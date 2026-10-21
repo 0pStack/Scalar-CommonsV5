@@ -26,6 +26,7 @@ pub mod opaque {
 }
 
 use frame_support::{
+    dispatch::DispatchClass,
     parameter_types,
     traits::tokens::imbalance::ResolveTo,
     traits::{ConstU32, ConstU64, EqualPrivilegeOnly, WithdrawReasons},
@@ -216,7 +217,11 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // staking mints conservatively (#60). No storage or call encoding changes.
     // 311 -> 312: atomic escrow/oracle settlement and checked reserve operations (#61).
     // No storage migration; existing call and event encodings are preserved.
-    spec_version: 312,
+    // 312 -> 313: Polkadot SDK polkadot-stable2503 -> polkadot-stable2606-3 (#30).
+    // No storage migration: every pallet's storage version matches the live chain
+    // (spec 309). session.set_keys now verifies an ownership proof, so validators
+    // rotate keys with author_rotateKeysWithOwner. transaction_version unchanged.
+    spec_version: 313,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -243,9 +248,12 @@ parameter_types! {
             MAXIMUM_BLOCK_WEIGHT, NORMAL_DISPATCH_RATIO,
         );
     pub BlockLength: frame_system::limits::BlockLength =
-        frame_system::limits::BlockLength::max_with_normal_ratio(
-            5 * 1024 * 1024, NORMAL_DISPATCH_RATIO,
-        );
+        frame_system::limits::BlockLength::builder()
+            .max_length(5 * 1024 * 1024)
+            .modify_max_length_for_class(DispatchClass::Normal, |m| {
+                *m = NORMAL_DISPATCH_RATIO * *m
+            })
+            .build();
     pub const SS58Prefix: u8 = 42;
 }
 
@@ -844,7 +852,6 @@ parameter_types! {
     pub const ConstitutionMinBurn: Balance = 10 * CMN;
 }
 impl pallet_constitution::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type SupplyCap = EmissionsSupplyCap;
     type MinUnstakeCooldown = ConstitutionMinCooldown;
@@ -1007,6 +1014,9 @@ impl pallet_staking::Config for Runtime {
     type MaxControllersInDeprecationBatch = ConstU32<100>;
     type EventListeners = ();
     type Filter = ();
+    // stable2506: upper bound on the elected set, enforced by set_validator_count.
+    // Matches the election's MaxWinnersPerPage; the live chain runs 8.
+    type MaxValidatorSet = MaxActiveValidators;
 }
 
 // ─── NPoS election setup ─────────────────────────────────────────────────────
@@ -1018,14 +1028,24 @@ impl onchain::Config for OnChainSeqPhragmen {
     type Solver = SequentialPhragmen<AccountId, sp_runtime::Perbill>;
     type DataProvider = Staking;
     type WeightInfo = frame_election_provider_support::weights::SubstrateWeight<Runtime>;
-    type MaxWinners = ConstU32<100>;
     type Bounds = ElectionBoundsBuilder;
+    type Sort = frame_support::traits::ConstBool<true>;
+    // stable2506 split the old MaxWinners (100) into a per-page winner cap and a
+    // per-winner backer cap. The backer cap equals the voter bound below, so no
+    // backer can ever be truncated from an exposure.
+    type MaxWinnersPerPage = MaxActiveValidators;
+    type MaxBackersPerWinner = MaxElectingVoters;
+}
+
+parameter_types! {
+    pub const MaxActiveValidators: u32 = 100;
+    pub const MaxElectingVoters: u32 = 5_000;
 }
 
 parameter_types! {
     pub ElectionBoundsBuilder: frame_election_provider_support::bounds::ElectionBounds =
         frame_election_provider_support::bounds::ElectionBoundsBuilder::default()
-            .voters_count(5_000.into()).targets_count(1_250.into()).build();
+            .voters_count(MaxElectingVoters::get().into()).targets_count(1_250.into()).build();
 }
 
 // pub struct LinearSignedDeposit;
@@ -1052,13 +1072,17 @@ impl pallet_bags_list::Config for Runtime {
     type WeightInfo = pallet_bags_list::weights::SubstrateWeight<Runtime>;
     type BagThresholds = BagsThresholdsParam;
     type Score = VoteWeight;
+    // stable2509 on_idle auto-rebag; 0 keeps rebagging manual as before.
+    type MaxAutoRebagPerBlock = ConstU32<0>;
 }
 
 // ─── pallet-session ───────────────────────────────────────────────────────────
 impl pallet_session::Config for Runtime {
     type RuntimeEvent = RuntimeEvent;
     type ValidatorId = AccountId;
-    type ValidatorIdOf = pallet_staking::StashOf<Runtime>;
+    // stable2506 removed StashOf (controller -> stash). Identity is equivalent here:
+    // on the live chain (spec 309, 2026-10-21) every bonded stash is its own controller.
+    type ValidatorIdOf = sp_runtime::traits::ConvertInto;
     type ShouldEndSession = Babe;
     type NextSessionRotation = Babe;
     type SessionManager = pallet_session::historical::NoteHistoricalRoot<Self, Staking>;
@@ -1066,11 +1090,17 @@ impl pallet_session::Config for Runtime {
     type Keys = SessionKeys;
     type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
     type DisablingStrategy = pallet_session::disabling::UpToLimitDisablingStrategy<3>;
+    // stable2509 session-key deposits; `()` keeps set_keys deposit-free as before.
+    type Currency = Balances;
+    type KeyDeposit = ();
 }
 
 impl pallet_session::historical::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    // Keep the stored identification type: switching to `()` would leave existing
+    // historical and offence entries undecodable.
     type FullIdentification = pallet_staking::Exposure<AccountId, Balance>;
-    type FullIdentificationOf = pallet_staking::ExposureOf<Runtime>;
+    type FullIdentificationOf = pallet_staking::DefaultExposureOf<Runtime>;
 }
 
 impl pallet_offences::Config for Runtime {
@@ -1300,7 +1330,6 @@ parameter_types! {
 }
 
 impl pallet_agents::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinStake = AgentsMinStake;
     type FullFloorStake = AgentsFullFloorStake;
@@ -1347,7 +1376,6 @@ parameter_types! {
     pub const EscrowDisputeBurnBps:    u32 = 0;
 }
 impl pallet_escrow::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     // No Currency type — escrow uses agents' currency via BalanceOf<T> = agents::BalanceOf<T>
     type MaxAgreementsPerPair = EscrowMaxAgreements;
     type MaxAgreementSpan = EscrowMaxAgreementSpan;
@@ -1375,7 +1403,6 @@ parameter_types! {
     pub const OracleMaxBatchSubmissions: u32 = 20;
 }
 impl pallet_oracle::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     // No Currency type — oracle uses agents' BalanceOf<T>
     type MinOracleBounty = OracleMinBounty;
     type MaxOpenRequests = OracleMaxOpenRequests;
@@ -1412,7 +1439,6 @@ parameter_types! {
     // Replaced by per-agent onboarding_boost in compute_weight_cached.
 }
 impl pallet_emissions::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type SupplyCap = EmissionsSupplyCap;
     type InitialEmissionsPerEra = EmissionsInitialPerEra;
@@ -1436,7 +1462,6 @@ impl pallet_emissions::Config for Runtime {
 }
 
 impl pallet_orchestrator::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type MaxSubAgentsPerOrchestrator = ConstU32<50>;
     type MaxOrchestratorFeeBps = OrchestratorMaxFeeBps;
     type LinkApprovalWindow = OrchestratorLinkWindow;
@@ -1461,7 +1486,6 @@ parameter_types! {
 // with ValueQuery storage that has to be seeded on the live chain — a migration, which this
 // additive-only upgrade rules out. Moving them under governance bounds is follow-up work.
 impl pallet_messages::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type BaseFee = MessagesBaseFee;
     type PerByteFee = MessagesPerByteFee;
     type MaxPerBlock = MessagesMaxPerBlock;
@@ -1503,7 +1527,6 @@ parameter_types! {
     pub const AutoMinAgentsRule:       u32 = 50;
 }
 impl pallet_auto_params::Config for Runtime {
-    type RuntimeEvent = RuntimeEvent;
     type GovernanceOrigin = EnsureRoot<AccountId>;
     type InitialCompletionFeeBps = AutoInitialFeeBps;
     type InitialAlpha = AutoInitialAlpha;
@@ -1629,7 +1652,7 @@ mod runtime {
 impl_runtime_apis! {
     impl sp_api::Core<Block> for Runtime {
         fn version() -> RuntimeVersion { VERSION }
-        fn execute_block(block: Block) { Executive::execute_block(block); }
+        fn execute_block(block: <Block as BlockT>::LazyBlock) { Executive::execute_block(block); }
         fn initialize_block(header: &<Block as BlockT>::Header)
             -> sp_runtime::ExtrinsicInclusionMode
         {
@@ -1658,7 +1681,7 @@ impl_runtime_apis! {
             data.create_extrinsics()
         }
         fn check_inherents(
-            block: Block,
+            block: <Block as BlockT>::LazyBlock,
             data: sp_inherents::InherentData,
         ) -> sp_inherents::CheckInherentsResult {
             data.check_extrinsics(&block)
@@ -1682,8 +1705,11 @@ impl_runtime_apis! {
     }
 
     impl sp_session::SessionKeys<Block> for Runtime {
-        fn generate_session_keys(seed: Option<Vec<u8>>) -> Vec<u8> {
-            SessionKeys::generate(seed)
+        fn generate_session_keys(
+            owner: Vec<u8>,
+            seed: Option<Vec<u8>>,
+        ) -> sp_session::OpaqueGeneratedSessionKeys {
+            SessionKeys::generate(&owner, seed).into()
         }
         fn decode_session_keys(encoded: Vec<u8>) -> Option<Vec<(Vec<u8>, KeyTypeId)>> {
             SessionKeys::decode_into_raw_public_keys(&encoded)
@@ -1875,6 +1901,27 @@ impl_runtime_apis! {
         }
         fn preset_names() -> Vec<sp_genesis_builder::PresetId> { vec![] }
     }
+
+    // Lets `try-runtime on-runtime-upgrade` and `follow-chain` rehearse an upgrade
+    // against a copy of live state before it is enacted. Only compiled into
+    // try-runtime builds; the SDK's own impl panics on failure the same way, since
+    // a failed check must abort the rehearsal.
+    #[cfg(feature = "try-runtime")]
+    impl frame_try_runtime::TryRuntime<Block> for Runtime {
+        fn on_runtime_upgrade(checks: frame_try_runtime::UpgradeCheckSelect) -> (Weight, Weight) {
+            let weight = Executive::try_runtime_upgrade(checks).unwrap();
+            (weight, BlockWeights::get().max_block)
+        }
+
+        fn execute_block(
+            block: <Block as BlockT>::LazyBlock,
+            state_root_check: bool,
+            signature_check: bool,
+            select: frame_try_runtime::TryStateSelect,
+        ) -> Weight {
+            Executive::try_execute_block(block, state_root_check, signature_check, select).unwrap()
+        }
+    }
 }
 
 pub const BABE_GENESIS_EPOCH_CONFIG: sp_consensus_babe::BabeEpochConfiguration =
@@ -1989,12 +2036,13 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
+    /// 313 moves the Polkadot SDK from stable2503 to stable2606-3 (#30).
     /// 312 makes escrow/oracle settlement atomic and checks reserve operations (#61).
     /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
     /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_312() {
-        assert_eq!(VERSION.spec_version, 312);
+    fn spec_version_is_313() {
+        assert_eq!(VERSION.spec_version, 313);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
