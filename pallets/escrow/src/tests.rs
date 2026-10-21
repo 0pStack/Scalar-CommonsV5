@@ -157,6 +157,28 @@ parameter_types! {
     pub const DisputeBountyBps:  u32 = 200; // 2%
     pub const MinBounty:         u64 = 10;
     pub static DisputeBurnBps:   u32 = 0;
+    pub static DisputeOracleFails: bool = false;
+}
+
+/// Behaves as the `()` oracle (reserves nothing, returns a fixed id) unless a test sets
+/// `DisputeOracleFails`, standing in for a real refusal such as `MaxOpenRequestsReached`.
+pub struct MockDisputeOracle;
+impl crate::DisputeOracle<u64, u64, u64> for MockDisputeOracle {
+    fn post_dispute_question(
+        _: &u64,
+        _: &u64,
+        _: u32,
+        _: u64,
+        _: u64,
+        _: Option<u32>,
+    ) -> Result<[u8; 32], sp_runtime::DispatchError> {
+        if DisputeOracleFails::get() {
+            return Err(sp_runtime::DispatchError::Other(
+                "oracle refused the question",
+            ));
+        }
+        Ok([0u8; 32])
+    }
 }
 
 impl super::Config for Test {
@@ -173,7 +195,7 @@ impl super::Config for Test {
     type DisputeBountyBps = DisputeBountyBps;
     type MinDisputeBounty = MinBounty;
     type DisputeBurnBps = DisputeBurnBps;
-    type DisputeOracle = ();
+    type DisputeOracle = MockDisputeOracle; // `()` behaviour unless DisputeOracleFails is set
     type DisputeCallback = ();
     type CompletionFeeProvider = MockFeeBps; // 0 unless a test sets it via `set_fee_bps`
     type FeeDestination = MockTreasury; // credits TREASURY so fee routing is observable
@@ -182,6 +204,7 @@ impl super::Config for Test {
 fn new_test_ext() -> sp_io::TestExternalities {
     set_fee_bps(0);
     DisputeBurnBps::set(0);
+    DisputeOracleFails::set(false);
     let mut storage = frame_system::GenesisConfig::<Test>::default()
         .build_storage()
         .unwrap();
@@ -402,6 +425,48 @@ fn dispute_sets_status_and_reserves_bounty() {
         assert_eq!(agreements[0].status, AgreementStatus::Disputed);
         // Bounty (2% of 1000 = 20, clamped to min_bounty=10) deducted from amount
         assert!(agreements[0].amount < 1_000);
+    });
+}
+
+/// #16: `dispute_delivery` releases the bounty before the oracle reserves it. If the
+/// oracle then refuses, the release must be undone with everything else, or the buyer
+/// walks away with a bounty of free balance and no oracle request behind it.
+#[test]
+fn dispute_delivery_rolls_back_bounty_release_when_oracle_refuses() {
+    new_test_ext().execute_with(|| {
+        register_both();
+        create(1_000);
+        accept(ALICE, BOB, 0);
+        frame_system::Pallet::<Test>::set_block_number(10);
+        assert_ok!(Escrow::record_delivery(
+            RuntimeOrigin::signed(BOB),
+            ALICE,
+            0,
+            [2u8; 32]
+        ));
+        let free0 = Balances::free_balance(ALICE);
+        let reserved0 = Balances::reserved_balance(ALICE);
+
+        DisputeOracleFails::set(true);
+        // assert_noop! compares the whole storage root: balances, agreement, mapping,
+        // events.
+        assert_noop!(
+            Escrow::dispute_delivery(RuntimeOrigin::signed(ALICE), BOB, 0),
+            sp_runtime::DispatchError::Other("oracle refused the question")
+        );
+        assert_eq!(Balances::free_balance(ALICE), free0);
+        assert_eq!(Balances::reserved_balance(ALICE), reserved0);
+        let a = &Agreements::<Test>::get(ALICE, BOB)[0];
+        assert_eq!((a.status, a.amount), (AgreementStatus::Delivered, 1_000));
+
+        // The refusal left nothing behind: the same dispute succeeds once the oracle accepts.
+        DisputeOracleFails::set(false);
+        assert_ok!(Escrow::dispute_delivery(
+            RuntimeOrigin::signed(ALICE),
+            BOB,
+            0
+        ));
+        assert_eq!(Balances::reserved_balance(ALICE), reserved0 - 20);
     });
 }
 
@@ -1605,14 +1670,15 @@ fn e18e2_expire_agreement_reaches_every_status_but_never_before_the_buyer() {
         ));
         // 980, not 1 000: `dispute_delivery` carves the bounty OUT of the agreement
         // amount (`a.amount = a.amount.saturating_sub(bounty)`, bounty = max(2%, MinBounty)
-        // = 20). Expiry releases the agreement and deliberately does NOT touch the bounty —
-        // that is the oracle's to release through its own `expire_request`. So exactly the
-        // bounty stays reserved here, and this assertion is the one that says so.
+        // = 20) and releases it for the oracle to reserve (#16). Expiry releases the
+        // agreement and deliberately does NOT touch the bounty — that is the oracle's to
+        // release through its own `expire_request`. The `()` oracle in this mock reserves
+        // nothing, so nothing remains; `tests/dispute_flow.rs` covers the real oracle.
         assert_eq!(Balances::reserved_balance(ALICE), reserved0 - 980);
         assert_eq!(
             Balances::reserved_balance(ALICE),
-            20,
-            "the oracle's bounty, untouched"
+            0,
+            "escrow released the bounty at dispute"
         );
         assert_eq!(pallet_agents::ActiveEscrowCount::<Test>::get(BOB), 0);
     });

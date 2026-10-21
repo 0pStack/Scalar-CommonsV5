@@ -309,3 +309,159 @@ fn atomic_dispute_real_callback_failure_then_timeout_does_not_strand_oracle() {
         .is_err());
     });
 }
+
+// ── #16: the dispute bounty is reserved exactly once ─────────────────────────
+//
+// The buyer's reserve must return to its pre-agreement level on every dispute
+// outcome. Free balance shows who paid: the provider on a win, the jurors' bounty
+// on a loss, nothing on a timeout.
+
+/// 15 000 CMN at 200 bps (2%) is a 300 CMN bounty: above MinDisputeBounty, and
+/// divisible by three jurors so integer-division dust (#34) cannot mask a leak.
+const BOUNTY_TASK: u64 = 15_000 * CMN;
+const BOUNTY: u64 = 300 * CMN;
+
+struct OpenDispute {
+    request_id: [u8; 32],
+    free0: u64,
+    reserved0: u64,
+}
+
+/// Snapshot the buyer before the agreement exists, then create, accept, deliver and
+/// dispute it against the real oracle.
+fn open_bounty_dispute() -> OpenDispute {
+    for who in [ALICE, BOB, CAROL, DAVE, EVE] {
+        register(who, FULL_STAKE);
+    }
+    let free0 = pallet_balances::Pallet::<TestRuntime>::free_balance(ALICE);
+    let reserved0 = pallet_balances::Pallet::<TestRuntime>::reserved_balance(ALICE);
+    assert_ok!(pallet_escrow::Pallet::<TestRuntime>::create_agreement(
+        RuntimeOrigin::signed(ALICE),
+        BOB,
+        BOUNTY_TASK,
+        [1u8; 32],
+        500,
+        None
+    ));
+    assert_ok!(pallet_escrow::Pallet::<TestRuntime>::accept_agreement(
+        RuntimeOrigin::signed(BOB),
+        ALICE,
+        0
+    ));
+    go_to_block(10);
+    assert_ok!(pallet_escrow::Pallet::<TestRuntime>::record_delivery(
+        RuntimeOrigin::signed(BOB),
+        ALICE,
+        0,
+        [2u8; 32]
+    ));
+    assert_ok!(pallet_escrow::Pallet::<TestRuntime>::dispute_delivery(
+        RuntimeOrigin::signed(ALICE),
+        BOB,
+        0
+    ));
+    let request_id = pallet_escrow::Agreements::<TestRuntime>::get(ALICE, BOB)[0]
+        .dispute_request_id
+        .expect("dispute opened an oracle request");
+    let req = pallet_oracle::OracleRequests::<TestRuntime>::get(request_id).unwrap();
+    assert_eq!(req.bounty, BOUNTY);
+    OpenDispute {
+        request_id,
+        free0,
+        reserved0,
+    }
+}
+
+/// Three jurors answer `answer`, then the oracle finalises past the challenge window.
+fn finalise_unanimous(request_id: [u8; 32], answer: [u8; 32]) {
+    for who in [CAROL, DAVE, EVE] {
+        assert_ok!(pallet_oracle::Pallet::<TestRuntime>::submit_response(
+            RuntimeOrigin::signed(who),
+            request_id,
+            answer,
+            0
+        ));
+    }
+    let req = pallet_oracle::OracleRequests::<TestRuntime>::get(request_id).unwrap();
+    go_to_block(
+        req.response_deadline
+            .saturating_add(req.challenge_window)
+            .saturating_add(1),
+    );
+    assert_ok!(pallet_oracle::Pallet::<TestRuntime>::finalise_request(
+        RuntimeOrigin::signed(CAROL),
+        request_id
+    ));
+}
+
+/// Compared as one pair so a failure reports both balances.
+fn assert_buyer(free: u64, reserved: u64) {
+    assert_eq!(
+        (
+            pallet_balances::Pallet::<TestRuntime>::free_balance(ALICE),
+            pallet_balances::Pallet::<TestRuntime>::reserved_balance(ALICE),
+        ),
+        (free, reserved),
+        "buyer (free, reserved)"
+    );
+}
+
+#[test]
+fn dispute_open_moves_bounty_without_second_reserve() {
+    new_test_ext().execute_with(|| {
+        let d = open_bounty_dispute();
+        // The bounty moves from escrow's backing to the oracle's; the buyer's total
+        // reserve is still exactly the agreement amount.
+        assert_buyer(
+            d.free0.saturating_sub(BOUNTY_TASK),
+            d.reserved0.saturating_add(BOUNTY_TASK),
+        );
+    });
+}
+
+#[test]
+fn dispute_won_by_provider_releases_buyer_reserve() {
+    new_test_ext().execute_with(|| {
+        let d = open_bounty_dispute();
+        let provider_wins = sp_io::hashing::blake2_256(b"scalar:dispute:provider_wins");
+        finalise_unanimous(d.request_id, provider_wins);
+        // Jurors take the bounty, the provider the rest: the buyer is out the full
+        // agreement amount and nothing remains reserved.
+        assert_buyer(d.free0.saturating_sub(BOUNTY_TASK), d.reserved0);
+    });
+}
+
+#[test]
+fn dispute_lost_by_provider_releases_buyer_reserve() {
+    new_test_ext().execute_with(|| {
+        let d = open_bounty_dispute();
+        // Any answer other than the provider-wins hash is a buyer win.
+        finalise_unanimous(d.request_id, [0u8; 32]);
+        // The buyer pays the jurors' bounty once and gets everything else back.
+        assert_buyer(d.free0.saturating_sub(BOUNTY), d.reserved0);
+    });
+}
+
+#[test]
+fn dispute_timeout_releases_buyer_reserve() {
+    use frame_support::traits::Get;
+    new_test_ext().execute_with(|| {
+        let d = open_bounty_dispute();
+        // No juror answers: the oracle request expires and refunds its bounty...
+        let req = pallet_oracle::OracleRequests::<TestRuntime>::get(d.request_id).unwrap();
+        go_to_block(req.response_deadline.saturating_add(1));
+        assert_ok!(pallet_oracle::Pallet::<TestRuntime>::expire_request(
+            RuntimeOrigin::signed(CAROL),
+            d.request_id
+        ));
+        // ...and once the dispute timeout passes, escrow refunds the rest.
+        let timeout: u64 = <TestRuntime as pallet_escrow::Config>::DisputeTimeoutWindow::get();
+        go_to_block(10u64.saturating_add(timeout));
+        assert_ok!(pallet_escrow::Pallet::<TestRuntime>::claim_refund(
+            RuntimeOrigin::signed(ALICE),
+            BOB,
+            0
+        ));
+        assert_buyer(d.free0, d.reserved0);
+    });
+}
