@@ -109,7 +109,6 @@ parameter_types! {
 }
 
 impl pallet_agents::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinStake = MinStakeE;
     type FullFloorStake = FFStakeE;
@@ -161,7 +160,6 @@ parameter_types! {
 // Scheduler removed from Config in M1 — no mock needed
 
 impl super::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type SupplyCap = SupplyCap;
     type InitialEmissionsPerEra = InitialEmissionsPerEra;

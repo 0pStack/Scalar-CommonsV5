@@ -139,7 +139,6 @@ parameter_types! {
 }
 
 impl pallet_agents::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinStake = MinStakeL;
     type FullFloorStake = FullFloorL;
@@ -183,7 +182,6 @@ parameter_types! {
 }
 
 impl crate::pallet::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type SupplyCap = SupplyCapL;
     type InitialEmissionsPerEra = InitialPerEraL;

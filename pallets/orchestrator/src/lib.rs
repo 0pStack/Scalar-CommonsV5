@@ -78,7 +78,6 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + agents_pallet::Config {
-        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
         /// Ceiling on the `max_sub_agents` an orchestrator may declare at
         /// registration (runtime: 50). Enforced in `register_orchestrator`;
         /// without it the self-declared bound made the
