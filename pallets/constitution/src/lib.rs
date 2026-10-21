@@ -1,14 +1,13 @@
 //! # pallet-constitution v4.0
 //!
-//! Pre-dispatch invariant enforcement for Scalar Commons V4.
+//! Constitutional checks, mint admission and non-halting canaries for Scalar Commons.
 //!
 //! ## The 6 Constitutional Invariants
 //!
-//! These checks fire BEFORE every extrinsic dispatch via BaseCallFilter.
-//! No governance vote can override them. Amendment requires:
-//! - 180-day timelock
-//! - 90% supermajority Track 2 referendum
-//! - Deliberate re-deployment of this pallet
+//! Pallets enforce their own mutation guards. The runtime uses call-aware mint
+//! admission rather than rejecting every call after a breach. FRAME Root dispatch
+//! bypasses BaseCallFilter; this pallet does not constrain privileged storage or
+//! runtime replacement. Canary alerts report breaches without halting recovery.
 //!
 //! ## Invariants
 //!
@@ -22,7 +21,7 @@
 //! ## Design
 //!
 //! The pallet has NO extrinsics (agents cannot call it directly).
-//! It exposes `check_*` functions used by the runtime's BaseCallFilter.
+//! It exposes invariant checks and `mint_within_cap` for runtime admission.
 //! It has an on_initialize hook that runs the canary checks each block.
 //!
 //! Self-dealing (invariant 2) is enforced directly in pallet-escrow's
@@ -91,8 +90,9 @@ pub mod pallet {
             supply_cap: BalanceOf<T>,
             buffer_remaining: BalanceOf<T>,
         },
-        /// A supply cap violation was caught and blocked at the dispatch layer.
-        /// This should never happen if run_era_rules emissions math is correct.
+        /// A supply cap violation was detected by the canary.
+        /// The historical name is retained for event compatibility, not a promise
+        /// that the mutation was blocked. Inherents and recovery remain live.
         SupplyCapBreachBlocked {
             attempted_issuance: BalanceOf<T>,
             supply_cap: BalanceOf<T>,
@@ -135,8 +135,8 @@ pub mod pallet {
             let buffer = T::CapWarningBuffer::get();
 
             if current > cap {
-                // This should be impossible if BaseCallFilter is wired correctly.
-                // If reached, something bypassed the filter. Emit loudly.
+                // Observe privileged mutations or invalid pre-state without halting
+                // the chain. Mint guards must act before funds move.
                 Self::deposit_event(Event::SupplyCapBreachBlocked {
                     attempted_issuance: current,
                     supply_cap: cap,
@@ -161,7 +161,7 @@ pub mod pallet {
     }
 
     // ─── Constitutional check functions ──────────────────────────────────────
-    // These are called from the runtime's BaseCallFilter before dispatch.
+    // Callers apply these at the relevant mutation/admission boundary.
 
     impl<T: Config> Pallet<T> {
         /// Invariant 1: total issuance must not exceed the supply cap.
@@ -204,13 +204,11 @@ pub mod pallet {
             Ok(())
         }
 
-        /// Invariant check gate for BaseCallFilter.
-        /// Returns false if the call should be rejected (blocked at dispatch).
-        /// Currently only enforces the supply cap check per-block.
-        /// Specific per-call checks are invoked by the individual pallets.
-        pub fn base_call_allowed() -> bool {
-            let current = T::Currency::total_issuance();
-            current <= T::SupplyCap::get()
+        /// Whether a bounded new mint fits the current cap headroom (#60).
+        /// Zero needs no headroom, including during recovery from an over-cap state.
+        /// This is a mint-admission helper, never an all-call liveness veto.
+        pub fn mint_within_cap(amount: BalanceOf<T>) -> bool {
+            amount <= T::SupplyCap::get().saturating_sub(T::Currency::total_issuance())
         }
     }
 }
