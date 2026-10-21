@@ -39,9 +39,11 @@ runs:
         df -h /
 
     # litep2p -> sc-network pulls prost-build, which shells out to protoc.
-    - name: Install protoc
+    # librocksdb-sys (stable2606) generates bindings with bindgen, which needs the
+    # unversioned libclang.so that only libclang-dev provides.
+    - name: Install protoc and libclang
       shell: bash
-      run: sudo apt-get update && sudo apt-get install -y protobuf-compiler
+      run: sudo apt-get update && sudo apt-get install -y protobuf-compiler libclang-dev
 
     - name: Resolve pinned toolchain
       id: toolchain
