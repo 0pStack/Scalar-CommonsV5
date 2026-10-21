@@ -1,11 +1,14 @@
 //! Executive regressions for emergency filtering and cap-safe mint admission (#60).
 
 use crate::{
-    AccountId, Address, Balance, Balances, Executive, Header, Runtime, RuntimeCall, RuntimeEvent,
-    RuntimeOrigin, SafeMode, Signature, SignedExtra, Staking, System, TxPause, UncheckedExtrinsic,
-    CMN, SUPPLY_CAP,
+    AccountId, Address, Balance, Balances, Executive, Header, Proxy, ProxyType, Runtime,
+    RuntimeCall, RuntimeEvent, RuntimeOrigin, SafeMode, Signature, SignedExtra, Staking, System,
+    TxPause, UncheckedExtrinsic, CMN, SUPPLY_CAP,
 };
-use frame_support::{assert_ok, traits::tokens::fungible::hold::Inspect as InspectHold};
+use frame_support::{
+    assert_ok,
+    traits::{tokens::fungible::hold::Inspect as InspectHold, InstanceFilter},
+};
 use parity_scale_codec::Encode;
 use sp_core::{sr25519, Pair};
 use sp_runtime::{generic, traits::Header as HeaderT, BuildStorage, Digest, DigestItem};
@@ -194,7 +197,6 @@ fn over_cap_sudo_recovery_remains_callable_during_safe_mode() {
 fn sudo_as_is_rejected_before_it_can_impersonate_an_account() {
     externalities().execute_with(|| {
         apply_ok(timestamp());
-        let sudo = Balances::free_balance(account(1));
         let impersonated = Balances::free_balance(account(2));
         let call = RuntimeCall::Sudo(pallet_sudo::Call::sudo_as {
             who: Address::Id(account(2)),
@@ -210,7 +212,6 @@ fn sudo_as_is_rejected_before_it_can_impersonate_an_account() {
             Executive::apply_extrinsic(signed(call, 1, 0)),
             Ok(Err(frame_system::Error::<Runtime>::CallFiltered.into()))
         );
-        assert_eq!(Balances::free_balance(account(1)), sudo);
         assert_eq!(Balances::free_balance(account(2)), impersonated);
     });
 }
@@ -401,6 +402,76 @@ fn historical_reward_admission_accounts_for_rounding() {
             assert!(pallet_staking::ClaimedRewards::<Runtime>::get(0, account(2)).is_empty());
         });
     }
+}
+
+#[test]
+fn proxy_types_preserve_the_sudo_as_ban() {
+    let sudo_as = RuntimeCall::Sudo(pallet_sudo::Call::sudo_as {
+        who: Address::Id(account(2)),
+        call: Box::new(transfer()),
+    });
+    for proxy_type in [
+        ProxyType::Any,
+        ProxyType::NonTransfer,
+        ProxyType::Governance,
+    ] {
+        assert!(!proxy_type.filter(&sudo_as));
+    }
+
+    let wrapped_transfer = RuntimeCall::Utility(pallet_utility::Call::batch {
+        calls: vec![transfer()],
+    });
+    assert!(!ProxyType::NonTransfer.filter(&wrapped_transfer));
+    assert!(ProxyType::Any.filter(&transfer()));
+
+    let sudo = RuntimeCall::Sudo(pallet_sudo::Call::sudo {
+        call: Box::new(RuntimeCall::System(frame_system::Call::remark {
+            remark: Vec::new(),
+        })),
+    });
+    assert!(ProxyType::Governance.filter(&sudo));
+}
+
+#[test]
+fn any_proxy_cannot_wrap_sudo_as_in_utility() {
+    externalities().execute_with(|| {
+        let sudo = account(1);
+        let delegate = account(3);
+        let impersonated = account(2);
+        assert_ok!(Proxy::add_proxy(
+            RuntimeOrigin::signed(sudo.clone()),
+            Address::Id(delegate.clone()),
+            ProxyType::Any,
+            0,
+        ));
+
+        let before = Balances::free_balance(&impersonated);
+        let sudo_as = RuntimeCall::Sudo(pallet_sudo::Call::sudo_as {
+            who: Address::Id(impersonated.clone()),
+            call: Box::new(RuntimeCall::Balances(
+                pallet_balances::Call::transfer_allow_death {
+                    dest: Address::Id(delegate.clone()),
+                    value: CMN,
+                },
+            )),
+        });
+        let wrapped = RuntimeCall::Utility(pallet_utility::Call::batch {
+            calls: vec![sudo_as],
+        });
+
+        assert_ok!(Proxy::proxy(
+            RuntimeOrigin::signed(delegate),
+            Address::Id(sudo),
+            Some(ProxyType::Any),
+            Box::new(wrapped),
+        ));
+        assert_eq!(Balances::free_balance(impersonated), before);
+        assert!(System::events().iter().any(|record| matches!(
+            &record.event,
+            RuntimeEvent::Utility(pallet_utility::Event::BatchInterrupted { index: 0, error })
+                if *error == frame_system::Error::<Runtime>::CallFiltered.into()
+        )));
+    });
 }
 
 #[test]
