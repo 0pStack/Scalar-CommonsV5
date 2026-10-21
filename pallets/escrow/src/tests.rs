@@ -2085,7 +2085,7 @@ fn atomic_dispute_volume_failure_preserves_funds_and_agreement() {
 #[test]
 fn atomic_escrow_short_reserve_rejected_on_every_exit() {
     use frame_support::traits::ReservableCurrency;
-    for path in 0..8 {
+    for path in 0..9 {
         new_test_ext().execute_with(|| {
             if path < 2 {
                 setup_agreement(1_000); // pending cancel / reject
@@ -2105,6 +2105,7 @@ fn atomic_escrow_short_reserve_rejected_on_every_exit() {
                     set_fee_bps(10_000); // 100% fee exercises slash_reserved only
                 }
                 5 => DisputeBurnBps::set(10_000), // 100% dispute fee
+                8 => DisputeBurnBps::set(500),    // 5% fee succeeds, provider transfer is partial
                 7 => Agreements::<Test>::mutate(ALICE, BOB, |v| {
                     v[0].status = AgreementStatus::Delivered
                 }),
@@ -2118,7 +2119,7 @@ fn atomic_escrow_short_reserve_rejected_on_every_exit() {
                 2 => Escrow::claim_refund(RuntimeOrigin::signed(ALICE), BOB, 0),
                 3 => Escrow::expire_agreement(RuntimeOrigin::signed(CAROL), ALICE, BOB, 0),
                 4 | 7 => Escrow::confirm_delivery(RuntimeOrigin::signed(ALICE), BOB, 0),
-                5 => Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true),
+                5 | 8 => Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, true),
                 _ => Escrow::settle_dispute_from_oracle(&ALICE, &BOB, 0, false),
             };
             assert!(result.is_err(), "short reserve accepted on exit {path}");

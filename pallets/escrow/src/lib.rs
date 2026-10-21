@@ -365,6 +365,8 @@ pub mod pallet {
         /// This status's own window plus `EXPIRY_GRACE` has not passed, so the agreement is
         /// not expirable yet. The window depends on the status — see `expire_agreement`.
         AgreementNotExpired,
+        /// A partial reserve movement must not close an underfunded obligation.
+        IncompleteReserveOperation,
     }
 
     #[pallet::call]
@@ -537,22 +539,25 @@ pub mod pallet {
                     Zero::zero()
                 };
                 let net = amount.saturating_sub(fee);
-                <T as agents_pallet::Config>::Currency::repatriate_reserved(
+                // Fallible work credit must succeed before the provider is paid.
+                agents_pallet::Pallet::<T>::add_era_escrow_volume(&provider, &buyer, amount)?;
+                let remainder = <T as agents_pallet::Config>::Currency::repatriate_reserved(
                     &buyer,
                     &provider,
                     net,
                     frame_support::traits::tokens::BalanceStatus::Free,
                 )?;
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
                 if fee > Zero::zero() {
                     // V4: Route fee to Treasury via FeeDestination.
                     // Escrow funds are reserved (not locked), so slash_reserved is correct here.
                     // Note: use <T as ...>, not <Self as ...> — Self = Pallet<T> in function scope.
-                    let (fee_imbalance, _) =
+                    let (fee_imbalance, remainder) =
                         <T as agents_pallet::Config>::Currency::slash_reserved(&buyer, fee);
+                    ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
                     T::FeeDestination::on_unbalanced(fee_imbalance);
                 }
                 agents_pallet::Pallet::<T>::decrement_active_escrow(&provider);
-                agents_pallet::Pallet::<T>::add_era_escrow_volume(&provider, &buyer, amount)?;
                 ActiveAgreementCount::<T>::mutate(|c| *c = c.saturating_sub(1));
                 vec.swap_remove(idx);
                 Ok::<(), DispatchError>(())
@@ -658,7 +663,9 @@ pub mod pallet {
                 };
                 ensure!(refundable, Error::<T>::DisputeTimeoutNotElapsed);
                 refund_amount = a.amount;
-                <T as agents_pallet::Config>::Currency::unreserve(&buyer, refund_amount);
+                let remainder =
+                    <T as agents_pallet::Config>::Currency::unreserve(&buyer, refund_amount);
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
                 agents_pallet::Pallet::<T>::decrement_active_escrow(&provider);
                 if let Some(rid) = a.dispute_request_id {
                     DisputeToAgreement::<T>::remove(rid);
@@ -931,7 +938,9 @@ pub mod pallet {
                 let consent = Self::consent_state(&buyer, &provider, seq);
 
                 refund_amount = agreement.amount;
-                <T as agents_pallet::Config>::Currency::unreserve(&buyer, refund_amount);
+                let remainder =
+                    <T as agents_pallet::Config>::Currency::unreserve(&buyer, refund_amount);
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
                 match consent {
                     // Never accepted: the provider's count never held a slot for this
                     // agreement, so releasing one would steal it from a real obligation.
@@ -1015,7 +1024,8 @@ pub mod pallet {
                     Error::<T>::NotPending
                 );
                 let amount = vec[idx].amount;
-                <T as agents_pallet::Config>::Currency::unreserve(buyer, amount);
+                let remainder = <T as agents_pallet::Config>::Currency::unreserve(buyer, amount);
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
                 PendingAcceptance::<T>::remove(buyer, (provider.clone(), seq));
                 ActiveAgreementCount::<T>::mutate(|c| *c = c.saturating_sub(1));
                 vec.swap_remove(idx);
@@ -1023,62 +1033,72 @@ pub mod pallet {
             })
         }
 
+        /// Settle a live dispute atomically, including fallible volume/rank credit.
+        /// A previously issued, closed sequence is a no-op so a late oracle result
+        /// cannot pay twice or strand jurors after an escrow timeout.
+        #[frame_support::transactional]
         pub fn settle_dispute_from_oracle(
             buyer: &T::AccountId,
             provider: &T::AccountId,
             seq: u32,
             provider_wins: bool,
         ) -> DispatchResult {
-            Agreements::<T>::try_mutate(buyer, provider, |vec| {
-                let idx = vec
-                    .iter()
-                    .position(|a| a.seq == seq)
-                    .ok_or(Error::<T>::AgreementNotFound)?;
-                let amount = vec[idx].amount;
-                if provider_wins {
-                    // DisputeBurnBps is a historical name — the amount is routed to
-                    // Treasury (via FeeDestination), not actually burned. Kept as a
-                    // public Config constant for backwards compatibility with governance
-                    // tooling that references the name.
-                    let dispute_fee_bps = T::DisputeBurnBps::get();
-                    let dispute_fee: BalanceOf<T> = if dispute_fee_bps > 0 {
-                        amount
-                            .saturating_mul(dispute_fee_bps.into())
-                            .checked_div(&10_000u32.into())
-                            .unwrap_or_default()
-                    } else {
-                        Zero::zero()
-                    };
-                    let net = amount.saturating_sub(dispute_fee);
-                    // Route dispute penalty to FeeDestination (Treasury), not burned.
-                    // slash_reserved → NegativeImbalance → on_unbalanced keeps total_issuance neutral.
-                    // Governance can direct collected dispute penalties via Track 1 spend proposals.
-                    if dispute_fee > Zero::zero() {
-                        let (fee_imbalance, _) =
-                            <T as agents_pallet::Config>::Currency::slash_reserved(
-                                buyer,
-                                dispute_fee,
-                            );
-                        T::FeeDestination::on_unbalanced(fee_imbalance);
-                    }
-                    <T as agents_pallet::Config>::Currency::repatriate_reserved(
-                        buyer,
-                        provider,
-                        net,
-                        frame_support::traits::tokens::BalanceStatus::Free,
-                    )?;
-                    agents_pallet::Pallet::<T>::add_era_escrow_volume(provider, buyer, net)?;
+            let mut agreements = Agreements::<T>::get(buyer, provider);
+            let Some(idx) = agreements.iter().position(|a| a.seq == seq) else {
+                // Creation allocates checked, monotonically increasing sequence
+                // numbers inside a transaction. Exits never reset NextSeq. Missing
+                // issued sequences therefore prove closure without new storage.
+                ensure!(
+                    seq < NextSeq::<T>::get(buyer, provider),
+                    Error::<T>::AgreementNotFound
+                );
+                return Ok(());
+            };
+            ensure!(
+                agreements[idx].status == AgreementStatus::Disputed,
+                Error::<T>::WrongStatus
+            );
+            let amount = agreements[idx].amount;
+            if provider_wins {
+                // DisputeBurnBps retains its historical name; this fee goes to
+                // Treasury through FeeDestination rather than being burned.
+                let dispute_fee_bps = T::DisputeBurnBps::get();
+                let dispute_fee: BalanceOf<T> = if dispute_fee_bps > 0 {
+                    amount
+                        .saturating_mul(dispute_fee_bps.into())
+                        .checked_div(&10_000u32.into()) // basis points: 10_000 = 100%
+                        .unwrap_or_default()
                 } else {
-                    <T as agents_pallet::Config>::Currency::unreserve(buyer, amount);
+                    Zero::zero()
+                };
+                let net = amount.saturating_sub(dispute_fee);
+                // Registration and promotion can fail. Credit before moving funds;
+                // the transaction also reverts that credit if a payment then fails.
+                agents_pallet::Pallet::<T>::add_era_escrow_volume(provider, buyer, net)?;
+                if dispute_fee > Zero::zero() {
+                    let (fee_imbalance, remainder) =
+                        <T as agents_pallet::Config>::Currency::slash_reserved(buyer, dispute_fee);
+                    ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
+                    T::FeeDestination::on_unbalanced(fee_imbalance);
                 }
-                agents_pallet::Pallet::<T>::decrement_active_escrow(provider);
-                if let Some(rid) = vec[idx].dispute_request_id {
-                    DisputeToAgreement::<T>::remove(rid);
-                }
-                ActiveAgreementCount::<T>::mutate(|c| *c = c.saturating_sub(1));
-                vec.swap_remove(idx);
-                Ok::<(), DispatchError>(())
-            })?;
+                let remainder = <T as agents_pallet::Config>::Currency::repatriate_reserved(
+                    buyer,
+                    provider,
+                    net,
+                    frame_support::traits::tokens::BalanceStatus::Free,
+                )?;
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
+            } else {
+                let remainder = <T as agents_pallet::Config>::Currency::unreserve(buyer, amount);
+                ensure!(remainder.is_zero(), Error::<T>::IncompleteReserveOperation);
+            }
+            agents_pallet::Pallet::<T>::decrement_active_escrow(provider);
+            if let Some(rid) = agreements[idx].dispute_request_id {
+                DisputeToAgreement::<T>::remove(rid);
+            }
+            ActiveAgreementCount::<T>::mutate(|c| *c = c.saturating_sub(1));
+            agreements.swap_remove(idx);
+            Agreements::<T>::insert(buyer, provider, agreements);
             Self::deposit_event(Event::DisputeResolved {
                 buyer: buyer.clone(),
                 provider: provider.clone(),

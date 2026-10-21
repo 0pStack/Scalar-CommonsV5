@@ -153,6 +153,5 @@ jobs:
           components: rust-src, rustfmt, clippy
 
       - run: cargo fmt --all -- --check
-      - run: cargo test -p pallet-escrow -p pallet-oracle --no-fail-fast
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
