@@ -41,13 +41,17 @@
  *
  * WHAT IT DELIBERATELY DOES NOT DO
  *
- * `pallet-tx-pause` would also stop emission — `PauseOrigin` is root and
- * `WhitelistedCalls` is `()`, so `emissions.claim` and `emissions.settle_era`
- * are both pausable today. Both are refused here: CLAUDE.md first principle #3
- * says no economically essential function (era settlement, reward claims) may
- * depend on a privileged caller, and pausing either makes it depend on one.
+ * SafeMode/TxPause flags are not an emission override. Spec 310 and earlier
+ * never consulted those pallets in BaseCallFilter (#60), so a stored pause was
+ * not evidence that any call stopped. The spec-311 fix composes both filters
+ * but makes settlement and reward claims unpausable, preserving permissionless
+ * economic liveness. This script must never replace its override with a pause
+ * of emissions.claim or emissions.settle_era.
+ *
  * Zeroing the pot leaves settlement permissionless and claims open; it just
- * makes there be nothing to concentrate.
+ * makes there be nothing new to concentrate. It does not revoke rewards already
+ * accrued. Verify actual filtering and recovery using deploy/public/VERIFY.md
+ * check (g), not merely storage flags or a successful pause transaction.
  *
  * FEE PREFLIGHT
  *
