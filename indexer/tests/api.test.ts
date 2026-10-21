@@ -3,6 +3,7 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
 import { createApiServer, matchRoute, settledEraFromEvent, ROUTES, type ApiDependencies } from '../src/api.ts';
+import { IndexerStore } from '../src/store.ts';
 
 /**
  * Routing and era-event shaping, tested without a chain.
@@ -182,5 +183,36 @@ describe('GET /', () => {
     // exactly 25, all `/v1/`-prefixed.
     expect(matchRoute('/')).toBeNull();
     expect(ROUTES).toHaveLength(25);
+  });
+});
+
+/**
+ * An oversized `?offset=` is the client's mistake, so it must come back as a
+ * 400. It used to reach SQLite as a double too large to bind, fail there, and
+ * be reported as a 500 — telling monitors the indexer was broken.
+ */
+describe('GET /v1/blocks with an unrepresentable offset', () => {
+  let store: IndexerStore;
+  let server: Server;
+  let baseUrl: string;
+
+  beforeAll(async () => {
+    // A real store, so a value that slips past validation fails exactly where
+    // it did in production rather than on a stub.
+    store = IndexerStore.open(':memory:');
+    server = createApiServer({ store } as unknown as ApiDependencies);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
+    baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+
+  afterAll(async () => {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+    store.close();
+  });
+
+  it('answers 400, not 500', async () => {
+    const response = await fetch(`${baseUrl}/v1/blocks?offset=9223372036854775808`);
+    expect(response.status).toBe(400);
+    expect(((await response.json()) as { error: string }).error).toContain('offset');
   });
 });
