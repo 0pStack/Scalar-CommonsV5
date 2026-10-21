@@ -1046,8 +1046,9 @@ curl -s -H 'content-type: application/json' \
 ```
 
 `author_insertKey`, `author_hasKey` and `system_addReservedPeer` return the same `-32601`.
-This is correct and deliberate — `author_rotateKeys` on someone else's node would generate
-keys in *their* keystore, which is useless to you and abusive to them.
+So does `author_rotateKeysWithOwner`, its spec 313 successor. This is correct and
+deliberate — either method on someone else's node would generate keys in *their* keystore,
+which is useless to you and abusive to them.
 
 ::: tip A subtlety when you probe this yourself
 With **missing** params these methods answer `-32602 Invalid params` first — parameter
@@ -1102,22 +1103,28 @@ Assuming a synced full node of your own (§6), on the machine running it:
 
 ```bash
 # 1. Generate session keys INSIDE your node's keystore, over ITS OWN loopback RPC.
+#    owner = the account that will sign setKeys, as raw 32-byte AccountId hex:
+#    u8aToHex(decodeAddress(yourAddress)) in polkadot.js.
 curl -s -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeys","params":[]}' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeysWithOwner","params":["0x<your account id, 32 bytes hex>"]}' \
   http://127.0.0.1:9944
-# -> {"result":"0x<babe||grandpa||authority_discovery, 96 bytes hex>"}
+# -> {"result":{"keys":"0x<babe||grandpa||authority_discovery, 96 bytes hex>","proof":"0x…"}}
 ```
 
 Your node must be started with `--validator` and an RPC method policy that permits
-`author_rotateKeys` on loopback (`--rpc-methods unsafe` bound to `127.0.0.1`, never to a
-public interface).
+`author_rotateKeysWithOwner` on loopback (`--rpc-methods unsafe` bound to `127.0.0.1`, never
+to a public interface).
 
 ```js
 // 2. Bond, 3. set keys, 4. declare intent — all signed by YOUR key, over the public RPC.
 await api.tx.staking.bond(bondAmount, { Staked: null }).signAndSend(you);
-await api.tx.session.setKeys(rotateKeysHex, '0x').signAndSend(you);
+await api.tx.session.setKeys(rotated.keys, rotated.proof).signAndSend(you); // same key as owner
 await api.tx.staking.validate({ commission: 100_000_000, blocked: false }).signAndSend(you);
 ```
+
+`rotated` is the `{ keys, proof }` result of step 1; a proof made for a different owner, or
+`'0x'`, fails with `InvalidProof`. On runtimes before spec 313, step 1 is
+`author_rotateKeys` with no params (it returns the keys hex alone) and the proof is `'0x'`.
 
 `commission` is a `Perbill` — `100_000_000` is 10 %. Then **wait for an election**: intent
 is not membership. The set is chosen by Phragmén at the next staking era boundary, i.e. up

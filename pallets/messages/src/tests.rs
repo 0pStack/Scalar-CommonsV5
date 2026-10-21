@@ -98,7 +98,6 @@ parameter_types! {
 }
 
 impl pallet_agents::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinStake = MinStakeX;
     type FullFloorStake = FFStakeX;
@@ -137,7 +136,6 @@ const PER_BYTE_FEE: u64 = 100;
 const MAX_PER_BLOCK: u32 = 4;
 
 impl crate::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type BaseFee = ConstU64<BASE_FEE>;
     type PerByteFee = ConstU64<PER_BYTE_FEE>;
     type MaxPerBlock = ConstU32<MAX_PER_BLOCK>;

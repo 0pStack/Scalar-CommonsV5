@@ -97,7 +97,6 @@ parameter_types! {
 }
 
 impl pallet_agents::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinStake = MinStakeA;
     type FullFloorStake = FullFloorStakeA;
@@ -139,7 +138,6 @@ parameter_types! {
 }
 
 impl super::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     // No `Currency` here: oracle::Config does not declare one — bounties are
     // reserved through pallet_agents::Config::Currency, already set to Balances.
     type MinOracleBounty = MinOracleBounty;
@@ -1226,7 +1224,7 @@ fn changed_oracle_keys(
     before: &std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
     after: &std::collections::BTreeMap<Vec<u8>, Vec<u8>>,
 ) -> usize {
-    let prefix = sp_core::twox_128(b"Oracle");
+    let prefix = sp_io::hashing::twox_128(b"Oracle");
     let is_oracle = |k: &Vec<u8>| k.starts_with(&prefix);
     let mut keys: std::collections::BTreeSet<&Vec<u8>> = std::collections::BTreeSet::new();
     keys.extend(before.keys().filter(|k| is_oracle(k)));

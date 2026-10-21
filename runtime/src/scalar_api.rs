@@ -31,7 +31,6 @@
 
 use parity_scale_codec::{Codec, Decode, Encode};
 use scale_info::TypeInfo;
-use sp_runtime::RuntimeDebug;
 use sp_std::vec::Vec;
 
 /// Everything about one agent's economic standing, assembled across pallets.
@@ -43,7 +42,7 @@ use sp_std::vec::Vec;
 /// Generic over `AccountId`/`Balance`/`BlockNumber` rather than fixed to the
 /// runtime's concrete types so the declared API is reusable by clients that
 /// only know the opaque forms.
-#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, Eq, PartialEq, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 pub struct AgentInfo<AccountId, Balance, BlockNumber> {
     /// Locked stake. Stake alone earns nothing — it is one factor of the
@@ -86,7 +85,7 @@ pub struct AgentInfo<AccountId, Balance, BlockNumber> {
 /// `total_weight` is the denominator its individual weight competes against,
 /// and the auto-param fields expose the live values the chain has adjusted to
 /// in response to observed behaviour.
-#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, TypeInfo)]
+#[derive(Clone, Encode, Decode, Eq, PartialEq, Debug, TypeInfo)]
 #[cfg_attr(feature = "std", derive(serde::Serialize, serde::Deserialize))]
 pub struct EraSnapshot<Balance> {
     /// Current era number.

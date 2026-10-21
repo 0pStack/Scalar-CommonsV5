@@ -145,8 +145,6 @@ pub mod pallet {
 
     #[pallet::config]
     pub trait Config: frame_system::Config + pallet_agents::Config {
-        type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
         /// Burned once per message regardless of size: the floor price of occupying an
         /// extrinsic slot and an event. Runtime: 0.02 CMN.
         #[pallet::constant]

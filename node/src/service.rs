@@ -46,6 +46,7 @@ use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool::TransactionPoolHandle;
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use scalar_commons_runtime::{opaque::Block, RuntimeApi};
+use sp_consensus_babe::inherents::BabeCreateInherentDataProviders;
 use sp_runtime::traits::Block as BlockT;
 use std::{path::Path, sync::Arc};
 
@@ -67,6 +68,13 @@ type FullBackend = sc_service::TFullBackend<Block>;
 type FullSelectChain = sc_consensus::LongestChain<FullBackend, Block>;
 type FullGrandpaBlockImport =
     grandpa::GrandpaBlockImport<FullBackend, Block, FullClient, FullSelectChain>;
+type FullBabeBlockImport = sc_consensus_babe::BabeBlockImport<
+    Block,
+    FullClient,
+    FullGrandpaBlockImport,
+    BabeCreateInherentDataProviders<Block>,
+    FullSelectChain,
+>;
 
 /// The transaction pool type definition.
 pub type TransactionPool = sc_transaction_pool::TransactionPoolHandle<Block, FullClient>;
@@ -96,7 +104,7 @@ pub fn new_partial(
                 sc_rpc::SubscriptionTaskExecutor,
             ) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
             (
-                sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
+                FullBabeBlockImport,
                 grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
                 sc_consensus_babe::BabeLink<Block>,
             ),
@@ -124,6 +132,9 @@ pub fn new_partial(
             config,
             telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
             executor,
+            // Keeps the blocks that carry GRANDPA justifications through pruning,
+            // so warp sync keeps working (stable2603).
+            vec![Arc::new(grandpa::GrandpaPruningFilter)],
         )?;
     let client = Arc::new(client);
 
@@ -158,37 +169,38 @@ pub fn new_partial(
 
     // Reference chains grandpa -> beefy -> babe. No BEEFY here, so BABE imports
     // straight on top of GRANDPA.
+    // stable2509 made the BABE verifier stateless: inherent checking and
+    // equivocation reporting moved from the import queue into the block import.
+    let babe_config = sc_consensus_babe::configuration(&*client)?;
+    let slot_duration = babe_config.slot_duration();
     let (block_import, babe_link) = sc_consensus_babe::block_import(
-        sc_consensus_babe::configuration(&*client)?,
+        babe_config,
         grandpa_block_import,
         client.clone(),
+        Arc::new(move |_, _| async move {
+            let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
+            let slot =
+                sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
+                    *timestamp,
+                    slot_duration,
+                );
+            Ok((slot, timestamp))
+        }) as BabeCreateInherentDataProviders<Block>,
+        select_chain.clone(),
+        OffchainTransactionPoolFactory::new(transaction_pool.clone()),
     )?;
 
-    let slot_duration = babe_link.config().slot_duration();
-    let (import_queue, babe_worker_handle) = sc_consensus_babe::import_queue(
-        sc_consensus_babe::ImportQueueParams {
+    let (import_queue, babe_worker_handle) =
+        sc_consensus_babe::import_queue(sc_consensus_babe::ImportQueueParams {
             link: babe_link.clone(),
             block_import: block_import.clone(),
             justification_import: Some(Box::new(justification_import)),
             client: client.clone(),
-            select_chain: select_chain.clone(),
-            create_inherent_data_providers: move |_, ()| async move {
-                let timestamp = sp_timestamp::InherentDataProvider::from_system_time();
-
-                let slot =
-                    sp_consensus_babe::inherents::InherentDataProvider::from_timestamp_and_slot_duration(
-                        *timestamp,
-                        slot_duration,
-                    );
-
-                Ok((slot, timestamp))
-            },
+            slot_duration,
             spawner: &task_manager.spawn_essential_handle(),
             registry: config.prometheus_registry(),
             telemetry: telemetry.as_ref().map(|x| x.handle()),
-            offchain_tx_pool_factory: OffchainTransactionPoolFactory::new(transaction_pool.clone()),
-        },
-    )?;
+        })?;
 
     let import_setup = (block_import, grandpa_link, babe_link);
 
@@ -266,10 +278,7 @@ pub struct NewFullBase {
 /// Creates a full service from the configuration.
 pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
     config: Configuration,
-    with_startup_data: impl FnOnce(
-        &sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
-        &sc_consensus_babe::BabeLink<Block>,
-    ),
+    with_startup_data: impl FnOnce(&FullBabeBlockImport, &sc_consensus_babe::BabeLink<Block>),
 ) -> Result<NewFullBase, ServiceError> {
     let role = config.role;
     let force_authoring = config.force_authoring;
@@ -337,6 +346,7 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
             client: client.clone(),
             transaction_pool: transaction_pool.clone(),
             spawn_handle: task_manager.spawn_handle(),
+            spawn_essential_handle: task_manager.spawn_essential_handle(),
             import_queue,
             block_announce_validator_builder: None,
             warp_sync_config: Some(WarpSyncConfig::WithProvider(warp_sync)),
@@ -357,13 +367,14 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
         tx_handler_controller,
         sync_service: sync_service.clone(),
         telemetry: telemetry.as_mut(),
+        tracing_execute_block: None,
     })?;
 
     let (block_import, grandpa_link, babe_link) = import_setup;
 
     (with_startup_data)(&block_import, &babe_link);
 
-    if let sc_service::config::Role::Authority { .. } = &role {
+    if role.is_authority() {
         let proposer = sc_basic_authorship::ProposerFactory::new(
             task_manager.spawn_handle(),
             client.clone(),
@@ -438,6 +449,7 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
                 Box::pin(dht_event_stream),
                 authority_discovery_role,
                 prometheus_registry.clone(),
+                task_manager.spawn_handle(),
             );
 
         task_manager.spawn_handle().spawn(
@@ -535,7 +547,7 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
 pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceError> {
     let database_path = config.database.path().map(Path::to_path_buf);
 
-    let task_manager = match config.network.network_backend.unwrap_or_default() {
+    let task_manager = match config.network.network_backend {
         sc_network::config::NetworkBackendType::Libp2p => {
             new_full_base::<sc_network::NetworkWorker<_, _>>(config, |_, _| ())
                 .map(|NewFullBase { task_manager, .. }| task_manager)?

@@ -94,7 +94,6 @@ impl pallet_agents::pallet::OrchestratorLookup<u64, u64> for TestOrchestratorBri
     }
 }
 impl pallet_agents::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     // Balance- and BlockNumber-typed constants: ConstU64, not ConstU32, since both
     // are u64 in this mock. Every value carried over unchanged.
@@ -129,7 +128,6 @@ impl pallet_agents::Config for Test {
 }
 
 impl super::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type MaxSubAgentsPerOrchestrator = ConstU32<50>;
     type MaxOrchestratorFeeBps = ConstU32<500>;
     // BlockNumber-typed (Get<BlockNumberFor<Self>>): ConstU64. Value unchanged: 100.

@@ -256,7 +256,8 @@ Five peers within five seconds, and fully synced **19 minutes** later. What is l
 ## 5. Session keys — on your own node, never the public RPC
 
 Session keys are generated *inside a node's keystore*. The public endpoint refuses, by design —
-`author_rotateKeys` there would put keys in the operator's keystore, useless to you:
+`author_rotateKeysWithOwner` (or `author_rotateKeys`) there would put keys in the operator's
+keystore, useless to you. Both are in the unsafe set and get the same refusal:
 
 ```bash
 curl -s -H 'content-type: application/json' \
@@ -268,24 +269,47 @@ curl -s -H 'content-type: application/json' \
 ```
 
 **Your own node refuses too, while `RPC_METHODS=safe`** — `safe` withholds unsafe methods even on
-loopback. So flip it for the one call, then flip it back:
+loopback. So flip it for the one call, then flip it back.
+
+From spec 313 on, `session.setKeys` checks a proof that the keys were generated for the account
+submitting it, so the call takes one parameter, `owner`: the stash that will send `setKeys` in
+§6, as its raw 32-byte account id in hex (`0x` + 64 hex chars). Create the stash first (§6) if
+you have not, then derive the hex from its address:
 
 ```bash
+node -e "const{decodeAddress}=require('@polkadot/util-crypto');const{u8aToHex}=require('@polkadot/util');console.log(u8aToHex(decodeAddress(process.argv[1])))" <stash address>
+```
+
+```bash
+STASH_HEX=0x…   # the 0x + 64 hex chars printed above
 sed -i 's/^RPC_METHODS=safe$/RPC_METHODS=unsafe/' ~/.config/scalar-validator/validator.env
 systemctl --user restart scalar-validator
 curl -s -H 'content-type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeys","params":[]}' http://127.0.0.1:9949
+  -d '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeysWithOwner","params":["'"$STASH_HEX"'"]}' \
+  http://127.0.0.1:9949
 sed -i 's/^RPC_METHODS=unsafe$/RPC_METHODS=safe/' ~/.config/scalar-validator/validator.env
 systemctl --user restart scalar-validator
 ```
+
+The result is an object, `{"keys":"0x…","proof":"0x…"}`. Keep both: §6 submits them together.
+
+This walkthrough ran on spec 309, before the ownership proof, so it called `author_rotateKeys`
+with no params, which returns the keys alone:
 
 ```json
 {"jsonrpc":"2.0","id":1,"result":"0x6a4fcc900adfe988b6ec188fdd9c31dd75c93fa011a7f918c5cb791395212a52645ae4c5545609f461c0b5b0e7f2e159e9237d4df6543f987c940be275b9fdbe9482e4cc5da3e3730fdc5d32edab932207205014da1106c3f2c3b73e5a54c82e"}
 ```
 
-96 bytes: the `babe`, `grandpa` and `authority_discovery` public keys, in that order. The
-private halves are now three `0600` files in `base/chains/scalar-local/keystore/`. After the
-flip back, the same call on loopback returns `-32601` again — confirm it does.
+96 bytes: the `babe`, `grandpa` and `authority_discovery` public keys, in that order — the
+same layout as `keys` from `author_rotateKeysWithOwner`. The private halves are now three
+`0600` files in `base/chains/scalar-local/keystore/`. After the flip back, the same call on
+loopback returns `-32601` again — confirm it does.
+
+::: info Runtimes before spec 313
+Until spec 313 is enacted, use `author_rotateKeys` (no params) as above and submit
+`setKeys(keys, '0x')` — an empty proof. Keys registered that way stay valid after the
+upgrade; only new registrations and rotations need the proof.
+:::
 
 ## 6. Stash, bond, keys, intent
 
@@ -322,9 +346,13 @@ here touches your node:
 // stake.mjs (excerpt) — the full script is in the repository's run record
 const api = await ApiPromise.create({ provider: new WsProvider('wss://rpc.scalarnet.io') });
 await api.tx.staking.bond(1000n * 10n ** 12n, { Stash: null }).signAndSend(stash);   // 1 000 CMN
-await api.tx.session.setKeys(ROTATE_KEYS_RESULT, '0x').signAndSend(stash);         // from step 5
+await api.tx.session.setKeys(rotated.keys, rotated.proof).signAndSend(stash);      // from step 5
 await api.tx.staking.validate({ commission: 50_000_000, blocked: false }).signAndSend(stash); // 5 %
 ```
+
+`rotated` is the `{ keys, proof }` object from §5. The proof is bound to the owner you passed,
+so `setKeys` must be signed by that same stash; a different signer, or `'0x'` as the proof,
+fails with `session.InvalidProof` on spec 313 and later.
 
 `commission` is a `Perbill`: `10_000_000` = 1 %. On this network it is a statement of intent
 only — there is nothing to take a commission from. Payee `Stash` is the honest choice for the
@@ -342,6 +370,7 @@ same reason.
  "explorer":"https://explorer.scalarnet.io/extrinsic/754123/1","events":["balances.Withdraw","staking.ValidatorPrefsSet","transactionPayment.TransactionFeePaid","system.ExtrinsicSuccess"]}
 ```
 
+These were recorded on spec 309, so the `setKeys` above carried the pre-313 `'0x'` proof.
 Read back over the public RPC straight after:
 
 ```json
@@ -352,7 +381,7 @@ Read back over the public RPC straight after:
  "inActiveSet":false,"currentEra":70,"activeEra":69}
 ```
 
-`nextKeys` is exactly the 96 bytes `author_rotateKeys` returned, split three ways. `inActiveSet`
+`nextKeys` is exactly the 96 bytes `author_rotateKeys` returned in §5, split three ways. `inActiveSet`
 is `false`, as it should be: declaring intent does not put you in the set; an election does.
 
 ::: tip Why `validate` waited ~3 hours after `setKeys` here
@@ -467,8 +496,8 @@ the old chain; your node's database belongs to a chain that no longer exists.
 ## Security
 
 - **Never expose RPC.** Not your own port, and never 9944–9948 on a host that also runs the
-  operator's nodes. Unsafe methods (`author_rotateKeys`, `author_insertKey`) on a reachable
-  RPC hand your keystore to anyone who can connect. Keep `RPC_METHODS=safe` except for the
+  operator's nodes. Unsafe methods (`author_rotateKeysWithOwner`, `author_rotateKeys`,
+  `author_insertKey`) on a reachable RPC hand your keystore to anyone who can connect. Keep `RPC_METHODS=safe` except for the
   one-off rotation, and never pass `--rpc-external` or `--unsafe-rpc-external`.
 - **File permissions.** `chmod 700` the base path; the network key is created 664 — make it
   600; the keystore files are created 600; the env file 600.
@@ -490,7 +519,7 @@ fully verified.
 |---|---|---|
 | 1 | **Validators are unpaid.** `EraPayout = ()`, fees burned, slashing to Treasury, 28-era exit. Negative expected value for an outside operator. | [#172](https://github.com/tejaspatil1936/scalar-commons-v4/issues/172) (`tier:T0`) |
 | 2 | A first start with `--validator` crash-loops on `NetworkKeyNotFound` until `key generate-node-key` is run, and that command writes the key **mode 664**. | §3 |
-| 3 | `--rpc-methods safe` refuses `author_rotateKeys` **on loopback too**, so key rotation needs a temporary switch to `unsafe` and two restarts. | §5 |
+| 3 | `--rpc-methods safe` refuses `author_rotateKeysWithOwner` (spec 313+) and `author_rotateKeys` (earlier) **on loopback too**, so key rotation needs a temporary switch to `unsafe` and two restarts. | §5 |
 | 4 | The bond is a staking *hold* (`reserved`), not a lock (`frozen`); tools and docs that look for a lock will report the stake as missing. | §6 |
 | 5 | The explorer's block page does not show the block author, so "did my validator author this?" needs the RPC. | §7 |
 | 6 | **Inbound p2p reachability of the test validator was not verified.** It ran on the operator's host, whose firewall rules are root-only, so whether TCP 30338 was reachable from outside is unknown. It dialled out to all five bootnodes, was elected, authored and finalized regardless. Open your p2p port anyway: with only outbound connections you depend on peers you dial. | §1 |
