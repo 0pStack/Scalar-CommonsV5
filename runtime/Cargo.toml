@@ -66,6 +66,7 @@ pallet-sudo               = { workspace = true }
 pallet-scheduler          = { workspace = true }
 pallet-utility            = { workspace = true }
 pallet-multisig           = { workspace = true }
+pallet-proxy              = { workspace = true }
 pallet-referenda          = { workspace = true }
 pallet-conviction-voting  = { workspace = true }
 pallet-ranked-collective  = { workspace = true }
@@ -124,7 +125,7 @@ std = [
     "pallet-balances/std", "pallet-transaction-payment/std",
     "pallet-timestamp/std", "pallet-vesting/std",
     "pallet-sudo/std", "pallet-scheduler/std", "pallet-utility/std",
-    "pallet-multisig/std", "pallet-referenda/std",
+    "pallet-multisig/std", "pallet-proxy/std", "pallet-referenda/std",
     "pallet-conviction-voting/std", "pallet-ranked-collective/std",
     "pallet-salary/std", "pallet-identity/std", "pallet-treasury/std",
     "pallet-whitelist/std", "pallet-safe-mode/std", "pallet-tx-pause/std",
@@ -183,6 +184,7 @@ runtime-benchmarks = [
     "pallet-scheduler/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
     "pallet-multisig/runtime-benchmarks",
+    "pallet-proxy/runtime-benchmarks",
     "pallet-preimage/runtime-benchmarks",
     "pallet-referenda/runtime-benchmarks",
     "pallet-conviction-voting/runtime-benchmarks",

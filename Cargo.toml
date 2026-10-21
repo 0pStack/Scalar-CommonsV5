@@ -71,6 +71,7 @@ pallet-ranked-collective = { git = "https://github.com/paritytech/polkadot-sdk",
 pallet-salary = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503",  default-features = false }
 pallet-identity = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503",  default-features = false }
 pallet-multisig = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503",  default-features = false }
+pallet-proxy = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
 pallet-nomination-pools = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503",  default-features = false }
 # V4: governance safety pallets
 pallet-whitelist        = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }

@@ -9459,6 +9459,7 @@ dependencies = [
  "pallet-oracle",
  "pallet-orchestrator",
  "pallet-preimage",
+ "pallet-proxy",
  "pallet-ranked-collective",
  "pallet-referenda",
  "pallet-safe-mode",

@@ -191,6 +191,31 @@ fn over_cap_sudo_recovery_remains_callable_during_safe_mode() {
 }
 
 #[test]
+fn sudo_as_is_rejected_before_it_can_impersonate_an_account() {
+    externalities().execute_with(|| {
+        apply_ok(timestamp());
+        let sudo = Balances::free_balance(account(1));
+        let impersonated = Balances::free_balance(account(2));
+        let call = RuntimeCall::Sudo(pallet_sudo::Call::sudo_as {
+            who: Address::Id(account(2)),
+            call: Box::new(RuntimeCall::Balances(
+                pallet_balances::Call::transfer_allow_death {
+                    dest: Address::Id(account(1)),
+                    value: CMN,
+                },
+            )),
+        });
+
+        assert_eq!(
+            Executive::apply_extrinsic(signed(call, 1, 0)),
+            Ok(Err(frame_system::Error::<Runtime>::CallFiltered.into()))
+        );
+        assert_eq!(Balances::free_balance(account(1)), sudo);
+        assert_eq!(Balances::free_balance(account(2)), impersonated);
+    });
+}
+
+#[test]
 fn emergency_controls_inherents_and_economic_liveness_are_unpausable() {
     externalities().execute_with(|| {
         for (pallet, call) in [

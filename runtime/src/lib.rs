@@ -1989,18 +1989,58 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
+    /// 313 ships the quick-fix runtime bundle and its ranked-member repair (#19).
     /// 312 makes escrow/oracle settlement atomic and checks reserve operations (#61).
     /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
     /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_312() {
-        assert_eq!(VERSION.spec_version, 312);
+    fn spec_version_is_313() {
+        assert_eq!(VERSION.spec_version, 313);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
     #[test]
     fn transaction_version_is_unchanged() {
         assert_eq!(VERSION.transaction_version, 1);
+    }
+
+    #[test]
+    fn proxy_pallet_is_appended_at_index_43() {
+        use frame_support::traits::PalletInfo as PalletInfoT;
+
+        assert_eq!(
+            <PalletInfo as PalletInfoT>::index::<pallet_proxy::Pallet<Runtime>>(),
+            Some(43)
+        );
+        assert_eq!(<Messages as PalletInfoAccess>::index(), 42);
+    }
+
+    #[test]
+    fn equivocation_reporting_is_wired_to_offences_and_historical_proofs() {
+        use core::any::TypeId;
+
+        assert_eq!(
+            TypeId::of::<<Runtime as pallet_babe::Config>::EquivocationReportSystem>(),
+            TypeId::of::<
+                pallet_babe::EquivocationReportSystem<
+                    Runtime,
+                    Offences,
+                    Historical,
+                    ReportLongevity,
+                >,
+            >()
+        );
+        assert_eq!(
+            TypeId::of::<<Runtime as pallet_grandpa::Config>::EquivocationReportSystem>(),
+            TypeId::of::<
+                pallet_grandpa::EquivocationReportSystem<
+                    Runtime,
+                    Offences,
+                    Historical,
+                    ReportLongevity,
+                >,
+            >()
+        );
     }
 
     // ── spec 308: pallet-messages + messaging key (D14–D17) ──────────────────
@@ -2360,6 +2400,73 @@ mod tests {
 
             let index = submit_root_referendum();
             assert!(pallet_referenda::ReferendumInfoFor::<Runtime>::contains_key(index));
+        });
+    }
+
+    #[test]
+    fn automatic_rank_three_promotion_is_paused() {
+        gov_ext().execute_with(|| {
+            let provider = account(1);
+            let buyer = account(2);
+            assert_ok!(Agents::register(
+                RuntimeOrigin::signed(provider.clone()),
+                AgentsFullFloorStake::get(),
+            ));
+            assert_ok!(RankedCollective::do_promote_member(
+                provider.clone(),
+                None,
+                true,
+            ));
+            assert_ok!(RankedCollective::do_promote_member(
+                provider.clone(),
+                None,
+                true,
+            ));
+            pallet_agents::CompletedAgreements::<Runtime>::insert(
+                &provider,
+                AgentsRank3MinCompletions::get().saturating_sub(1),
+            );
+            pallet_oracle::OracleScore::<Runtime>::insert(&provider, 0, 10_000);
+            System::set_block_number(AgentsRank3SpanGate::get().saturating_add(1));
+
+            assert_ok!(pallet_agents::Pallet::<Runtime>::add_era_escrow_volume(
+                &provider, &buyer, 1,
+            ));
+            assert_eq!(
+                <RankedCollective as RankedMembers>::rank_of(&provider),
+                Some(2),
+                "rank 3 must remain unavailable until F03 is fixed"
+            );
+        });
+    }
+
+    #[test]
+    fn runtime_upgrade_removes_ranked_members_without_an_agent_stake() {
+        use frame_support::traits::OnRuntimeUpgrade;
+
+        gov_ext().execute_with(|| {
+            let ghost = account(1);
+            let registered = account(2);
+            for who in [&ghost, &registered] {
+                assert_ok!(Agents::register(
+                    RuntimeOrigin::signed(who.clone()),
+                    AgentsMinStake::get(),
+                ));
+            }
+            pallet_agents::AgentStake::<Runtime>::remove(&ghost);
+
+            <<Runtime as frame_system::Config>::SingleBlockMigrations as OnRuntimeUpgrade>::on_runtime_upgrade();
+
+            assert_eq!(
+                <RankedCollective as RankedMembers>::rank_of(&ghost),
+                None,
+                "legacy unstaked or evicted agents must lose collective membership"
+            );
+            assert_eq!(
+                <RankedCollective as RankedMembers>::rank_of(&registered),
+                Some(0),
+                "registered agents must keep their collective membership"
+            );
         });
     }
 }
