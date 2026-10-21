@@ -1258,7 +1258,11 @@ fn fill_request_to_bound(bounty: u64) -> u64 {
         None,
     ));
     for i in 0..n {
-        OracleResponses::<Test>::insert(q_hash(), 1_000 + i, [7u8; 32]);
+        let who = 1_000 + i;
+        // A real responder already has a balance account. The old fixture could
+        // pass while every payout returned DeadAccount and was silently ignored.
+        assert_ok!(Balances::force_set_balance(RuntimeOrigin::root(), who, 1));
+        OracleResponses::<Test>::insert(q_hash(), who, [7u8; 32]);
     }
     OracleRequests::<Test>::mutate(q_hash(), |r| {
         let r = r.as_mut().unwrap();
@@ -1329,6 +1333,13 @@ fn finalise_weight_covers_the_worst_case_response_count() {
             q_hash()
         ));
         let after = storage_snapshot();
+        let share = 100_000u64.checked_div(n).expect("nonzero response bound");
+        for i in 0..n {
+            assert_eq!(
+                Balances::free_balance(1_000 + i),
+                1u64.saturating_add(share)
+            );
+        }
 
         // The per-response work really did run once per response at the bound:
         // every respondent was paid and rescored, so every response is a winner.
