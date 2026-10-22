@@ -1,0 +1,90 @@
+# Dependabot version updates. Security updates (enabled in the repo settings)
+# arrive on their own and ignore the limits below.
+#
+# Every PR runs CI, and the Actions budget is 2,000 minutes a month on GitHub
+# Free, with a Rust run taking the longest. So updates are grouped hard, cargo
+# runs monthly, and each ecosystem has a small cap on open PRs.
+#
+# Labels: `dependencies`, plus `tidy` so changelog-release files the merge
+# under Maintenance.
+version: 2
+
+updates:
+  # One lockfile at the root covers every npm workspace.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Stockholm
+    open-pull-requests-limit: 5
+    labels: [dependencies, tidy]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # One @polkadot/api version across every package: these move as one PR,
+      # majors included, so the workspaces never split.
+      polkadot:
+        patterns: ["@polkadot/*"]
+      # tooling/tests requires one exact Vitest version in every workspace.
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
+      dev-tooling:
+        dependency-type: development
+        update-types: [minor, patch]
+      runtime-deps:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  # The Polkadot SDK is pinned by git tag and Dependabot does not touch it; it
+  # moves by hand together with rust-toolchain.toml. The crates.io deps here
+  # must stay compatible with that SDK, so semver-major bumps are ignored.
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Europe/Stockholm
+    open-pull-requests-limit: 2
+    labels: [dependencies, tidy]
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      cargo:
+        patterns: ["*"]
+
+  - package-ecosystem: github-actions
+    directories: [/, /.github/actions/setup-rust]
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Stockholm
+    open-pull-requests-limit: 3
+    labels: [dependencies, tidy]
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # agent/Dockerfile base image. Node 22 is the repo-wide major (package.json
+  # engines, CI), so only minor and patch tags of node:22-slim are proposed.
+  - package-ecosystem: docker
+    directory: /agent
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Europe/Stockholm
+    open-pull-requests-limit: 1
+    labels: [dependencies, tidy]
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
