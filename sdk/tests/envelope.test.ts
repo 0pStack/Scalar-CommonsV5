@@ -158,11 +158,16 @@ describe('canonical SCALE encoding', () => {
       expires_at_block: 'u32',
       payload_hash: '[u8; 32]',
     },
+    ScalarSealedBody: {
+      sender_key: '[u8; 32]',
+      nonce: '[u8; 24]',
+      ciphertext: 'Bytes',
+    },
     ScalarBody: {
       _enum: {
         None: 'Null',
         Plain: 'Bytes',
-        Sealed: { sender_key: '[u8; 32]', nonce: '[u8; 24]', ciphertext: 'Bytes' },
+        Sealed: 'ScalarSealedBody',
       },
     },
   });

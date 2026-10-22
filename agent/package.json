@@ -7,9 +7,11 @@
   "type": "module",
   "scripts": {
     "setup:sdk": "npm --prefix ../sdk run build",
+    "pretypecheck": "npm run setup:sdk",
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
     "start": "node dist/main.js",
+    "pretest": "npm run setup:sdk",
     "test": "vitest run",
     "messaging-demo": "node dist/message-demo.js",
     "coverage": "vitest run --coverage"

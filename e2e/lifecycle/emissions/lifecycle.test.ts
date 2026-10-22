@@ -15,7 +15,7 @@
 import type { ApiPromise } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { big, connect, freshAccount, keyring, send } from './helpers';
+import { big, connect, freshAccount, keyring, send } from './helpers.js';
 
 let api: ApiPromise;
 let funder: KeyringPair;

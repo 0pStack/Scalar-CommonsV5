@@ -6,12 +6,11 @@ import { cryptoWaitReady } from '@polkadot/util-crypto';
 import {
   BOX_MAC_LENGTH,
   MessageRejected,
-  boxBeforenm,
   deriveMessagingKey,
-  hsalsa20,
   openBody,
   sealBody,
 } from '../src/index.js';
+import { boxBeforenm, hsalsa20 } from '../src/messaging/keys.js';
 
 /**
  * Offline tests for the X25519 messaging key (D14) and `Sealed` bodies (NaCl `box`).

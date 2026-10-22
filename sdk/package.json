@@ -19,7 +19,8 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "pretest": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "RUN_INTEGRATION=1 vitest run",
