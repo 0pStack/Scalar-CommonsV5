@@ -18,6 +18,12 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.7.3] - 2026-10-22
+
+### Security
+
+- fix(node): refuse the libp2p network backend ([#161](https://github.com/0pStack/Scalar-CommonsV5/pull/161), closes [#160](https://github.com/0pStack/Scalar-CommonsV5/issues/160))
+
 ### Maintenance
 
 - chore: run every Claude agent and workflow on Claude Opus 5.5 ([#149](https://github.com/0pStack/Scalar-CommonsV5/pull/149), closes [#148](https://github.com/0pStack/Scalar-CommonsV5/issues/148))
