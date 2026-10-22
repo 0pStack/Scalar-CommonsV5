@@ -132,6 +132,11 @@ pub mod pallet {
         type MinConsensusThreshold: Get<u8>;
         #[pallet::constant]
         type MaxResponsesPerRequest: Get<u32>;
+        /// Live minimum response quorum for internally-created dispute questions.
+        ///
+        /// The runtime backs this with auto-params storage so the participation rule and
+        /// governance updates affect the next question without a runtime upgrade.
+        type MinResponses: Get<u32>;
         #[pallet::constant]
         type MaxBatchSubmissions: Get<u32>;
         type DisputeCallback: crate::escrow_bridge::DisputeCallback<
@@ -729,6 +734,9 @@ pub mod pallet {
             preimage.extend_from_slice(&provider.encode());
             preimage.extend_from_slice(&seq.to_le_bytes());
             let question_hash = sp_io::hashing::blake2_256(&preimage);
+            let min_responses = T::MinResponses::get()
+                .max(1)
+                .min(T::MaxResponsesPerRequest::get());
             <T as agents_pallet::Config>::Currency::reserve(buyer, bounty)?;
             OracleRequests::<T>::insert(
                 question_hash,
@@ -737,7 +745,7 @@ pub mod pallet {
                     question_hash,
                     bounty,
                     mode: ConsensusMode::Factual,
-                    min_responses: 3,
+                    min_responses,
                     consensus_threshold: 67,
                     response_deadline: deadline,
                     challenge_window: T::MinChallengeWindow::get(),

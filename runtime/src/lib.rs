@@ -221,7 +221,9 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // No storage migration: every pallet's storage version matches the live chain
     // (spec 309). session.set_keys now verifies an ownership proof, so validators
     // rotate keys with author_rotateKeysWithOwner. transaction_version unchanged.
-    spec_version: 313,
+    // 313 -> 314: F14 wires auto-params MinScoreEligibleResponses into the quorum
+    // for newly-created dispute questions. No storage or call encoding changes.
+    spec_version: 314,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -1290,6 +1292,16 @@ impl pallet_auto_params::pallet::AutoParamsProvider for AutoParamsImpl {
     }
 }
 
+/// Reads the live oracle quorum from auto-params storage. The rule moves by at most one
+/// response per era; the oracle also caps it at MaxResponsesPerRequest when creating a
+/// question so a governance bounds mistake cannot create an impossible request.
+pub struct OracleMinResponses;
+impl frame_support::traits::Get<u32> for OracleMinResponses {
+    fn get() -> u32 {
+        pallet_auto_params::Pallet::<Runtime>::live_min_score_eligible()
+    }
+}
+
 pub struct EscrowCompletionFee;
 impl frame_support::traits::Get<u32> for EscrowCompletionFee {
     fn get() -> u32 {
@@ -1409,6 +1421,7 @@ impl pallet_oracle::Config for Runtime {
     type MinChallengeWindow = OracleMinChallengeWindow;
     type MinConsensusThreshold = OracleMinConsensusThreshold;
     type MaxResponsesPerRequest = OracleMaxResponsesPerRequest;
+    type MinResponses = OracleMinResponses;
     type DisputeCallback = Escrow;
     type CapabilityChecker = OracleCapabilityGate;
     type MaxBatchSubmissions = OracleMaxBatchSubmissions;
@@ -2041,8 +2054,8 @@ mod tests {
     /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
     /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_313() {
-        assert_eq!(VERSION.spec_version, 313);
+    fn spec_version_is_314() {
+        assert_eq!(VERSION.spec_version, 314);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
