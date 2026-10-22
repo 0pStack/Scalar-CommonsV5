@@ -22,7 +22,8 @@
 # fixtures or mocks. The suites that genuinely need the devnet are NOT deleted
 # and NOT skipped — they live in e2e/ (pallet lifecycles, the faucet, indexer
 # and explorer live suites, the attacker-archetype runner), which this workflow
-# typechecks but never runs. How to run them is in e2e/README.md.
+# typechecks; of those it runs only the archetype runner's offline unit tests.
+# How to run the live suites is in e2e/README.md.
 name: ci-node
 
 on:
@@ -422,10 +423,12 @@ jobs:
 
   # ── e2e ───────────────────────────────────────────────────────────────────
   # Gate: npm ci, build sdk/ (e2e imports the workspace SDK's dist/), then
-  # npm run typecheck -w e2e. Typecheck ONLY: every suite in
-  # e2e/ needs a live chain, so none of them runs here. The typecheck keeps the
-  # live suites compiling against the faucet, indexer and explorer sources they
-  # import, so a refactor there cannot silently break them between devnet runs.
+  # npm run typecheck -w e2e, then npm test -w e2e. `npm test` runs only the
+  # archetype runner's offline unit tests (archetypes/tests/, no chain needed);
+  # the chain suites still need a live chain, so none of them runs here. The
+  # typecheck keeps the live suites compiling against the faucet, indexer and
+  # explorer sources they import, so a refactor there cannot silently break
+  # them between devnet runs.
   e2e:
     name: e2e
     needs: changes
@@ -449,6 +452,9 @@ jobs:
       - name: npm run typecheck
         if: needs.changes.outputs.e2e == 'true'
         run: npm run typecheck -w e2e
+      - name: npm test (offline archetype unit tests)
+        if: needs.changes.outputs.e2e == 'true'
+        run: npm test -w e2e
       - name: Not selected
         if: needs.changes.outputs.e2e != 'true'
         run: echo "e2e/, sdk/ and the app sources e2e imports unchanged — nothing to check."

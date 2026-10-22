@@ -24,8 +24,8 @@ npm run test:live:faucet -w e2e
 npm run test:live:indexer -w e2e
 npm run test:live:explorer -w e2e
 npm run archetypes -w e2e -- --archetype wash --eras 1
-npm run typecheck -w e2e              # offline; what CI runs
-npm test -w e2e                       # offline: the archetype runner's own unit tests
+npm run typecheck -w e2e              # offline; CI runs it
+npm test -w e2e                       # offline; CI runs it: the archetype runner's own unit tests
 ```
 
 `npm test` here runs only the offline unit tests of the archetype runner (its money

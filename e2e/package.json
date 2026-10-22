@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Every test that needs a live Scalar Commons chain: pallet lifecycles, the faucet, indexer and explorer against a node, and the attacker-archetype runner. Not part of the offline CI gate.",
+  "description": "Every test that needs a live Scalar Commons chain: pallet lifecycles, the faucet, indexer and explorer against a node, and the attacker-archetype runner. CI typechecks the package and runs only the archetype runner's offline unit tests.",
   "license": "Apache-2.0",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p lifecycle/tsconfig.json",
