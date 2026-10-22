@@ -13,7 +13,7 @@
     "snapshot:chain": "node scripts/snapshot-chain.mjs"
   },
   "devDependencies": {
-    "@polkadot/api": "^16.5.0",
+    "@polkadot/api": "^17.0.2",
     "vitepress": "2.0.0-alpha.20"
   },
   "engines": {

@@ -16,7 +16,7 @@
     "archetypes": "node archetypes/run.mjs"
   },
   "devDependencies": {
-    "@polkadot/api": "^16.5.0",
+    "@polkadot/api": "^17.0.2",
     "@polkadot/keyring": "^14.0.0",
     "@polkadot/types": "^16.5.0",
     "@polkadot/util": "^14.0.0",
