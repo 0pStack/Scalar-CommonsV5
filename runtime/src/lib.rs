@@ -47,7 +47,7 @@ use sp_runtime::{
         IdentityLookup, NumberFor, Verify,
     },
     transaction_validity::{TransactionSource, TransactionValidity},
-    ApplyExtrinsicResult, MultiSignature, RuntimeDebug,
+    ApplyExtrinsicResult, MultiSignature,
 };
 use sp_std::prelude::*;
 use sp_version::RuntimeVersion;
@@ -499,7 +499,7 @@ parameter_types! {
     Encode,
     Decode,
     DecodeWithMemTracking,
-    RuntimeDebug,
+    Debug,
     MaxEncodedLen,
     TypeInfo,
 )]
