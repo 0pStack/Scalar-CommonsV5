@@ -243,12 +243,20 @@ impl pallet_escrow::Config for TestRuntime {
 
 // ── Oracle Config ─────────────────────────────────────────────────────────────
 
+pub struct TestOracleMinResponses;
+impl frame_support::traits::Get<u32> for TestOracleMinResponses {
+    fn get() -> u32 {
+        pallet_auto_params::Pallet::<TestRuntime>::live_min_score_eligible()
+    }
+}
+
 impl pallet_oracle::Config for TestRuntime {
     type MinOracleBounty = ConstU64<CMN>;
     type MaxOpenRequests = ConstU32<1000>;
     type MinConsensusThreshold = ConstU8<50>;
     type MinChallengeWindow = ConstU64<1>;
     type MaxResponsesPerRequest = ConstU32<100>;
+    type MinResponses = TestOracleMinResponses;
     type DisputeCallback = Escrow;
     type CapabilityChecker = ();
     type MaxBatchSubmissions = ConstU32<20>;

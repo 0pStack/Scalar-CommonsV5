@@ -239,12 +239,15 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // No storage migration; existing call and event encodings are preserved.
     // 312 -> 313: Polkadot SDK polkadot-stable2503 -> polkadot-stable2606-3 (#30).
     // session.set_keys now verifies an ownership proof, so validators rotate keys
-    // with author_rotateKeysWithOwner. 313 also ships the #19 quick-fix bundle:
+    // with author_rotateKeysWithOwner.
+    // 313 -> 314: F14 wires auto-params MinScoreEligibleResponses into the quorum
+    // for newly-created dispute questions. No storage or call encoding changes.
+    // 314 -> 315 ships the #19 quick-fix bundle:
     // pallet-proxy appended at index 43, BABE/GRANDPA equivocation reports enabled,
     // sudo_as filtered, automatic rank-3 promotion paused, and a single-block
     // migration that removes ranked-collective members with no agent stake.
     // Existing pallet and call indices are unchanged, so transaction_version stays 1.
-    spec_version: 313,
+    spec_version: 315,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -1433,6 +1436,16 @@ impl pallet_auto_params::pallet::AutoParamsProvider for AutoParamsImpl {
     }
 }
 
+/// Reads the live oracle quorum from auto-params storage. The rule moves by at most one
+/// response per era; the oracle also caps it at MaxResponsesPerRequest when creating a
+/// question so a governance bounds mistake cannot create an impossible request.
+pub struct OracleMinResponses;
+impl frame_support::traits::Get<u32> for OracleMinResponses {
+    fn get() -> u32 {
+        pallet_auto_params::Pallet::<Runtime>::live_min_score_eligible()
+    }
+}
+
 pub struct EscrowCompletionFee;
 impl frame_support::traits::Get<u32> for EscrowCompletionFee {
     fn get() -> u32 {
@@ -1554,6 +1567,7 @@ impl pallet_oracle::Config for Runtime {
     type MinChallengeWindow = OracleMinChallengeWindow;
     type MinConsensusThreshold = OracleMinConsensusThreshold;
     type MaxResponsesPerRequest = OracleMaxResponsesPerRequest;
+    type MinResponses = OracleMinResponses;
     type DisputeCallback = Escrow;
     type CapabilityChecker = OracleCapabilityGate;
     type MaxBatchSubmissions = OracleMaxBatchSubmissions;
@@ -2193,14 +2207,15 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
-    /// 313 moves the Polkadot SDK to stable2606-3 (#30) and ships the quick-fix
-    /// runtime bundle with its ranked-member repair (#19).
+    /// 315 ships the quick-fix runtime bundle with its ranked-member repair (#19).
+    /// 314 wires the live auto-param quorum into new dispute questions (#21).
+    /// 313 moves the Polkadot SDK to stable2606-3 (#30).
     /// 312 makes escrow/oracle settlement atomic and checks reserve operations (#61).
     /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
     /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_313() {
-        assert_eq!(VERSION.spec_version, 313);
+    fn spec_version_is_315() {
+        assert_eq!(VERSION.spec_version, 315);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
