@@ -43,9 +43,13 @@ function loadPolkadot(pkg) {
     try {
       const req = createRequire(pathResolve(HERE, c));
       return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch (e) { lastErr = e; }
+    } catch (e) {
+      lastErr = e;
+    }
   }
-  throw new Error(`cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`);
+  throw new Error(
+    `cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`,
+  );
 }
 const { ApiPromise, WsProvider } = await loadPolkadot('@polkadot/api');
 const { Keyring } = await loadPolkadot('@polkadot/keyring');
@@ -67,11 +71,17 @@ const cmn = (b) => (Number(b) / 1e12).toFixed(6) + ' CMN';
 const main = async () => {
   await cryptoWaitReady();
 
-  if (!existsSync(KEYFILE)) { console.error(`FATAL: keeper key not found at ${KEYFILE}`); process.exit(1); }
+  if (!existsSync(KEYFILE)) {
+    console.error(`FATAL: keeper key not found at ${KEYFILE}`);
+    process.exit(1);
+  }
   const mode = (statSync(KEYFILE).mode & 0o777).toString(8);
   if (mode !== '600') console.error(`WARNING: ${KEYFILE} is mode ${mode}, expected 600`);
   const phrase = readFileSync(KEYFILE, 'utf8').trim();
-  if (!phrase) { console.error(`FATAL: ${KEYFILE} is empty`); process.exit(1); }
+  if (!phrase) {
+    console.error(`FATAL: ${KEYFILE} is empty`);
+    process.exit(1);
+  }
 
   const api = await ApiPromise.create({ provider: new WsProvider(ws) });
   const kr = new Keyring({ type: 'sr25519', ss58Format: api.registry.chainSS58 ?? 42 });
@@ -93,10 +103,14 @@ const main = async () => {
   log(`keeper ${keeper.address}`);
   log(`block ${now}  EraStartBlock ${eraStart}  EraDuration ${eraDuration}  due at ${dueAt}`);
   log(`era ${era}  LastSettledEra ${lastSettled.isNone ? 'None' : lastSettled.toString()}`);
-  log(`guards: EraNotDue ${eraDue ? 'passes' : 'BLOCKS'}, EraAlreadySettled ${notSettled ? 'passes' : 'BLOCKS'}`);
+  log(
+    `guards: EraNotDue ${eraDue ? 'passes' : 'BLOCKS'}, EraAlreadySettled ${notSettled ? 'passes' : 'BLOCKS'}`,
+  );
 
   if (!eraDue || !notSettled) {
-    log(`settlement not due (${!eraDue ? `${dueAt - now} blocks to go` : 'era already settled'}) — nothing to do`);
+    log(
+      `settlement not due (${!eraDue ? `${dueAt - now} blocks to go` : 'era already settled'}) — nothing to do`,
+    );
     await api.disconnect();
     return;
   }
@@ -109,7 +123,9 @@ const main = async () => {
   const ed = api.consts.balances.existentialDeposit.toBigInt();
   log(`balance ${cmn(free)}  estimated fee ${cmn(fee)}  ED ${cmn(ed)}`);
   if (free < fee + ed) {
-    console.error(`FATAL: keeper cannot pay — free ${cmn(free)} < fee + ED ${cmn(fee + ed)}. Fund ${keeper.address}.`);
+    console.error(
+      `FATAL: keeper cannot pay — free ${cmn(free)} < fee + ED ${cmn(fee + ed)}. Fund ${keeper.address}.`,
+    );
     await api.disconnect();
     process.exit(1);
   }
@@ -136,7 +152,8 @@ const main = async () => {
         }
         resolve(status.asFinalized.toHex());
       }
-      if (status.isDropped || status.isInvalid || status.isUsurped) reject(new Error(`transaction ${status.type}`));
+      if (status.isDropped || status.isInvalid || status.isUsurped)
+        reject(new Error(`transaction ${status.type}`));
     }).catch(reject);
   });
 
@@ -144,11 +161,19 @@ const main = async () => {
   const after = await api.query.emissions.lastSettledEra();
   const eraAfter = (await api.query.agents.eraNumber()).toNumber();
   log(`finalized ${finalized} (#${hdr.number.toNumber()})`);
-  log(`LastSettledEra now ${after.isNone ? 'None' : after.toString()}  agents.EraNumber now ${eraAfter}`);
+  log(
+    `LastSettledEra now ${after.isNone ? 'None' : after.toString()}  agents.EraNumber now ${eraAfter}`,
+  );
   await api.disconnect();
 
   // Judge by storage, not by the extrinsic returning Ok.
-  if (after.isNone) { console.error('FAILED: LastSettledEra is still None after a successful extrinsic.'); process.exit(1); }
+  if (after.isNone) {
+    console.error('FAILED: LastSettledEra is still None after a successful extrinsic.');
+    process.exit(1);
+  }
 };
 
-main().catch((e) => { console.error('FATAL: ' + (e && e.message ? e.message : e)); process.exit(1); });
+main().catch((e) => {
+  console.error('FATAL: ' + (e && e.message ? e.message : e));
+  process.exit(1);
+});

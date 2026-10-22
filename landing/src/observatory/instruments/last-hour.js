@@ -77,7 +77,10 @@ export function init(root, ctx) {
           return;
         }
         const first = list[0];
-        const also = list.slice(1).map((r) => r.label).join(', ');
+        const also = list
+          .slice(1)
+          .map((r) => r.label)
+          .join(', ');
         const h = hour.get();
         ctx.readout.showValue(target, first, {
           value: result.count,
@@ -111,7 +114,8 @@ export function init(root, ctx) {
     }
     if (!h) {
       // Without the index's position there is no hour to count over: say why, on every figure.
-      for (const target of targets) ctx.readout.showError(target, record, error ?? 'the index’s position could not be read');
+      for (const target of targets)
+        ctx.readout.showError(target, record, error ?? 'the index’s position could not be read');
       return;
     }
     if (!started) {

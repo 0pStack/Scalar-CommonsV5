@@ -70,7 +70,9 @@ export class Agent {
 
   /** `'existing'`/`'new'` when the agent is (now) registered; `undefined` if the tick must stop. */
   private async ensureRegistered(): Promise<'existing' | 'new' | undefined> {
-    const already = await this.step('registered-check', () => this.chain.isRegistered(this.config.address));
+    const already = await this.step('registered-check', () =>
+      this.chain.isRegistered(this.config.address),
+    );
     if (already === undefined) return undefined;
     if (already) return 'existing';
     const tx = await this.step('register', () => this.chain.register(this.config.stake));
@@ -113,12 +115,19 @@ export class Agent {
    * beat. One explicit beat proves the liveness path works from the start.
    */
   private async maybeHeartbeat(force: boolean): Promise<void> {
-    const [head, last] = await Promise.all([this.chain.head(), this.chain.lastHeartbeat(this.config.address)]);
+    const [head, last] = await Promise.all([
+      this.chain.head(),
+      this.chain.lastHeartbeat(this.config.address),
+    ]);
     // Economic why: the heartbeat multiplier rewards liveness, and the grace
     // period is far longer than our interval, so one missed tick costs nothing.
     if (!force && last !== null && head - last < this.config.heartbeatEveryBlocks) return;
     const tx = await this.chain.heartbeat();
-    this.emit('heartbeat', { block: head.toString(), previous: last === null ? null : last.toString(), tx });
+    this.emit('heartbeat', {
+      block: head.toString(),
+      previous: last === null ? null : last.toString(),
+      tx,
+    });
   }
 
   private async provide(): Promise<void> {
@@ -143,7 +152,13 @@ export class Agent {
       const tx = await this.step('deliver', () => this.chain.recordDelivery(a.buyer, a.seq, proof));
       if (tx !== undefined) {
         this.state.delivered.push(k);
-        this.emit('deliver', { buyer: a.buyer, seq: a.seq, amount: a.amount.toString(), proof, tx });
+        this.emit('deliver', {
+          buyer: a.buyer,
+          seq: a.seq,
+          amount: a.amount.toString(),
+          proof,
+          tx,
+        });
       }
     }
   }
@@ -152,7 +167,10 @@ export class Agent {
     // Defence in depth (loadConfig also refuses): a buyer with no explicit
     // peers would pay any registered stranger, so it does nothing at all.
     if (this.config.buyerPeers.length === 0) {
-      this.emit('error', { step: 'buyer', message: 'BUYER_PEERS is empty; buyer mode refuses to act' });
+      this.emit('error', {
+        step: 'buyer',
+        message: 'BUYER_PEERS is empty; buyer mode refuses to act',
+      });
       return;
     }
     const me = this.config.address;

@@ -3,7 +3,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { withRetry } from '../src/retry.js';
 import type { Logger } from '../src/logger.js';
 
-function spyLogger(): Logger & { calls: { level: string; message: string; meta?: Record<string, unknown> }[] } {
+function spyLogger(): Logger & {
+  calls: { level: string; message: string; meta?: Record<string, unknown> }[];
+} {
   const calls: { level: string; message: string; meta?: Record<string, unknown> }[] = [];
   return {
     calls,
@@ -72,9 +74,9 @@ describe('withRetry — no silent retries', () => {
     const fn = vi.fn(async () => {
       throw new Error('once');
     });
-    await expect(withRetry(fn, 'no-retry', { logger, maxRetries: 0, retryDelayMs: 0 })).rejects.toThrow(
-      'once',
-    );
+    await expect(
+      withRetry(fn, 'no-retry', { logger, maxRetries: 0, retryDelayMs: 0 }),
+    ).rejects.toThrow('once');
     expect(fn).toHaveBeenCalledTimes(1);
     expect(logger.calls.filter((c) => c.level === 'warn')).toHaveLength(0);
     expect(logger.calls.filter((c) => c.level === 'error')).toHaveLength(1);

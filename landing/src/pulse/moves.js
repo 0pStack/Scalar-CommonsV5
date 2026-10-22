@@ -12,13 +12,25 @@ import { isOperatorRun } from '../observatory/instruments/agent-field.js';
  * of the graph handle and `args` its arguments. `names` is the feed's
  * address → name map, for a newly registered agent's label and ring.
  */
-export function moveOf({ event, row, parties }, { names = new Map(), field = (o, k) => o[k] } = {}) {
+export function moveOf(
+  { event, row, parties },
+  { names = new Map(), field = (o, k) => o[k] } = {},
+) {
   const key = agreementKeyOf(event);
   switch (row.kind) {
     case 'agreement':
       return {
         call: 'addLink',
-        args: [{ id: key, source: parties.from, target: parties.to, seq: field(event.data, 'seq'), status: 'Created' }, { drawMs: row.lifetimeMs }],
+        args: [
+          {
+            id: key,
+            source: parties.from,
+            target: parties.to,
+            seq: field(event.data, 'seq'),
+            status: 'Created',
+          },
+          { drawMs: row.lifetimeMs },
+        ],
       };
     case 'message':
       return { call: 'message', args: [parties.from, parties.to, key] };
@@ -32,7 +44,20 @@ export function moveOf({ event, row, parties }, { names = new Map(), field = (o,
       return { call: 'spark', args: [parties.from] };
     default: {
       const name = names.get(parties.from);
-      return { call: 'registered', args: [parties.from, { id: parties.from, name, operator: isOperatorRun(name), val: nodeValue(0), completed: 0, disputed: false }] };
+      return {
+        call: 'registered',
+        args: [
+          parties.from,
+          {
+            id: parties.from,
+            name,
+            operator: isOperatorRun(name),
+            val: nodeValue(0),
+            completed: 0,
+            disputed: false,
+          },
+        ],
+      };
     }
   }
 }

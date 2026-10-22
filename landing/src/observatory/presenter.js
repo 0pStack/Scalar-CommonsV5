@@ -53,7 +53,9 @@ export function keyAction(key, index, count, presenting) {
 /** Keys typed into a field are text, never commands. */
 function typing(target) {
   const tag = target?.tagName;
-  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || Boolean(target?.isContentEditable);
+  return (
+    tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || Boolean(target?.isContentEditable)
+  );
 }
 
 export function init(doc, ctx, { setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
@@ -80,7 +82,8 @@ export function init(doc, ctx, { setTimer = setTimeout, clearTimer = clearTimeou
   }
 
   function count() {
-    if (counter) counter.textContent = `${index + 1} / ${screens.length}${paused ? ' · paused' : ''}`;
+    if (counter)
+      counter.textContent = `${index + 1} / ${screens.length}${paused ? ' · paused' : ''}`;
   }
 
   function show(next) {

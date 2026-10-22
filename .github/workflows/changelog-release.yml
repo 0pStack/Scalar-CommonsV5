@@ -86,7 +86,7 @@ jobs:
         id: release
         env:
           BUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.bump != 'auto' && inputs.bump || '' }}
-        run: node scripts/release/run.mjs release $BUMP
+        run: node scripts/release/run.mjs release "$BUMP"
 
       - name: Commit, tag and push
         env:

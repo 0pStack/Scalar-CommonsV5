@@ -27,7 +27,10 @@ export function init(root, ctx, feed) {
     const now = ctx.now();
     let shown = 0;
     for (const line of lines) {
-      const hidden = filterAddress !== null && line.parties.from !== filterAddress && line.parties.to !== filterAddress;
+      const hidden =
+        filterAddress !== null &&
+        line.parties.from !== filterAddress &&
+        line.parties.to !== filterAddress;
       line.li.hidden = hidden;
       if (!hidden) {
         shown += 1;
@@ -37,10 +40,12 @@ export function init(root, ctx, feed) {
     if (empty) {
       if (downReason) {
         empty.hidden = false;
-        empty.textContent = `live feed unavailable — ${downReason}. ${shown ? 'The lines below are dated; nothing newer is known.' : ''}`.trim();
+        empty.textContent =
+          `live feed unavailable — ${downReason}. ${shown ? 'The lines below are dated; nothing newer is known.' : ''}`.trim();
       } else {
         empty.hidden = shown > 0;
-        empty.textContent = lines.length === 0 ? 'Waiting for the first event.' : 'Nothing yet for this agent.';
+        empty.textContent =
+          lines.length === 0 ? 'Waiting for the first event.' : 'Nothing yet for this agent.';
       }
     }
   }
@@ -73,7 +78,8 @@ export function init(root, ctx, feed) {
     filterAddress = address ?? null;
     if (following) {
       following.hidden = filterAddress === null;
-      if (followingName && filterAddress !== null) followingName.textContent = displayName(filterAddress, feed.names());
+      if (followingName && filterAddress !== null)
+        followingName.textContent = displayName(filterAddress, feed.names());
     }
     render();
   }

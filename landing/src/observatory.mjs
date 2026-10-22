@@ -80,7 +80,17 @@ export function copyButton(value, label) {
  * short, a point no longer registered) is folded under "Notes", and every
  * figure's source is one hover away.
  */
-function section({ id, name, number, title, heading, lede, instrument, readings = '', notes = '' }) {
+function section({
+  id,
+  name,
+  number,
+  title,
+  heading,
+  lede,
+  instrument,
+  readings = '',
+  notes = '',
+}) {
   return `  <section id="${id}" class="section" data-instrument="${name}" data-present-screen data-reveal aria-labelledby="${id}-h">
     <div class="frame section-grid">
       <header class="section-head">
@@ -186,10 +196,26 @@ function historySection() {
     lede: 'Four records from the chain’s own history, each drawn from zero and saying where it begins.',
     instrument: `        <div class="strips">
 ${[
-  strip({ key: 'blockTime', label: 'Block time', caption: 'Seconds between blocks, the last 200, against the 5.5–6.5 s target.' }),
-  strip({ key: 'agreementsCumulative', label: 'Agreements opened', caption: 'Running total over the last 12 eras; bars are each era’s count.' }),
-  strip({ key: 'emissionCumulative', label: 'CMN issued to agents', caption: 'Running total paid at each era’s close; the thin line is per era.' }),
-  strip({ key: 'agentsOverTime', label: 'Registered agents', caption: 'Agents on the register since this site’s record begins.' }),
+  strip({
+    key: 'blockTime',
+    label: 'Block time',
+    caption: 'Seconds between blocks, the last 200, against the 5.5–6.5 s target.',
+  }),
+  strip({
+    key: 'agreementsCumulative',
+    label: 'Agreements opened',
+    caption: 'Running total over the last 12 eras; bars are each era’s count.',
+  }),
+  strip({
+    key: 'emissionCumulative',
+    label: 'CMN issued to agents',
+    caption: 'Running total paid at each era’s close; the thin line is per era.',
+  }),
+  strip({
+    key: 'agentsOverTime',
+    label: 'Registered agents',
+    caption: 'Agents on the register since this site’s record begins.',
+  }),
 ].join('\n')}
         </div>`,
   });
@@ -227,7 +253,9 @@ function railFutureStart(history) {
   const lastApplied = history.upgrades.map((u) => u.status).lastIndexOf('applied');
   if (lastApplied === -1) return 0;
   const next = positions[lastApplied + 1];
-  return next === undefined ? Math.min(100, positions[lastApplied] + 6) : (positions[lastApplied] + next) / 2;
+  return next === undefined
+    ? Math.min(100, positions[lastApplied] + 6)
+    : (positions[lastApplied] + next) / 2;
 }
 
 function upgradeRows(history) {
@@ -281,14 +309,26 @@ ${upgradeRows(history)}
 }
 
 const POSTURE_FIELDS = [
-  ['findingsExamined', 'Findings examined', 'Security findings the testnet audit examined against the runtime and its operation.'],
-  ['fixedIn307', 'Fixed in runtime 307', 'Findings closed in code by the runtime now in force, as its integration record states.'],
+  [
+    'findingsExamined',
+    'Findings examined',
+    'Security findings the testnet audit examined against the runtime and its operation.',
+  ],
+  [
+    'fixedIn307',
+    'Fixed in runtime 307',
+    'Findings closed in code by the runtime now in force, as its integration record states.',
+  ],
   ['redTeamStatus', 'Red-team exercise', 'Status of the adversarial exercise against the network.'],
   // NOT "independent". The rehearsal recorded here was run by the operators,
   // and a label claiming an outside party would assert the one thing this
   // entry exists to distinguish. The field's own todo keeps the independent
   // rehearsal marked as outstanding.
-  ['lastRehearsal', 'Last upgrade rehearsal', 'Most recent upgrade or recovery rehearsal, and who ran it.'],
+  [
+    'lastRehearsal',
+    'Last upgrade rehearsal',
+    'Most recent upgrade or recovery rehearsal, and who ran it.',
+  ],
 ];
 
 /**
@@ -301,9 +341,14 @@ function postureRecord(posture) {
   const rows = POSTURE_FIELDS.map(([key, label, note]) => {
     const entry = posture.fields?.[key] ?? {};
     const recorded = entry.value !== null && entry.value !== undefined;
-    const value = recorded ? escapeHtml(String(entry.value)) : '<span class="not-recorded">not yet recorded</span>';
+    const value = recorded
+      ? escapeHtml(String(entry.value))
+      : '<span class="not-recorded">not yet recorded</span>';
     const asOf = entry.asOf ? ` <span class="dim mono">as of ${escapeHtml(entry.asOf)}</span>` : '';
-    const source = recorded && entry.source ? `<span class="posture-source">${escapeHtml(entry.source)}</span>` : '';
+    const source =
+      recorded && entry.source
+        ? `<span class="posture-source">${escapeHtml(entry.source)}</span>`
+        : '';
     return `            <div class="posture-row" data-posture="${key}" data-recorded="${recorded}">
               <dt>${escapeHtml(label)}<span class="posture-note">${escapeHtml(note)}</span></dt>
               <dd><span class="posture-value">${value}</span>${asOf}${source}</dd>
@@ -365,13 +410,15 @@ ${[
     id: 'curl-status',
     caption: 'Block height, finalized height, runtime version',
     command: `curl -s https://${API_HOST}/v1/status`,
-    reads: 'Reads <code>chain.bestBlock</code>, <code>chain.finalizedBlock</code>, <code>chain.specVersion</code>. Finality lag is the difference of the first two.',
+    reads:
+      'Reads <code>chain.bestBlock</code>, <code>chain.finalizedBlock</code>, <code>chain.specVersion</code>. Finality lag is the difference of the first two.',
   }),
   codeBlock({
     id: 'curl-era',
     caption: 'Current era and blocks remaining',
     command: `curl -s https://${API_HOST}/v1/eras/current`,
-    reads: 'Reads <code>era</code>, <code>blocksElapsed</code>, <code>blocksRemaining</code>, <code>durationBlocks</code>.',
+    reads:
+      'Reads <code>era</code>, <code>blocksElapsed</code>, <code>blocksRemaining</code>, <code>durationBlocks</code>.',
   }),
   codeBlock({
     id: 'curl-escrow',
@@ -383,7 +430,8 @@ ${[
     id: 'curl-supply',
     caption: 'Total issuance against the supply cap',
     command: `curl -s https://${API_HOST}/v1/emissions/supply`,
-    reads: 'Reads <code>totalIssuancePlancks</code>, <code>capPlancks</code> and <code>percentIssued</code>. This is issuance from every source, not what agents were paid; the running total of agent payouts is the sum of <code>totalEmissionPlancks</code> over the settled eras of <code>/v1/eras</code>.',
+    reads:
+      'Reads <code>totalIssuancePlancks</code>, <code>capPlancks</code> and <code>percentIssued</code>. This is issuance from every source, not what agents were paid; the running total of agent payouts is the sum of <code>totalEmissionPlancks</code> over the settled eras of <code>/v1/eras</code>.',
   }),
   codeBlock({
     id: 'curl-wasm',
@@ -411,7 +459,8 @@ const SECTIONS = {
 /** One section on its own, by its id, for the instrument dev harness. */
 export function renderSection(name, data) {
   const render = SECTIONS[name];
-  if (!render) throw new Error(`no section named "${name}"; one of ${Object.keys(SECTIONS).join(', ')}`);
+  if (!render)
+    throw new Error(`no section named "${name}"; one of ${Object.keys(SECTIONS).join(', ')}`);
   return render(data);
 }
 
@@ -431,8 +480,18 @@ export const SOURCES_BOOT =
  * the page is the only one that uses it. The same CSS is still written out as
  * observatory.css so it can be read on its own.
  */
-export function renderHead({ title, description, css = null, scripts = true, script = 'observatory.js', boot = scripts }) {
-  const styles = css === null ? `<link rel="stylesheet" href="${script.replace(/\.js$/, '.css')}">` : `<style>${css.replace(/<\/style/gi, '<\\/style')}</style>`;
+export function renderHead({
+  title,
+  description,
+  css = null,
+  scripts = true,
+  script = 'observatory.js',
+  boot = scripts,
+}) {
+  const styles =
+    css === null
+      ? `<link rel="stylesheet" href="${script.replace(/\.js$/, '.css')}">`
+      : `<style>${css.replace(/<\/style/gi, '<\\/style')}</style>`;
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${escapeHtml(title)}</title>
@@ -447,11 +506,26 @@ ${scripts && script === 'observatory.js' ? '<script type="module" src="observato
 }
 
 const HOW_TO_READ = [
-  ['Block', 'A sealed batch of transactions, produced about every six seconds. Each has a number: its height.'],
-  ['Finality', 'The point behind which blocks can no longer be reversed. Validators vote it forward a few blocks behind the newest.'],
-  ['Era', 'The payout cycle, 3,600 blocks (about six hours). At its end, rewards for verified work are settled.'],
-  ['Agreement', 'A contract between two agents. The buyer’s payment is locked in escrow until it confirms delivery.'],
-  ['Dispute', 'An agreement whose delivery the buyer has contested. It waits on an oracle ruling before payment moves.'],
+  [
+    'Block',
+    'A sealed batch of transactions, produced about every six seconds. Each has a number: its height.',
+  ],
+  [
+    'Finality',
+    'The point behind which blocks can no longer be reversed. Validators vote it forward a few blocks behind the newest.',
+  ],
+  [
+    'Era',
+    'The payout cycle, 3,600 blocks (about six hours). At its end, rewards for verified work are settled.',
+  ],
+  [
+    'Agreement',
+    'A contract between two agents. The buyer’s payment is locked in escrow until it confirms delivery.',
+  ],
+  [
+    'Dispute',
+    'An agreement whose delivery the buyer has contested. It waits on an oracle ruling before payment moves.',
+  ],
 ];
 
 /**
@@ -635,7 +709,10 @@ const HARNESS_SECTION = { pulse: 'chain', era: 'economy', economy: 'economy', po
 
 /** A page holding one instrument's section, for the dev harness. */
 export function renderHarness(name, { history, posture, css = null }) {
-  const body = name === 'agent-field' || name === 'constellation' ? hero() : renderSection(HARNESS_SECTION[name] ?? name, { history, posture });
+  const body =
+    name === 'agent-field' || name === 'constellation'
+      ? hero()
+      : renderSection(HARNESS_SECTION[name] ?? name, { history, posture });
   return `<!doctype html>
 <html lang="en">
 <head>

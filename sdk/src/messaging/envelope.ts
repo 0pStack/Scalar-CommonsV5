@@ -15,7 +15,16 @@
  * a sender and a strict verifier are impossible by construction.
  */
 import type { KeyringPair } from '@polkadot/keyring/types';
-import { compactFromU8a, compactToU8a, hexToU8a, isHex, stringToU8a, u8aConcat, u8aEq, u8aToHex } from '@polkadot/util';
+import {
+  compactFromU8a,
+  compactToU8a,
+  hexToU8a,
+  isHex,
+  stringToU8a,
+  u8aConcat,
+  u8aEq,
+  u8aToHex,
+} from '@polkadot/util';
 import { blake2AsU8a, decodeAddress, encodeAddress, sr25519Verify } from '@polkadot/util-crypto';
 
 import { SS58_PREFIX } from '../constants.js';
@@ -122,7 +131,8 @@ const BODY_TAGS = { None: 0, Plain: 1, Sealed: 2 } as const;
 /** Resolve an {@link AccountLike} to its 32-byte AccountId. */
 export function toAccountId(who: AccountLike, what = 'account'): Uint8Array {
   const bytes = typeof who === 'string' ? decodeAddress(who) : who;
-  if (bytes.length !== 32) throw new Error(`${what} must be a 32-byte AccountId, got ${bytes.length} bytes`);
+  if (bytes.length !== 32)
+    throw new Error(`${what} must be a 32-byte AccountId, got ${bytes.length} bytes`);
   return bytes;
 }
 
@@ -132,7 +142,8 @@ function needLen(bytes: Uint8Array, n: number, what: string): Uint8Array {
 }
 
 function u32le(n: number, what: string): Uint8Array {
-  if (!Number.isInteger(n) || n < 0 || n > U32_MAX) throw new Error(`${what} must be a u32, got ${n}`);
+  if (!Number.isInteger(n) || n < 0 || n > U32_MAX)
+    throw new Error(`${what} must be a u32, got ${n}`);
   const out = new Uint8Array(4);
   new DataView(out.buffer).setUint32(0, n, true);
   return out;
@@ -162,7 +173,11 @@ export function encodeEnvelope(e: Envelope): Uint8Array {
     throw new Error(`version must be a u8, got ${e.version}`);
   }
   const agreement = e.agreement
-    ? u8aConcat([1], needLen(e.agreement.account, 32, 'agreement.account'), u32le(e.agreement.seq, 'agreement.seq'))
+    ? u8aConcat(
+        [1],
+        needLen(e.agreement.account, 32, 'agreement.account'),
+        u32le(e.agreement.seq, 'agreement.seq'),
+      )
     : new Uint8Array([0]);
   return u8aConcat(
     [e.version],
@@ -256,13 +271,18 @@ function readBody(r: Reader): Body {
   const tag = r.u8();
   if (tag === BODY_TAGS.None) return { type: 'None' };
   if (tag === BODY_TAGS.Plain) return { type: 'Plain', bytes: r.vec() };
-  if (tag === BODY_TAGS.Sealed) return { type: 'Sealed', senderKey: r.take(32), nonce: r.take(24), ciphertext: r.vec() };
+  if (tag === BODY_TAGS.Sealed)
+    return { type: 'Sealed', senderKey: r.take(32), nonce: r.take(24), ciphertext: r.vec() };
   throw new Error(`invalid Body tag ${tag}`);
 }
 
 /** `SCALE((envelope, signature, body))` — the bytes every transport carries. */
 export function encodeSignedMessage(m: SignedMessage): Uint8Array {
-  return u8aConcat(encodeEnvelope(m.envelope), needLen(m.signature, SIGNATURE_LENGTH, 'signature'), encodeBody(m.body));
+  return u8aConcat(
+    encodeEnvelope(m.envelope),
+    needLen(m.signature, SIGNATURE_LENGTH, 'signature'),
+    encodeBody(m.body),
+  );
 }
 
 /** Decode a `SignedMessage`. Trailing bytes are an error: there is one encoding, not a prefix of one. */
@@ -276,9 +296,11 @@ export function decodeSignedMessage(bytes: Uint8Array): SignedMessage {
 }
 
 function genesisBytes(genesisHash: AccountLike): Uint8Array {
-  if (typeof genesisHash === 'string' && !isHex(genesisHash)) throw new Error('genesis hash must be 0x-prefixed hex');
+  if (typeof genesisHash === 'string' && !isHex(genesisHash))
+    throw new Error('genesis hash must be 0x-prefixed hex');
   const genesis = typeof genesisHash === 'string' ? hexToU8a(genesisHash) : genesisHash;
-  if (genesis.length !== 32) throw new Error(`genesis hash must be 32 bytes, got ${genesis.length}`);
+  if (genesis.length !== 32)
+    throw new Error(`genesis hash must be 32 bytes, got ${genesis.length}`);
   return genesis;
 }
 
@@ -291,7 +313,10 @@ function genesisBytes(genesisHash: AccountLike): Uint8Array {
  * and from every other protocol that signs with the same key.
  */
 export function envelopeSigningHash(e: Envelope, genesisHash: AccountLike): Uint8Array {
-  return blake2AsU8a(u8aConcat(stringToU8a(SIGNING_DOMAIN), genesisBytes(genesisHash), encodeEnvelope(e)), 256);
+  return blake2AsU8a(
+    u8aConcat(stringToU8a(SIGNING_DOMAIN), genesisBytes(genesisHash), encodeEnvelope(e)),
+    256,
+  );
 }
 
 /** What a sender supplies; `from` comes from the signing key. */
@@ -321,14 +346,18 @@ export type MessageSigner = Pick<KeyringPair, 'publicKey' | 'sign' | 'type'>;
 export function createMessage(signer: MessageSigner, input: MessageInput): SignedMessage {
   // The envelope signature is defined as sr25519; an ed25519/ecdsa pair would
   // produce a signature no verifier accepts, so fail before anything is sent.
-  if (signer.type !== 'sr25519') throw new Error(`envelope signer must be sr25519, got ${signer.type}`);
+  if (signer.type !== 'sr25519')
+    throw new Error(`envelope signer must be sr25519, got ${signer.type}`);
   const envelope: Envelope = {
     version: ENVELOPE_VERSION,
     from: signer.publicKey,
     to: toAccountId(input.to, 'to'),
     kind: input.kind,
     agreement: input.agreement
-      ? { account: toAccountId(input.agreement.account, 'agreement.account'), seq: input.agreement.seq }
+      ? {
+          account: toAccountId(input.agreement.account, 'agreement.account'),
+          seq: input.agreement.seq,
+        }
       : null,
     nonce: input.nonce,
     expiresAtBlock: input.expiresAtBlock,
@@ -484,7 +513,11 @@ export class MessageInbox {
     this.ss58 = opts.ss58Format ?? SS58_PREFIX;
   }
 
-  receive(bytes: Uint8Array, bestBlock: number | bigint, opts: ReceiveOptions = {}): ReceivedMessage {
+  receive(
+    bytes: Uint8Array,
+    bestBlock: number | bigint,
+    opts: ReceiveOptions = {},
+  ): ReceivedMessage {
     let m: SignedMessage;
     try {
       m = decodeSignedMessage(bytes);
@@ -494,11 +527,18 @@ export class MessageInbox {
     const e = m.envelope;
 
     if (e.version !== ENVELOPE_VERSION) {
-      throw new MessageRejected('unsupported-version', `version ${e.version}, this SDK speaks ${ENVELOPE_VERSION}`);
+      throw new MessageRejected(
+        'unsupported-version',
+        `version ${e.version}, this SDK speaks ${ENVELOPE_VERSION}`,
+      );
     }
-    if (!u8aEq(e.to, this.self)) throw new MessageRejected('wrong-recipient', 'envelope is addressed to another account');
+    if (!u8aEq(e.to, this.self))
+      throw new MessageRejected('wrong-recipient', 'envelope is addressed to another account');
     if (BigInt(e.expiresAtBlock) < BigInt(bestBlock)) {
-      throw new MessageRejected('expired', `expired at block ${e.expiresAtBlock}, best is ${bestBlock}`);
+      throw new MessageRejected(
+        'expired',
+        `expired at block ${e.expiresAtBlock}, best is ${bestBlock}`,
+      );
     }
     if (!this.nonces.isFresh(e.from, e.to, e.nonce)) {
       throw new MessageRejected('replay', `nonce ${e.nonce} is not above the last accepted nonce`);
@@ -511,7 +551,11 @@ export class MessageInbox {
       // A `from` that is not a valid sr25519 point throws instead of returning false.
       signed = false;
     }
-    if (!signed) throw new MessageRejected('bad-signature', 'signature does not verify against `from` on this chain');
+    if (!signed)
+      throw new MessageRejected(
+        'bad-signature',
+        'signature does not verify against `from` on this chain',
+      );
 
     const call = opts.call;
     if (call !== undefined) {
@@ -521,7 +565,11 @@ export class MessageInbox {
         (call.kind !== e.kind && 'kind') ||
         (!sameAgreement(e.agreement, call.agreement) && 'agreement') ||
         ((call.payloadHash === null || !u8aEq(call.payloadHash, e.payloadHash)) && 'payload_hash');
-      if (mismatch) throw new MessageRejected('call-mismatch', `send call ${mismatch} differs from the envelope`);
+      if (mismatch)
+        throw new MessageRejected(
+          'call-mismatch',
+          `send call ${mismatch} differs from the envelope`,
+        );
     }
 
     let plaintext: Uint8Array;
@@ -530,14 +578,21 @@ export class MessageInbox {
       plaintext = body.bytes;
     } else if (body.type === 'None') {
       if (opts.detachedPlaintext === undefined) {
-        throw new MessageRejected('content-missing', 'hash-only message: supply the content as detachedPlaintext');
+        throw new MessageRejected(
+          'content-missing',
+          'hash-only message: supply the content as detachedPlaintext',
+        );
       }
       plaintext = opts.detachedPlaintext;
     } else {
       if (!opts.senderMessagingKey || !u8aEq(opts.senderMessagingKey, body.senderKey)) {
-        throw new MessageRejected('sender-key-mismatch', "sender_key is not the sender's published messaging key");
+        throw new MessageRejected(
+          'sender-key-mismatch',
+          "sender_key is not the sender's published messaging key",
+        );
       }
-      if (this.opener === undefined) throw new MessageRejected('decrypt-failed', 'inbox has no messaging key');
+      if (this.opener === undefined)
+        throw new MessageRejected('decrypt-failed', 'inbox has no messaging key');
       plaintext = this.opener(body);
     }
 

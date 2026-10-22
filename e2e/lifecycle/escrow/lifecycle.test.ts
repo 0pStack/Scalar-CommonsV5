@@ -38,10 +38,17 @@ describe('escrow lifecycle', () => {
     const before = await reserved(buyer);
     const now = (await api.rpc.chain.getHeader()).number.toNumber();
     await assert.rejects(
-      send(api, api.tx.escrow.createAgreement(buyer.address, cmn(10), HASH, now + 100, null), buyer),
+      send(
+        api,
+        api.tx.escrow.createAgreement(buyer.address, cmn(10), HASH, now + 100, null),
+        buyer,
+      ),
       /escrow\.SelfDeal/,
     );
-    assert.equal((await api.query.escrow.agreements(buyer.address, buyer.address) as any).length, 0);
+    assert.equal(
+      ((await api.query.escrow.agreements(buyer.address, buyer.address)) as any).length,
+      0,
+    );
     assert.equal(await reserved(buyer), before);
   });
 
@@ -90,7 +97,11 @@ describe('escrow lifecycle', () => {
     }
     await waitForBlock(api, createdAt + minDelivery);
 
-    const delivered = await send(api, api.tx.escrow.recordDelivery(buyer.address, seq, PROOF), provider);
+    const delivered = await send(
+      api,
+      api.tx.escrow.recordDelivery(buyer.address, seq, PROOF),
+      provider,
+    );
     assert.ok(findEvent(delivered, 'escrow', 'DeliveryRecorded'));
     assert.equal((await agreements())[0].status.toString(), 'Delivered');
 

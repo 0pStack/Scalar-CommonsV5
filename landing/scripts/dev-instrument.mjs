@@ -43,7 +43,9 @@ const flag = (key, fallback) => {
   return i === -1 ? fallback : args[i + 1];
 };
 if (!name || !INSTRUMENT_FILES[name]) {
-  console.error(`usage: dev-instrument.mjs <${Object.keys(INSTRUMENT_FILES).join('|')}> [--out DIR] [--port N] [--no-serve]`);
+  console.error(
+    `usage: dev-instrument.mjs <${Object.keys(INSTRUMENT_FILES).join('|')}> [--out DIR] [--port N] [--no-serve]`,
+  );
   process.exit(2);
 }
 const outDir = flag('--out', here(`../dist-harness/${name}`));
@@ -56,7 +58,8 @@ const css = observatoryCss();
 writeFileSync(join(outDir, 'index.html'), renderHarness(name, { history, posture, css }));
 writeFileSync(join(outDir, 'observatory.css'), css);
 const resolvePackageFile = createRequire(import.meta.url).resolve;
-for (const [source, file] of FONTS) copyFileSync(resolvePackageFile(source), join(outDir, 'fonts', file));
+for (const [source, file] of FONTS)
+  copyFileSync(resolvePackageFile(source), join(outDir, 'fonts', file));
 
 await build({
   entryPoints: [here('../src/observatory/harness.js')],
@@ -65,7 +68,9 @@ await build({
   sourcemap: 'inline',
   target: ['es2022'],
   outfile: join(outDir, 'observatory.js'),
-  alias: { 'instrument-under-test': here(`../src/observatory/instruments/${INSTRUMENT_FILES[name]}`) },
+  alias: {
+    'instrument-under-test': here(`../src/observatory/instruments/${INSTRUMENT_FILES[name]}`),
+  },
   logLevel: 'warning',
 });
 // The network graph, fetched by the agent field on demand, as on the page.
@@ -94,7 +99,9 @@ if (!args.includes('--no-serve')) {
       try {
         const file = join(outDir, candidate);
         if (statSync(file).isFile()) {
-          res.writeHead(200, { 'content-type': types[extname(file)] ?? 'application/octet-stream' });
+          res.writeHead(200, {
+            'content-type': types[extname(file)] ?? 'application/octet-stream',
+          });
           res.end(readFileSync(file));
           return;
         }

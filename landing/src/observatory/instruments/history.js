@@ -116,7 +116,10 @@ export function blockIntervals(items, field) {
       if (item === null || typeof item !== 'object' || !('timestampMs' in item)) {
         throw new Error('response has no timestampMs');
       }
-      return { number: field(item, 'number'), at: item.timestampMs === null ? NaN : Number(item.timestampMs) };
+      return {
+        number: field(item, 'number'),
+        at: item.timestampMs === null ? NaN : Number(item.timestampMs),
+      };
     })
     .sort((a, b) => a.number - b.number);
   const points = [];
@@ -239,7 +242,7 @@ export function bucketByEra(spans, open, events, { complete = true, indexFrom = 
     buckets: kept,
     open: soFar,
     dropped,
-    historyFrom: kept.length ? kept[0].start : soFar?.start ?? null,
+    historyFrom: kept.length ? kept[0].start : (soFar?.start ?? null),
   };
 }
 
@@ -281,7 +284,10 @@ export function emissionSeries(items, field, cmnNumber, limit = ERAS_SHOWN) {
     }))
     .sort((a, b) => a.era - b.era);
   const run = contiguousRun(settled);
-  return (Number.isFinite(limit) ? run.slice(-limit) : run).map((entry) => ({ ...entry, cmn: cmnNumber(entry.plancks) }));
+  return (Number.isFinite(limit) ? run.slice(-limit) : run).map((entry) => ({
+    ...entry,
+    cmn: cmnNumber(entry.plancks),
+  }));
 }
 
 /**
@@ -293,7 +299,8 @@ export function supplyFigures(data, field) {
   const issued = String(field(data, 'totalIssuancePlancks'));
   const cap = String(field(data, 'capPlancks'));
   const percent = field(data, 'percentIssued');
-  if (!/^\d+$/.test(issued) || !/^\d+$/.test(cap)) throw new Error('supply figures are not counts of plancks');
+  if (!/^\d+$/.test(issued) || !/^\d+$/.test(cap))
+    throw new Error('supply figures are not counts of plancks');
   if (!Number.isFinite(percent)) throw new Error('response has a non-numeric percentIssued');
   return { issuedPlancks: issued, capPlancks: cap, percent };
 }
@@ -341,9 +348,20 @@ export function agentSteps({ registrations, unstakes, totalNow, before, indexFro
     running += delta;
     points.push({ block, count: running });
   }
-  const end = Number.isFinite(nowBlock) ? Math.max(nowBlock, points[points.length - 1].block) : null;
-  if (end !== null && end > points[points.length - 1].block) points.push({ block: end, count: running });
-  return { baseline, points, registrations: registrations.length, unstakes: unstakes.length, total: running, start, end };
+  const end = Number.isFinite(nowBlock)
+    ? Math.max(nowBlock, points[points.length - 1].block)
+    : null;
+  if (end !== null && end > points[points.length - 1].block)
+    points.push({ block: end, count: running });
+  return {
+    baseline,
+    points,
+    registrations: registrations.length,
+    unstakes: unstakes.length,
+    total: running,
+    start,
+    end,
+  };
 }
 
 /** Above this many steps the agents-over-time line is drawn from a thinned series. */
@@ -382,7 +400,16 @@ export function plotFrame(width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT) {
   const right = width - 1;
   const top = 6;
   const bottom = height - 16;
-  return { width, height, left, right, top, bottom, innerWidth: right - left, innerHeight: bottom - top };
+  return {
+    width,
+    height,
+    left,
+    right,
+    top,
+    bottom,
+    innerWidth: right - left,
+    innerHeight: bottom - top,
+  };
 }
 
 /** The ceiling of a y scale: never zero, and a little above the tallest value. */
@@ -519,7 +546,15 @@ export function init(root, ctx) {
     emission: new Strip(root, ctx, 'emissionCumulative'),
     agents: new Strip(root, ctx, 'agentsOverTime'),
   };
-  const records = { eras: null, erasAll: null, supply: null, agreements: null, registrations: null, unstakes: null, agents: null };
+  const records = {
+    eras: null,
+    erasAll: null,
+    supply: null,
+    agreements: null,
+    registrations: null,
+    unstakes: null,
+    agents: null,
+  };
 
   /**
    * Shows a strip from one or more records. `needed[0]` is the provenance
@@ -568,7 +603,11 @@ export function init(root, ctx) {
       const series = blockIntervals(items, ctx.field);
       const stats = intervalStats(series.points);
       if (!stats) {
-        ctx.readout.showAbsent(strip.target, record, 'no two consecutive blocks with timestamps in the page');
+        ctx.readout.showAbsent(
+          strip.target,
+          record,
+          'no two consecutive blocks with timestamps in the page',
+        );
         strip.clear('No block times to show yet.');
         return;
       }
@@ -582,13 +621,17 @@ export function init(root, ctx) {
         motion: ctx.motion,
         extra:
           `target ${low}–${high} s · latest ${s(stats.last)} s, mean ${s(stats.mean)}, min ${s(stats.min)}, max ${s(stats.max)} over ${formatInteger(series.blocks)} blocks` +
-          (series.skipped ? ` · ${plural(series.skipped, 'pair')} without a timestamp, left as a break in the line` : ''),
+          (series.skipped
+            ? ` · ${plural(series.skipped, 'pair')} without a timestamp, left as a break in the line`
+            : ''),
       });
       const summary =
         `Seconds between consecutive blocks from block ${formatInteger(series.first)} to ${formatInteger(series.last)}: ` +
         `${formatInteger(band.within)} of ${formatInteger(band.measured)} inside the ${low} to ${high} second target band; ` +
         `the latest gap is ${s(stats.last)} seconds, the mean ${s(stats.mean)}, ranging from ${s(stats.min)} to ${s(stats.max)}` +
-        (series.skipped ? `; ${plural(series.skipped, 'pair')} without a timestamp left as a break.` : '.');
+        (series.skipped
+          ? `; ${plural(series.skipped, 'pair')} without a timestamp left as a break.`
+          : '.');
       strip.draw((frame, svg, g) => {
         const measured = series.points.filter(isMeasured);
         const x = scaleLinear()
@@ -599,14 +642,53 @@ export function init(root, ctx) {
           .range([frame.bottom, frame.top]);
         const bandTop = fix(y(high));
         const bandBottom = fix(y(low));
-        g.append(el('rect', { x: frame.left, y: bandTop, width: frame.innerWidth, height: fix(bandBottom - bandTop) }, 'plot-band'));
-        g.append(el('line', { x1: frame.left, x2: frame.right, y1: bandTop, y2: bandTop }, 'plot-axis plot-band-edge'));
-        g.append(el('line', { x1: frame.left, x2: frame.right, y1: bandBottom, y2: bandBottom }, 'plot-axis plot-band-edge'));
-        g.append(el('line', { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom }, 'plot-zero'));
+        g.append(
+          el(
+            'rect',
+            {
+              x: frame.left,
+              y: bandTop,
+              width: frame.innerWidth,
+              height: fix(bandBottom - bandTop),
+            },
+            'plot-band',
+          ),
+        );
+        g.append(
+          el(
+            'line',
+            { x1: frame.left, x2: frame.right, y1: bandTop, y2: bandTop },
+            'plot-axis plot-band-edge',
+          ),
+        );
+        g.append(
+          el(
+            'line',
+            { x1: frame.left, x2: frame.right, y1: bandBottom, y2: bandBottom },
+            'plot-axis plot-band-edge',
+          ),
+        );
+        g.append(
+          el(
+            'line',
+            { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom },
+            'plot-zero',
+          ),
+        );
         g.append(el('path', { d: intervalLine(x, y)(series.points) ?? '' }, 'plot-line'));
         const last = measured[measured.length - 1];
-        g.append(el('circle', { cx: fix(x(last.number)), cy: fix(y(last.seconds)), r: 2.5 }, 'plot-dot'));
-        svg.append(label(frame.left + 3, bandTop - 4, `${low}–${high} s target`, 'start', 'plot-label plot-note'));
+        g.append(
+          el('circle', { cx: fix(x(last.number)), cy: fix(y(last.seconds)), r: 2.5 }, 'plot-dot'),
+        );
+        svg.append(
+          label(
+            frame.left + 3,
+            bandTop - 4,
+            `${low}–${high} s target`,
+            'start',
+            'plot-label plot-note',
+          ),
+        );
         svg.append(label(frame.left, frame.height - 3, `#${formatInteger(series.first)}`));
         svg.append(label(frame.right, frame.height - 3, `#${formatInteger(series.last)}`, 'end'));
         return summary;
@@ -674,14 +756,18 @@ export function init(root, ctx) {
       const summary =
         `Agreements opened, cumulative over the last ${buckets.length} settled eras, ${formatInteger(firstEra)} to ${formatInteger(lastSettled.era)}: ` +
         `${formatInteger(totalSettled)} in all, ${formatInteger(lastSettled.count)} in the last settled era` +
-        (open ? `, plus ${formatInteger(open.count)} in era ${formatInteger(open.era)}, which is still open` : '') +
+        (open
+          ? `, plus ${formatInteger(open.count)} in era ${formatInteger(open.era)}, which is still open`
+          : '') +
         `; the busiest, era ${formatInteger(busiest.era)}, had ${formatInteger(busiest.count)}.`;
       strip.draw((frame, svg, g) => {
         drawBarsWithTotal(frame, svg, g, bars, totals, {
           value: (b) => b.count,
           isLast: (b) => b === lastSettled,
           leftLabel: `era ${formatInteger(firstEra)}`,
-          rightLabel: open ? `era ${formatInteger(open.era)}, open` : `era ${formatInteger(lastSettled.era)}`,
+          rightLabel: open
+            ? `era ${formatInteger(open.era)}, open`
+            : `era ${formatInteger(lastSettled.era)}`,
         });
         return summary;
       });
@@ -735,20 +821,31 @@ export function init(root, ctx) {
         live: false,
         value: formatCmn(totalPlancks),
         unit: ' CMN',
-        sub: (allZero ? `No CMN was paid out in any of these ${formatInteger(series.length)} eras: no agent did enough verified work to qualify. ` : '') + sub,
+        sub:
+          (allZero
+            ? `No CMN was paid out in any of these ${formatInteger(series.length)} eras: no agent did enough verified work to qualify. `
+            : '') + sub,
         extra:
           `derived: running total of ${plural(series.length, 'settled era')}, ${coverage}` +
           ` · last: era ${formatInteger(last.era)} paid ${formatCmn(last.plancks)} CMN` +
-          (record.complete ? '' : ' · the index holds more eras than were read, so this is a floor') +
+          (record.complete
+            ? ''
+            : ' · the index holds more eras than were read, so this is a floor') +
           supplyExtra,
       });
       const summary =
         `CMN issued to agents, cumulative over ${series.length} settled eras, ${formatInteger(series[0].era)} to ${formatInteger(last.era)}: ` +
         `${formatCmn(totalPlancks)} CMN in all` +
-        (allZero ? '; no era shown paid any, since no agent did enough verified work to qualify.' : `; the last era paid ${formatCmn(last.plancks)} CMN.`);
+        (allZero
+          ? '; no era shown paid any, since no agent did enough verified work to qualify.'
+          : `; the last era paid ${formatCmn(last.plancks)} CMN.`);
       strip.draw((frame, svg, g) => {
-        const x = scaleLinear().domain([series[0].era, Math.max(last.era, series[0].era + 1)]).range([frame.left, frame.right]);
-        const y = scaleLinear().domain([0, yCeiling([totalCmn])]).range([frame.bottom, frame.top]);
+        const x = scaleLinear()
+          .domain([series[0].era, Math.max(last.era, series[0].era + 1)])
+          .range([frame.left, frame.right]);
+        const y = scaleLinear()
+          .domain([0, yCeiling([totalCmn])])
+          .range([frame.bottom, frame.top]);
         const perEra = line()
           .x((e) => x(e.era))
           .y((e) => y(e.cmn))
@@ -763,14 +860,26 @@ export function init(root, ctx) {
           .y1((e, i) => y(cmnNumber(totals[i])))
           .curve(curveLinear);
         g.append(el('path', { d: fill(series) ?? '' }, 'plot-area'));
-        g.append(el('line', { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom }, 'plot-zero'));
+        g.append(
+          el(
+            'line',
+            { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom },
+            'plot-zero',
+          ),
+        );
         g.append(el('path', { d: perEra(series) ?? '' }, 'plot-line plot-line-secondary'));
         g.append(el('path', { d: total(series) ?? '' }, 'plot-line'));
         g.append(el('circle', { cx: fix(x(last.era)), cy: fix(y(totalCmn)), r: 2.5 }, 'plot-dot'));
         svg.append(label(frame.left, frame.height - 3, `era ${formatInteger(series[0].era)}`));
         svg.append(label(frame.right, frame.height - 3, `era ${formatInteger(last.era)}`, 'end'));
         svg.append(
-          label(frame.left + 3, frame.top + 8, allZero ? 'nothing issued to agents yet' : 'running total · per era beneath', 'start', 'plot-label plot-note'),
+          label(
+            frame.left + 3,
+            frame.top + 8,
+            allZero ? 'nothing issued to agents yet' : 'running total · per era beneath',
+            'start',
+            'plot-label plot-note',
+          ),
         );
         return summary;
       });
@@ -778,28 +887,50 @@ export function init(root, ctx) {
   }
 
   /** Bars on a band scale with the running total as a line over them, on the same scale. */
-  function drawBarsWithTotal(frame, svg, g, entries, totals, { value, isLast, leftLabel, rightLabel }) {
+  function drawBarsWithTotal(
+    frame,
+    svg,
+    g,
+    entries,
+    totals,
+    { value, isLast, leftLabel, rightLabel },
+  ) {
     const x = scaleBand()
       .domain(entries.map((_, i) => i))
       .range([frame.left, frame.right])
       .paddingInner(0.3)
       .paddingOuter(0.05);
-    const y = scaleLinear().domain([0, yCeiling([...entries.map(value), ...totals])]).range([frame.bottom, frame.top]);
+    const y = scaleLinear()
+      .domain([0, yCeiling([...entries.map(value), ...totals])])
+      .range([frame.bottom, frame.top]);
     entries.forEach((entry, i) => {
       const v = value(entry);
       let height = Math.max(0, frame.bottom - y(v));
       // The open era's outline is always drawn, so "in progress" has a mark as well as a label.
       if (entry.open) height = openBarHeight(height);
-      const classes = ['plot-bar', isLast(entry) ? 'is-last' : '', entry.open ? 'is-open' : ''].filter(Boolean).join(' ');
+      const classes = ['plot-bar', isLast(entry) ? 'is-last' : '', entry.open ? 'is-open' : '']
+        .filter(Boolean)
+        .join(' ');
       g.append(
         el(
           'rect',
-          { x: fix(x(i)), y: fix(frame.bottom - height), width: fix(x.bandwidth()), height: fix(height) },
+          {
+            x: fix(x(i)),
+            y: fix(frame.bottom - height),
+            width: fix(x.bandwidth()),
+            height: fix(height),
+          },
           classes,
         ),
       );
       const cx = fix(x(i) + x.bandwidth() / 2);
-      svg.append(el('line', { x1: cx, x2: cx, y1: frame.bottom, y2: frame.bottom + 3 }, 'plot-axis plot-tick'));
+      svg.append(
+        el(
+          'line',
+          { x1: cx, x2: cx, y1: frame.bottom, y2: frame.bottom + 3 },
+          'plot-axis plot-tick',
+        ),
+      );
     });
     const centre = (i) => x(i) + x.bandwidth() / 2;
     const settledCount = entries.filter((e) => !e.open).length;
@@ -814,16 +945,38 @@ export function init(root, ctx) {
         .x((_, i) => centre(settledCount - 1 + i))
         .y((t) => y(t))
         .curve(curveLinear);
-      g.append(el('path', { d: tail(totals.slice(settledCount - 1)) ?? '' }, 'plot-line plot-line-open'));
+      g.append(
+        el('path', { d: tail(totals.slice(settledCount - 1)) ?? '' }, 'plot-line plot-line-open'),
+      );
     }
     if (settledCount > 0) {
       const lastIndex = settledCount - 1;
-      g.append(el('circle', { cx: fix(centre(lastIndex)), cy: fix(y(totals[lastIndex])), r: 2.5 }, 'plot-dot'));
+      g.append(
+        el(
+          'circle',
+          { cx: fix(centre(lastIndex)), cy: fix(y(totals[lastIndex])), r: 2.5 },
+          'plot-dot',
+        ),
+      );
     }
-    svg.append(el('line', { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom }, 'plot-zero'));
+    svg.append(
+      el(
+        'line',
+        { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom },
+        'plot-zero',
+      ),
+    );
     svg.append(label(frame.left, frame.height - 3, leftLabel));
     svg.append(label(frame.right, frame.height - 3, rightLabel, 'end'));
-    svg.append(label(frame.left + 3, frame.top + 8, 'running total · per era as bars', 'start', 'plot-label plot-note'));
+    svg.append(
+      label(
+        frame.left + 3,
+        frame.top + 8,
+        'running total · per era as bars',
+        'start',
+        'plot-label plot-note',
+      ),
+    );
   }
 
   // ── 4 · agents over time ──
@@ -838,10 +991,14 @@ export function init(root, ctx) {
       [registrations, unstakes, agents, eras],
       (data) => {
         if (!registrations.complete) {
-          throw new Error(`${registrations.label}: the index holds more registrations than this page fetched`);
+          throw new Error(
+            `${registrations.label}: the index holds more registrations than this page fetched`,
+          );
         }
         if (!unstakes.complete) {
-          throw new Error(`${unstakes.label}: the index holds more departures than this page fetched`);
+          throw new Error(
+            `${unstakes.label}: the index holds more departures than this page fetched`,
+          );
         }
         const erasField = readerOf(eras);
         const eventsField = readerOf(registrations);
@@ -852,9 +1009,13 @@ export function init(root, ctx) {
         const totalNow = ctx.field(data, 'total');
         const indexFrom = erasField(eras.data, 'settledHistoryFrom');
         const { before } = agentsBefore(ctx.field(data, 'items'), ctx.field, indexFrom, totalNow);
-        const current = erasField(eras.data, 'items').find((item) => erasField(item, 'settled') === false);
+        const current = erasField(eras.data, 'items').find(
+          (item) => erasField(item, 'settled') === false,
+        );
         // The newest block the eras record knows: where the series ends, labelled "now".
-        const nowBlock = current ? erasField(current, 'startBlock') + erasField(current, 'blocksElapsed') : null;
+        const nowBlock = current
+          ? erasField(current, 'startBlock') + erasField(current, 'blocksElapsed')
+          : null;
         const series = agentSteps({
           registrations: registrations.items.map((item) => eventsField(item, 'blockNumber')),
           unstakes: unstakes.items.map((item) => unstakesField(item, 'blockNumber')),
@@ -864,9 +1025,10 @@ export function init(root, ctx) {
           nowBlock,
         });
         const left = `#${formatInteger(series.start)}`;
-        const departures = series.unstakes === 0 ? 'none has left' : `${formatInteger(series.unstakes)} left`;
+        const departures =
+          series.unstakes === 0 ? 'none has left' : `${formatInteger(series.unstakes)} left`;
         ctx.readout.showValue(strip.target, agents, {
-        live: false,
+          live: false,
           value: totalNow,
           unit: totalNow === 1 ? ' agent' : ' agents',
           motion: ctx.motion,
@@ -882,8 +1044,12 @@ export function init(root, ctx) {
         strip.draw((frame, svg, g) => {
           const points = thinSteps(series.points);
           const lastBlock = points[points.length - 1].block;
-          const x = scaleLinear().domain([series.start, Math.max(lastBlock, series.start + 1)]).range([frame.left, frame.right]);
-          const y = scaleLinear().domain([0, yCeiling(points.map((p) => p.count))]).range([frame.bottom, frame.top]);
+          const x = scaleLinear()
+            .domain([series.start, Math.max(lastBlock, series.start + 1)])
+            .range([frame.left, frame.right]);
+          const y = scaleLinear()
+            .domain([0, yCeiling(points.map((p) => p.count))])
+            .range([frame.bottom, frame.top]);
           const step = line()
             .x((p) => x(p.block))
             .y((p) => y(p.count))
@@ -894,16 +1060,33 @@ export function init(root, ctx) {
             .y1((p) => y(p.count))
             .curve(curveStepAfter);
           g.append(el('path', { d: fill(points) }, 'plot-area'));
-          g.append(el('line', { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom }, 'plot-zero'));
+          g.append(
+            el(
+              'line',
+              { x1: frame.left, x2: frame.right, y1: frame.bottom, y2: frame.bottom },
+              'plot-zero',
+            ),
+          );
           g.append(el('path', { d: step(points) }, 'plot-line'));
           const end = points[points.length - 1];
-          g.append(el('circle', { cx: fix(x(end.block)), cy: fix(y(end.count)), r: 2.5 }, 'plot-dot'));
+          g.append(
+            el('circle', { cx: fix(x(end.block)), cy: fix(y(end.count)), r: 2.5 }, 'plot-dot'),
+          );
           svg.append(label(frame.left, frame.height - 3, left));
-          svg.append(label(frame.right, frame.height - 3, series.end === null ? `#${formatInteger(lastBlock)}` : 'now', 'end'));
+          svg.append(
+            label(
+              frame.right,
+              frame.height - 3,
+              series.end === null ? `#${formatInteger(lastBlock)}` : 'now',
+              'end',
+            ),
+          );
           // The note goes where the step line is not: the highest count under
           // the note's extent decides whether it sits at the top or the bottom.
           const noteRight = frame.left + 3 + note.length * NOTE_CHAR_PX;
-          const under = points.filter((p, i) => x(p.block) <= noteRight || (i > 0 && x(points[i - 1].block) <= noteRight));
+          const under = points.filter(
+            (p, i) => x(p.block) <= noteRight || (i > 0 && x(points[i - 1].block) <= noteRight),
+          );
           const topAtLeft = under.length ? y(max(under, (p) => p.count)) : NaN;
           const bottomAtLeft = under.length ? y(min(under, (p) => p.count)) : NaN;
           const at = notePosition(frame, topAtLeft, bottomAtLeft);

@@ -11,13 +11,24 @@ import { cmnToPlancks } from '../src/units.mjs';
 
 const CMN = cmnToPlancks;
 const row = (key, title, net, extra = {}) => ({
-  key, title, netPlancks: net, fundedPlancks: CMN(3000), extrinsics: 5,
-  accounts: ['a'], failures: [], notes: [], status: 'SETTLED', ...extra,
+  key,
+  title,
+  netPlancks: net,
+  fundedPlancks: CMN(3000),
+  extrinsics: 5,
+  accounts: ['a'],
+  failures: [],
+  notes: [],
+  status: 'SETTLED',
+  ...extra,
 });
 
 describe('renderTable', () => {
   it('shows every archetype and a signed net', () => {
-    const out = renderTable([row('honest', 'Honest worker', CMN(100)), row('wash', 'Wash trader', CMN(-20))]);
+    const out = renderTable([
+      row('honest', 'Honest worker', CMN(100)),
+      row('wash', 'Wash trader', CMN(-20)),
+    ]);
     expect(out).toContain('Honest worker');
     expect(out).toContain('Wash trader');
     expect(out).toContain('+100.0000');
@@ -28,14 +39,20 @@ describe('renderTable', () => {
     expect(out).toMatch(/Honest worker.*—/);
   });
   it('computes vs-honest as a signed difference', () => {
-    const out = renderTable([row('honest', 'Honest worker', CMN(100)), row('wash', 'Wash trader', CMN(140))]);
+    const out = renderTable([
+      row('honest', 'Honest worker', CMN(100)),
+      row('wash', 'Wash trader', CMN(140)),
+    ]);
     expect(out).toContain('+40.0000');
   });
 });
 
 describe('renderVerdict', () => {
   it('calls a positive net profitable, and not merely "…profitable" inside "unprofitable"', () => {
-    const v = renderVerdict([row('honest', 'Honest worker', CMN(100)), row('wash', 'Wash trader', CMN(10))]);
+    const v = renderVerdict([
+      row('honest', 'Honest worker', CMN(100)),
+      row('wash', 'Wash trader', CMN(10)),
+    ]);
     // "unprofitable" CONTAINS "profitable", so a naive substring or a
     // /.*profitable/ regex matches both verdicts and asserts nothing. Anchor on
     // the word boundary instead. This mattered: the first version of this test
@@ -44,19 +61,31 @@ describe('renderVerdict', () => {
     expect(v).not.toMatch(/unprofitable/);
   });
   it('escalates when an attacker also beats honest work', () => {
-    const v = renderVerdict([row('honest', 'Honest worker', CMN(10)), row('wash', 'Wash trader', CMN(100))]);
+    const v = renderVerdict([
+      row('honest', 'Honest worker', CMN(10)),
+      row('wash', 'Wash trader', CMN(100)),
+    ]);
     expect(v).toContain('PROFITABLE AND BEATS HONEST WORK');
   });
   it('does not escalate a profitable attacker that still trails honest work', () => {
-    const v = renderVerdict([row('honest', 'Honest worker', CMN(100)), row('wash', 'Wash trader', CMN(10))]);
+    const v = renderVerdict([
+      row('honest', 'Honest worker', CMN(100)),
+      row('wash', 'Wash trader', CMN(10)),
+    ]);
     expect(v).not.toContain('BEATS HONEST WORK');
   });
   it('calls a negative net unprofitable', () => {
-    const v = renderVerdict([row('honest', 'Honest worker', CMN(100)), row('wash', 'Wash trader', CMN(-5))]);
+    const v = renderVerdict([
+      row('honest', 'Honest worker', CMN(100)),
+      row('wash', 'Wash trader', CMN(-5)),
+    ]);
     expect(v).toContain('unprofitable');
   });
   it('treats exactly break-even as not profitable', () => {
-    const v = renderVerdict([row('honest', 'Honest worker', CMN(100)), row('wash', 'Wash trader', 0n)]);
+    const v = renderVerdict([
+      row('honest', 'Honest worker', CMN(100)),
+      row('wash', 'Wash trader', 0n),
+    ]);
     expect(v).toContain('unprofitable');
   });
   it('omits the baseline from the verdict list', () => {
@@ -67,7 +96,9 @@ describe('renderVerdict', () => {
 
 describe('renderFailures', () => {
   it('says so plainly when nothing was refused', () => {
-    expect(renderFailures([row('wash', 'Wash trader', 0n)])).toContain('every extrinsic was accepted');
+    expect(renderFailures([row('wash', 'Wash trader', 0n)])).toContain(
+      'every extrinsic was accepted',
+    );
   });
   it('groups repeated refusals with a count', () => {
     const r = row('wash', 'Wash trader', 0n, {

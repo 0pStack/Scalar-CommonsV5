@@ -42,7 +42,15 @@ export const honest = {
     await registerAgent(ctx.api, ctx.ledger, provider, STANDARD_STAKE, ctx.log);
     note(ctx.ledger, `1 provider, ${buyers.length} distinct buyers`);
     for (let i = 0; i < buyers.length; i++) {
-      await escrowRoundTrip(ctx.api, ctx.ledger, buyers[i], provider, CMN(60), `honest-${i}`, ctx.log);
+      await escrowRoundTrip(
+        ctx.api,
+        ctx.ledger,
+        buyers[i],
+        provider,
+        CMN(60),
+        `honest-${i}`,
+        ctx.log,
+      );
     }
   },
 };
@@ -97,7 +105,15 @@ export const sybil = {
       for (let i = 0; i < ctx.accounts.length; i++) {
         const buyer = ctx.accounts[i];
         const provider = ctx.accounts[(i + 1) % ctx.accounts.length];
-        await escrowRoundTrip(ctx.api, ctx.ledger, buyer, provider, CMN(60), `sybil-${r}-${i}`, ctx.log);
+        await escrowRoundTrip(
+          ctx.api,
+          ctx.ledger,
+          buyer,
+          provider,
+          CMN(60),
+          `sybil-${r}-${i}`,
+          ctx.log,
+        );
       }
     }
   },
@@ -127,8 +143,14 @@ export const oracle = {
     const r = await submit(
       ctx.api,
       ctx.api.tx.oracle.createOracleRequest(
-        questionHash, bounty, 'Majority', responders.length, 51,
-        now + 600, ctx.api.consts.oracle.minChallengeWindow.toNumber() + 10, null,
+        questionHash,
+        bounty,
+        'Majority',
+        responders.length,
+        51,
+        now + 600,
+        ctx.api.consts.oracle.minChallengeWindow.toNumber() + 10,
+        null,
       ),
       requester,
     );
@@ -141,14 +163,21 @@ export const oracle = {
     }
     const answer = hash32('collusive-answer');
     for (const responder of responders) {
-      const s = await submit(ctx.api, ctx.api.tx.oracle.submitResponse(questionHash, answer, 0), responder);
+      const s = await submit(
+        ctx.api,
+        ctx.api.tx.oracle.submitResponse(questionHash, answer, 0),
+        responder,
+      );
       recordExtrinsic(ctx.ledger);
       if (!s.ok) {
         recordFailure(ctx.ledger, 'submitResponse', s.error);
         ctx.log(`    oracle response ${short(responder.address)} REFUSED: ${s.error}`);
       }
     }
-    note(ctx.ledger, 'OracleScoreProvider = () on this runtime — the oracle term contributes +0 to weight');
+    note(
+      ctx.ledger,
+      'OracleScoreProvider = () on this runtime — the oracle term contributes +0 to weight',
+    );
   },
 };
 
@@ -178,7 +207,10 @@ export const governance = {
       else recordFailure(ctx.ledger, `recordGovVote(${poll})`, r.error);
     }
     ctx.log(`    recorded ${recorded} gov vote(s) of ${Math.min(maxProps, 5)} attempted`);
-    note(ctx.ledger, `${recorded} gov votes recorded, no escrow work — gov term is gated on work_score > 0`);
+    note(
+      ctx.ledger,
+      `${recorded} gov votes recorded, no escrow work — gov term is gated on work_score > 0`,
+    );
   },
 };
 

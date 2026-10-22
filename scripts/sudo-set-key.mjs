@@ -48,20 +48,23 @@ function loadPolkadot(pkg) {
     try {
       const req = createRequire(pathResolve(HERE, c));
       return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch (e) { lastErr = e; }
+    } catch (e) {
+      lastErr = e;
+    }
   }
   throw new Error(
     `cannot resolve ${pkg} from sdk/ or indexer/ node_modules — run \`npm ci\` ` +
-    `in one of them first (${lastErr && lastErr.message})`);
+      `in one of them first (${lastErr && lastErr.message})`,
+  );
 }
 
 const { ApiPromise, WsProvider } = await loadPolkadot('@polkadot/api');
 const { Keyring } = await loadPolkadot('@polkadot/keyring');
-const { cryptoWaitReady, encodeAddress, decodeAddress } = await loadPolkadot('@polkadot/util-crypto');
+const { cryptoWaitReady, encodeAddress, decodeAddress } =
+  await loadPolkadot('@polkadot/util-crypto');
 const { u8aToHex } = await loadPolkadot('@polkadot/util');
 
-const ALICE_PUBKEY =
-  '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
+const ALICE_PUBKEY = '0xd43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d';
 
 function usage(msg) {
   if (msg) console.error(`error: ${msg}\n`);
@@ -76,8 +79,10 @@ let ws = 'ws://127.0.0.1:9944';
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--dry-run') dryRun = true;
-  else if (a === '--ws') { ws = argv[++i]; if (!ws) usage('--ws needs a url'); }
-  else if (a.startsWith('-')) usage(`unrecognised flag: ${a}`);
+  else if (a === '--ws') {
+    ws = argv[++i];
+    if (!ws) usage('--ws needs a url');
+  } else if (a.startsWith('-')) usage(`unrecognised flag: ${a}`);
   else if (target === null) target = a;
   else usage('more than one address given');
 }
@@ -97,7 +102,8 @@ const main = async () => {
   }
   if (targetPub.length !== 32) usage(`'${target}' does not decode to a 32-byte account id`);
   const targetHex = u8aToHex(targetPub);
-  if (targetHex === ALICE_PUBKEY) usage('refusing to set the root key to //Alice — that is the defect');
+  if (targetHex === ALICE_PUBKEY)
+    usage('refusing to set the root key to //Alice — that is the defect');
 
   const provider = new WsProvider(ws);
   const api = await ApiPromise.create({ provider });
@@ -120,7 +126,9 @@ const main = async () => {
   console.log('');
   console.log('  Sudo::Key BEFORE     : ' + before);
   console.log('    public key         : ' + beforePub);
-  console.log('    is //Alice         : ' + (beforePub === ALICE_PUBKEY ? 'YES — this is the defect' : 'no'));
+  console.log(
+    '    is //Alice         : ' + (beforePub === ALICE_PUBKEY ? 'YES — this is the defect' : 'no'),
+  );
   console.log('');
   console.log('  signer               : ' + alice.address + '  (//Alice)');
   console.log('  call                 : ' + `${call.method.section}.${call.method.method}`);
@@ -144,28 +152,32 @@ const main = async () => {
   console.log('');
 
   const finalizedHash = await new Promise((resolve, reject) => {
-    call.signAndSend(alice, ({ status, dispatchError, events }) => {
-      if (dispatchError) {
-        if (dispatchError.isModule) {
-          const d = api.registry.findMetaError(dispatchError.asModule);
-          return reject(new Error(`${d.section}.${d.name}: ${d.docs.join(' ')}`));
+    call
+      .signAndSend(alice, ({ status, dispatchError, events }) => {
+        if (dispatchError) {
+          if (dispatchError.isModule) {
+            const d = api.registry.findMetaError(dispatchError.asModule);
+            return reject(new Error(`${d.section}.${d.name}: ${d.docs.join(' ')}`));
+          }
+          return reject(new Error(dispatchError.toString()));
         }
-        return reject(new Error(dispatchError.toString()));
-      }
-      if (status.isInBlock) {
-        console.log('  in block             : ' + status.asInBlock.toHex());
-      }
-      if (status.isFinalized) {
-        for (const { event } of events) {
-          console.log(`  event                : ${event.section}.${event.method} ` +
-                      JSON.stringify(event.data.toHuman()));
+        if (status.isInBlock) {
+          console.log('  in block             : ' + status.asInBlock.toHex());
         }
-        resolve(status.asFinalized.toHex());
-      }
-      if (status.isDropped || status.isInvalid || status.isUsurped) {
-        reject(new Error(`transaction ${status.type}`));
-      }
-    }).catch(reject);
+        if (status.isFinalized) {
+          for (const { event } of events) {
+            console.log(
+              `  event                : ${event.section}.${event.method} ` +
+                JSON.stringify(event.data.toHuman()),
+            );
+          }
+          resolve(status.asFinalized.toHex());
+        }
+        if (status.isDropped || status.isInvalid || status.isUsurped) {
+          reject(new Error(`transaction ${status.type}`));
+        }
+      })
+      .catch(reject);
   });
 
   console.log('  finalized in         : ' + finalizedHash);
@@ -195,4 +207,7 @@ const main = async () => {
   console.log('  OK — root is now held by ' + after + ' and is no longer //Alice.');
 };
 
-main().catch((e) => { console.error('FATAL: ' + (e && e.message ? e.message : e)); process.exit(1); });
+main().catch((e) => {
+  console.error('FATAL: ' + (e && e.message ? e.message : e));
+  process.exit(1);
+});

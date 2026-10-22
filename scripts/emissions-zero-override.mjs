@@ -76,9 +76,13 @@ function loadPolkadot(pkg) {
     try {
       const req = createRequire(pathResolve(HERE, c));
       return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch (e) { lastErr = e; }
+    } catch (e) {
+      lastErr = e;
+    }
   }
-  throw new Error(`cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`);
+  throw new Error(
+    `cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`,
+  );
 }
 const { ApiPromise, WsProvider } = await loadPolkadot('@polkadot/api');
 const { Keyring } = await loadPolkadot('@polkadot/keyring');
@@ -99,7 +103,10 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === '--amount') amount = BigInt(argv[++i]);
   else if (a === '--era') onlyEra = Number(argv[++i]);
   else if (a === '--schedule-for') scheduleFor = Number(argv[++i]);
-  else { console.error(`unrecognised argument: ${a}`); process.exit(2); }
+  else {
+    console.error(`unrecognised argument: ${a}`);
+    process.exit(2);
+  }
 }
 
 const cmn = (b) => (Number(b) / 1e12).toFixed(4) + ' CMN';
@@ -114,7 +121,10 @@ const main = async () => {
   const mode = (statSync(KEYFILE).mode & 0o777).toString(8);
   if (mode !== '600') console.error(`WARNING: ${KEYFILE} is mode ${mode}, expected 600`);
   const phrase = readFileSync(KEYFILE, 'utf8').trim();
-  if (!phrase) { console.error(`FATAL: ${KEYFILE} is empty`); process.exit(1); }
+  if (!phrase) {
+    console.error(`FATAL: ${KEYFILE} is empty`);
+    process.exit(1);
+  }
 
   const api = await ApiPromise.create({ provider: new WsProvider(ws) });
   const keyring = new Keyring({ type: 'sr25519', ss58Format: api.registry.chainSS58 ?? 42 });
@@ -172,20 +182,38 @@ const main = async () => {
   console.log('  spec_version        : ' + api.runtimeVersion.specVersion.toNumber());
   console.log('  head block          : #' + now);
   console.log('  agents.EraNumber    : ' + currentEra);
-  console.log('  EraStartBlock       : #' + eraStart + '  EraDuration ' + eraDuration
-    + '  next settlement due at #' + (eraStart + eraDuration));
+  console.log(
+    '  EraStartBlock       : #' +
+      eraStart +
+      '  EraDuration ' +
+      eraDuration +
+      '  next settlement due at #' +
+      (eraStart + eraDuration),
+  );
   console.log('  MaxEmissionOverride : ' + maxAhead + ' eras');
   console.log('');
   if (onlyEra === null) {
-    console.log('  NOT REACHABLE       : era ' + currentEra + ' — settle_era reads EraNumber, and the');
-    console.log('                        runtime guard is target_era > current_era. Era ' + currentEra + ' will');
-    console.log('                        mint its agent-count-scaled pot at #' + (eraStart + eraDuration) + '.');
+    console.log(
+      '  NOT REACHABLE       : era ' + currentEra + ' — settle_era reads EraNumber, and the',
+    );
+    console.log(
+      '                        runtime guard is target_era > current_era. Era ' +
+        currentEra +
+        ' will',
+    );
+    console.log(
+      '                        mint its agent-count-scaled pot at #' +
+        (eraStart + eraDuration) +
+        '.',
+    );
   }
   console.log('  overriding eras     : ' + first + '..' + last + ' to ' + cmn(amount));
   console.log('');
   console.log('  signer              : ' + signer.address);
   console.log('  on-chain Sudo::Key  : ' + sudoKey);
-  console.log('  signer is root      : ' + (signer.address === sudoKey ? 'YES' : 'NO — the call will fail'));
+  console.log(
+    '  signer is root      : ' + (signer.address === sudoKey ? 'YES' : 'NO — the call will fail'),
+  );
   console.log('');
 
   if (signer.address !== sudoKey) {
@@ -198,8 +226,11 @@ const main = async () => {
     eras.map((e) => api.tx.emissions.setEraEmissionOverride(e, amount)),
   );
   const call = api.tx.sudo.sudo(inner);
-  console.log('  call                : sudo.sudo(utility.batchAll(' + eras.length
-    + ' x emissions.setEraEmissionOverride))');
+  console.log(
+    '  call                : sudo.sudo(utility.batchAll(' +
+      eras.length +
+      ' x emissions.setEraEmissionOverride))',
+  );
   console.log('  inner call hash     : ' + inner.method.hash.toHex());
   console.log('  outer call hash     : ' + call.method.hash.toHex());
   console.log('');
@@ -224,7 +255,9 @@ const main = async () => {
   console.log('');
   if (free === 0n || free < required) {
     console.error('FATAL: signer cannot pay for this transaction.');
-    console.error(`  free ${cmn(free)} < required ${cmn(required)} (estimated fee + existential deposit)`);
+    console.error(
+      `  free ${cmn(free)} < required ${cmn(required)} (estimated fee + existential deposit)`,
+    );
     console.error('  Fund ' + signer.address + ' and re-run.');
     await api.disconnect();
     process.exit(1);
@@ -239,34 +272,39 @@ const main = async () => {
 
   console.log('  SUBMITTING.');
   const finalized = await new Promise((resolve, reject) => {
-    call.signAndSend(signer, ({ status, dispatchError, events }) => {
-      if (dispatchError) {
-        if (dispatchError.isModule) {
-          const d = api.registry.findMetaError(dispatchError.asModule);
-          return reject(new Error(`${d.section}.${d.name}: ${d.docs.join(' ')}`));
-        }
-        return reject(new Error(dispatchError.toString()));
-      }
-      if (status.isFinalized) {
-        for (const { event } of events) {
-          // sudo.Sudid carries the inner call's own Result — a sudo call can
-          // finalize "successfully" while the call it wrapped failed.
-          if (event.section === 'sudo' && event.method === 'Sudid') {
-            const r = event.data[0];
-            if (r && r.isErr) return reject(new Error('sudo.Sudid reported Err: ' + r.toString()));
+    call
+      .signAndSend(signer, ({ status, dispatchError, events }) => {
+        if (dispatchError) {
+          if (dispatchError.isModule) {
+            const d = api.registry.findMetaError(dispatchError.asModule);
+            return reject(new Error(`${d.section}.${d.name}: ${d.docs.join(' ')}`));
           }
-          if (event.section === 'utility' && event.method === 'BatchInterrupted') {
-            return reject(new Error('utility.BatchInterrupted: ' + event.data.toString()));
-          }
-          console.log(`  event               : ${event.section}.${event.method} `
-            + `${event.section === 'emissions' ? JSON.stringify(event.data.toHuman()) : ''}`);
+          return reject(new Error(dispatchError.toString()));
         }
-        resolve(status.asFinalized.toHex());
-      }
-      if (status.isDropped || status.isInvalid || status.isUsurped) {
-        reject(new Error(`transaction ${status.type}`));
-      }
-    }).catch(reject);
+        if (status.isFinalized) {
+          for (const { event } of events) {
+            // sudo.Sudid carries the inner call's own Result — a sudo call can
+            // finalize "successfully" while the call it wrapped failed.
+            if (event.section === 'sudo' && event.method === 'Sudid') {
+              const r = event.data[0];
+              if (r && r.isErr)
+                return reject(new Error('sudo.Sudid reported Err: ' + r.toString()));
+            }
+            if (event.section === 'utility' && event.method === 'BatchInterrupted') {
+              return reject(new Error('utility.BatchInterrupted: ' + event.data.toString()));
+            }
+            console.log(
+              `  event               : ${event.section}.${event.method} ` +
+                `${event.section === 'emissions' ? JSON.stringify(event.data.toHuman()) : ''}`,
+            );
+          }
+          resolve(status.asFinalized.toHex());
+        }
+        if (status.isDropped || status.isInvalid || status.isUsurped) {
+          reject(new Error(`transaction ${status.type}`));
+        }
+      })
+      .catch(reject);
   });
 
   const hdr = await api.rpc.chain.getHeader(finalized);
@@ -297,4 +335,7 @@ const main = async () => {
   console.log(`  Overrides are consumed on read: re-run before era ${last} settles.`);
 };
 
-main().catch((e) => { console.error('FATAL: ' + (e && e.message ? e.message : e)); process.exit(1); });
+main().catch((e) => {
+  console.error('FATAL: ' + (e && e.message ? e.message : e));
+  process.exit(1);
+});

@@ -119,7 +119,9 @@ function countingApi(target: ApiPromise): {
 
   const api = new Proxy(target, {
     get: (chainApi, property) =>
-      property === 'query' ? queryProxy : (chainApi as unknown as Record<string | symbol, unknown>)[property],
+      property === 'query'
+        ? queryProxy
+        : (chainApi as unknown as Record<string | symbol, unknown>)[property],
   }) as ApiPromise;
 
   return { api, counts, calls };
@@ -208,11 +210,15 @@ beforeAll(async () => {
   // An escrow agreement between two genesis agents. The pair is chosen at
   // runtime because `MaxAgreementsPerPair` bounds how many a single pair can
   // hold — running out is a real failure, not something to skip past.
-  const maxPerPair = (chainConsts().escrow.maxAgreementsPerPair as unknown as { toNumber(): number }).toNumber();
+  const maxPerPair = (
+    chainConsts().escrow.maxAgreementsPerPair as unknown as { toNumber(): number }
+  ).toNumber();
   const agentEntries = await chainQuery().agents.agentStake.entries();
   const agentAddresses = agentEntries.map(([key]: [any, any]) => key.args[0]!.toString());
   const aliceIsAgent = agentAddresses.includes(alice.address);
-  expect(aliceIsAgent, `//Alice (${alice.address}) must be a registered agent on the devnet`).toBe(true);
+  expect(aliceIsAgent, `//Alice (${alice.address}) must be a registered agent on the devnet`).toBe(
+    true,
+  );
 
   let provider = '';
   for (const candidate of agentAddresses) {
@@ -230,7 +236,9 @@ beforeAll(async () => {
     `every signable provider pair for //Alice is at MaxAgreementsPerPair (${maxPerPair}); the devnet needs cleaning up`,
   ).not.toBe('');
 
-  const minAmount = (chainConsts().escrow.minAgreementAmount as unknown as { toString(): string }).toString();
+  const minAmount = (
+    chainConsts().escrow.minAgreementAmount as unknown as { toString(): string }
+  ).toString();
   const nextSeq = await chainQuery().escrow.nextSeq(alice.address, provider);
   const head = await api.rpc.chain.getHeader();
   const deliverBy = head.number.toNumber() + 100_000;
@@ -320,7 +328,12 @@ describe('v1 surface', () => {
     // `decodeURIComponent('%')` throws URIError. Any anonymous caller can put
     // that byte in a path segment, so it has to become a client error — not an
     // unhandled rejection that takes the process down and answers nothing.
-    for (const path of ['/v1/blocks/%', '/v1/accounts/%', '/v1/escrows/%/x/1', '/v1/agents/%E0%A4%A/events']) {
+    for (const path of [
+      '/v1/blocks/%',
+      '/v1/accounts/%',
+      '/v1/escrows/%/x/1',
+      '/v1/agents/%E0%A4%A/events',
+    ]) {
       const response = await fetch(`${baseUrl}${path}`, { signal: AbortSignal.timeout(15_000) });
       expect(response.status, path).toBe(400);
       expect((await jsonBody(response)).error, path).toBeTruthy();
@@ -381,14 +394,18 @@ describe('blocks', () => {
   });
 
   it('lists the extrinsics of a block, including the timestamp inherent', async () => {
-    const { status, body } = await getRoute('/v1/blocks/:id/extrinsics', { id: seeded.heartbeatBlock });
+    const { status, body } = await getRoute('/v1/blocks/:id/extrinsics', {
+      id: seeded.heartbeatBlock,
+    });
     expect(status).toBe(200);
     expect(body.items.length).toBeGreaterThanOrEqual(2);
     expect(body.items[0].section).toBe('timestamp');
     expect(body.items[0].method).toBe('set');
     expect(body.items[0].isSigned).toBe(false);
 
-    const heartbeat = body.items.find((x: any) => x.section === 'agents' && x.method === 'heartbeat');
+    const heartbeat = body.items.find(
+      (x: any) => x.section === 'agents' && x.method === 'heartbeat',
+    );
     expect(heartbeat, 'the seeded heartbeat must be indexed in its block').toBeTruthy();
     expect(heartbeat.signer).toBe(alice.address);
     expect(heartbeat.success).toBe(true);
@@ -402,7 +419,9 @@ describe('blocks', () => {
     const onChain = (await (apiAt.query as any).system.events()) as unknown[];
     expect(body.total).toBe(onChain.length);
 
-    const heartbeatEvent = body.items.find((e: any) => e.section === 'agents' && e.method === 'HeartbeatSent');
+    const heartbeatEvent = body.items.find(
+      (e: any) => e.section === 'agents' && e.method === 'HeartbeatSent',
+    );
     expect(heartbeatEvent, 'HeartbeatSent must be indexed').toBeTruthy();
     expect(heartbeatEvent.phase).toBe('ApplyExtrinsic');
     expect(heartbeatEvent.extrinsicId).toMatch(new RegExp(`^${seeded.heartbeatBlock}-\\d+$`));
@@ -436,7 +455,11 @@ describe('extrinsics', () => {
   let heartbeatId = '';
 
   it('lists extrinsics and filters them by signer', async () => {
-    const { status, body } = await getRoute('/v1/extrinsics', {}, `?signer=${alice.address}&limit=50`);
+    const { status, body } = await getRoute(
+      '/v1/extrinsics',
+      {},
+      `?signer=${alice.address}&limit=50`,
+    );
     expect(status).toBe(200);
     expect(body.total).toBeGreaterThanOrEqual(3); // heartbeat + transfer + escrow
     for (const item of body.items) expect(item.signer).toBe(alice.address);
@@ -525,7 +548,11 @@ describe('events', () => {
   });
 
   it('serves a single event by id', async () => {
-    const list = await getRoute('/v1/events', {}, `?blockNumber=${seeded.escrowBlock}&section=escrow`);
+    const list = await getRoute(
+      '/v1/events',
+      {},
+      `?blockNumber=${seeded.escrowBlock}&section=escrow`,
+    );
     const first = list.body.items[0];
     const { status, body } = await getRoute('/v1/events/:id', { id: first.id });
     expect(status).toBe(200);
@@ -563,7 +590,9 @@ describe('accounts', () => {
   });
 
   it('lists the extrinsics an account signed', async () => {
-    const { status, body } = await getRoute('/v1/accounts/:address/extrinsics', { address: alice.address });
+    const { status, body } = await getRoute('/v1/accounts/:address/extrinsics', {
+      address: alice.address,
+    });
     expect(status).toBe(200);
     expect(body.total).toBeGreaterThanOrEqual(3);
     const calls = body.items.map((x: any) => `${x.section}.${x.method}`);
@@ -596,7 +625,10 @@ describe('agents', () => {
     // answer a one-row page turns `?limit=1` into O(agents × 10) RPC calls
     // against the validator this indexer points at.
     const onChain = await chainQuery().agents.agentStake.entries();
-    expect(onChain.length, 'the devnet must have more than one agent for this to mean anything').toBeGreaterThan(1);
+    expect(
+      onChain.length,
+      'the devnet must have more than one agent for this to mean anything',
+    ).toBeGreaterThan(1);
 
     const { api: counting, counts } = countingApi(api);
     const page = await fetchAgents(counting, { limit: 1, offset: 0 });
@@ -644,13 +676,17 @@ describe('agents', () => {
     const { status, body } = await getRoute('/v1/agents/:address', { address: alice.address });
     expect(status).toBe(200);
     expect(body.address).toBe(alice.address);
-    expect(body.stakePlancks).toBe((await chainQuery().agents.agentStake(alice.address)).toString());
+    expect(body.stakePlancks).toBe(
+      (await chainQuery().agents.agentStake(alice.address)).toString(),
+    );
     // The seeded heartbeat wrote this, so it must be at least that block.
     expect(body.lastHeartbeatBlock).toBeGreaterThanOrEqual(seeded.heartbeatBlock);
     expect(body.activeEscrowCount).toBe(
       Number((await chainQuery().agents.activeEscrowCount(alice.address)).toString()),
     );
-    expect(body.eraVolumePlancks).toBe((await chainQuery().agents.eraEscrowVolume(alice.address)).toString());
+    expect(body.eraVolumePlancks).toBe(
+      (await chainQuery().agents.eraEscrowVolume(alice.address)).toString(),
+    );
   });
 
   it('404s an account that is not an agent', async () => {
@@ -659,7 +695,9 @@ describe('agents', () => {
   });
 
   it('serves the agent-scoped event history', async () => {
-    const { status, body } = await getRoute('/v1/agents/:address/events', { address: alice.address });
+    const { status, body } = await getRoute('/v1/agents/:address/events', {
+      address: alice.address,
+    });
     expect(status).toBe(200);
     expect(body.total).toBeGreaterThanOrEqual(2);
     const methods = body.items.map((e: any) => `${e.section}.${e.method}`);
@@ -669,14 +707,20 @@ describe('agents', () => {
   });
 
   it('serves the agreements an agent is party to', async () => {
-    const { status, body } = await getRoute('/v1/agents/:address/escrows', { address: alice.address });
+    const { status, body } = await getRoute('/v1/agents/:address/escrows', {
+      address: alice.address,
+    });
     expect(status).toBe(200);
     expect(body.total).toBeGreaterThanOrEqual(1);
 
     const seededAgreement = body.items.find(
-      (a: any) => a.buyer === seeded.buyer && a.provider === seeded.provider && a.seq === seeded.seq,
+      (a: any) =>
+        a.buyer === seeded.buyer && a.provider === seeded.provider && a.seq === seeded.seq,
     );
-    expect(seededAgreement, 'the seeded agreement must be visible from the buyer side').toBeTruthy();
+    expect(
+      seededAgreement,
+      'the seeded agreement must be visible from the buyer side',
+    ).toBeTruthy();
     expect(seededAgreement.role).toBe('buyer');
     expect(seededAgreement.amountPlancks).toBe(seeded.amountPlancks);
   });
@@ -689,7 +733,8 @@ describe('escrows', () => {
     expect(body.total).toBeGreaterThanOrEqual(1);
 
     const found = body.items.find(
-      (a: any) => a.buyer === seeded.buyer && a.provider === seeded.provider && a.seq === seeded.seq,
+      (a: any) =>
+        a.buyer === seeded.buyer && a.provider === seeded.provider && a.seq === seeded.seq,
     );
     expect(found).toBeTruthy();
     expect(found.status).toBe('Created');
@@ -785,7 +830,9 @@ describe('eras', () => {
 
     const eraOnChain = Number((await chainQuery().agents.eraNumber()).toString());
     const startBlock = Number((await chainQuery().emissions.eraStartBlock()).toString());
-    const duration = Number((chainConsts().emissions.eraDuration as unknown as { toString(): string }).toString());
+    const duration = Number(
+      (chainConsts().emissions.eraDuration as unknown as { toString(): string }).toString(),
+    );
 
     expect(body.era).toBe(eraOnChain);
     expect(body.startBlock).toBe(startBlock);
@@ -817,7 +864,10 @@ describe('eras', () => {
     expect(body.items.length).toBeGreaterThanOrEqual(1);
     const shape = Object.keys(body.items[0]).sort();
     for (const era of body.items) {
-      expect(Object.keys(era).sort(), `era ${era.era} must not need a branch on \`settled\``).toEqual(shape);
+      expect(
+        Object.keys(era).sort(),
+        `era ${era.era} must not need a branch on \`settled\``,
+      ).toEqual(shape);
     }
   });
 
@@ -839,7 +889,9 @@ describe('eras', () => {
     expect(oneRow.body.total).toBe(whole.body.total);
     // The era in progress is the newest entry, so it heads the list.
     expect(oneRow.body.items[0].settled).toBe(false);
-    expect(oneRow.body.items[0].era).toBe(Number((await chainQuery().agents.eraNumber()).toString()));
+    expect(oneRow.body.items[0].era).toBe(
+      Number((await chainQuery().agents.eraNumber()).toString()),
+    );
   });
 });
 
@@ -867,14 +919,20 @@ describe('emissions', () => {
 
     const consts = chainConsts().emissions as unknown as Record<string, { toString(): string }>;
     expect(body.parameters.eraDurationBlocks).toBe(Number(consts.eraDuration!.toString()));
-    expect(body.parameters.initialEmissionPerEraPlancks).toBe(consts.initialEmissionsPerEra!.toString());
+    expect(body.parameters.initialEmissionPerEraPlancks).toBe(
+      consts.initialEmissionsPerEra!.toString(),
+    );
     expect(body.parameters.floorEmissionPerEraPlancks).toBe(consts.floorEmissionPerEra!.toString());
     expect(body.parameters.velocityBonusBps).toBe(Number(consts.velocityBonusBps!.toString()));
     expect(body.parameters.minQualifyingVolumePlancks).toBe(consts.minQualifyingVol!.toString());
 
-    expect(body.lastEraEmissionPlancks).toBe((await chainQuery().emissions.lastEraEmission()).toString());
+    expect(body.lastEraEmissionPlancks).toBe(
+      (await chainQuery().emissions.lastEraEmission()).toString(),
+    );
     const lastSettled = await chainQuery().emissions.lastSettledEra();
-    expect(body.lastSettledEra).toBe(lastSettled.isSome ? Number(lastSettled.unwrap().toString()) : null);
+    expect(body.lastSettledEra).toBe(
+      lastSettled.isSome ? Number(lastSettled.unwrap().toString()) : null,
+    );
   });
 
   it('reports issuance against the hard supply cap', async () => {
@@ -898,7 +956,11 @@ describe('emissions', () => {
 
 describe('activity', () => {
   it('feeds the seeded heartbeat and agreement, newest first, and nothing else', async () => {
-    const { status, body } = await getRoute('/v1/activity', {}, `?agent=${alice.address}&limit=200`);
+    const { status, body } = await getRoute(
+      '/v1/activity',
+      {},
+      `?agent=${alice.address}&limit=200`,
+    );
     expect(status).toBe(200);
     expect(body.agent).toBe(alice.address);
     expect(body.kind).toBeNull();
@@ -922,14 +984,18 @@ describe('activity', () => {
 
     // The transfer is Alice's too, but it is not agent activity.
     for (const item of body.items) {
-      expect(`${item.section}.${item.method}`).not.toMatch(/^(balances|system|transactionPayment)\./);
+      expect(`${item.section}.${item.method}`).not.toMatch(
+        /^(balances|system|transactionPayment)\./,
+      );
       expect(item.agents).toContain(alice.address);
     }
 
     // Newest first, block then position.
     for (let i = 1; i < body.items.length; i += 1) {
       const [prev, next] = [body.items[i - 1], body.items[i]];
-      expect(prev.blockNumber * 1e6 + prev.index).toBeGreaterThan(next.blockNumber * 1e6 + next.index);
+      expect(prev.blockNumber * 1e6 + prev.index).toBeGreaterThan(
+        next.blockNumber * 1e6 + next.index,
+      );
     }
 
     // Every row is the indexed event itself, with that block's own clock.

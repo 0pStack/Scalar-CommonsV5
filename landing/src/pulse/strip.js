@@ -13,7 +13,11 @@ import { feedDown } from './wiring.js';
 
 /** The reading keys the strip fills, in order, and the counter each shows. */
 export const KEYS = ['activeAgents', 'eventsPerMinute', 'messagesHour'];
-export const COUNTER = { activeAgents: 'activeAgents', eventsPerMinute: 'eventsLastMinute', messagesHour: 'messagesLastHour' };
+export const COUNTER = {
+  activeAgents: 'activeAgents',
+  eventsPerMinute: 'eventsLastMinute',
+  messagesHour: 'messagesLastHour',
+};
 const EXTRA = {
   activeAgents: 'agents party to an event in the last 10 minutes',
   eventsPerMinute: 'events the page reacts to, in the last minute',
@@ -27,7 +31,9 @@ export function basisText(liveSeen) {
 }
 
 export function init(root, ctx, feed) {
-  const targets = Object.fromEntries(KEYS.map((key) => [key, ctx.reading(key, root)]).filter(([, el]) => el));
+  const targets = Object.fromEntries(
+    KEYS.map((key) => [key, ctx.reading(key, root)]).filter(([, el]) => el),
+  );
   let seeded = []; // from the index's last hour: { id, kind, at, parties }
   let live = []; // from the blocks read since
   const liveIds = new Set();
@@ -40,7 +46,8 @@ export function init(root, ctx, feed) {
   function show() {
     const failed = down ?? hourBroken;
     if (failed) {
-      for (const target of Object.values(targets)) ctx.readout.showError(target, failed.record, failed.reason);
+      for (const target of Object.values(targets))
+        ctx.readout.showError(target, failed.record, failed.reason);
       return;
     }
     if (!provenance) return; // nothing read yet: the skeleton stays
@@ -50,7 +57,11 @@ export function init(root, ctx, feed) {
     const figures = counters([...seeded, ...live], now);
     for (const key of KEYS) {
       if (!targets[key]) continue;
-      ctx.readout.showValue(targets[key], provenance, { value: figures[COUNTER[key]], extra: `${EXTRA[key]} · ${basisText(liveSeen)}`, motion: ctx.motion });
+      ctx.readout.showValue(targets[key], provenance, {
+        value: figures[COUNTER[key]],
+        extra: `${EXTRA[key]} · ${basisText(liveSeen)}`,
+        motion: ctx.motion,
+      });
     }
   }
 
@@ -82,7 +93,9 @@ export function init(root, ctx, feed) {
   });
 
   feed.on('status', (status) => {
-    down = feedDown(status.state) ? { record: status.record ?? null, reason: status.reason ?? 'live feed unavailable' } : null;
+    down = feedDown(status.state)
+      ? { record: status.record ?? null, reason: status.reason ?? 'live feed unavailable' }
+      : null;
     show();
   });
 

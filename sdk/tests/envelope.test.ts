@@ -82,7 +82,11 @@ const bytes = (m: ReturnType<typeof msg>) => encodeSignedMessage(m);
 
 function inbox(self = bob) {
   const key = deriveMessagingKey(self === bob ? '//Bob' : '//Charlie');
-  return new MessageInbox({ self: self.address, genesisHash: GENESIS, open: (b) => openBody(b, key) });
+  return new MessageInbox({
+    self: self.address,
+    genesisHash: GENESIS,
+    open: (b) => openBody(b, key),
+  });
 }
 
 function reason(fn: () => unknown): string {
@@ -98,7 +102,14 @@ function reason(fn: () => unknown): string {
 describe('message kinds', () => {
   it('match the pallet-messages MessageKind variant order', () => {
     expect(MESSAGE_KINDS).toEqual([
-      'Offer', 'Bid', 'Accept', 'Reject', 'DeliveryNotice', 'DisputeNote', 'Announce', 'Ping',
+      'Offer',
+      'Bid',
+      'Accept',
+      'Reject',
+      'DeliveryNotice',
+      'DisputeNote',
+      'Announce',
+      'Ping',
     ]);
   });
 });
@@ -116,7 +127,9 @@ describe('pinned vector from pallets/messages/src/envelope_tests.rs (PR #242)', 
       expiresAtBlock: 1_200_000,
       payloadHash: blake2AsU8a(body, 256),
     });
-    expect(u8aToHex(e.payloadHash)).toBe('0xd9fa590db58b192d3e27054e3210b8e905fc0f1c043dfce81ec6bd3bbaad55ec');
+    expect(u8aToHex(e.payloadHash)).toBe(
+      '0xd9fa590db58b192d3e27054e3210b8e905fc0f1c043dfce81ec6bd3bbaad55ec',
+    );
     expect(u8aToHex(encodeEnvelope(e))).toBe(
       '0x01d43593c715fdd31c61141abd04a99fd6822c8558854ccde39a5684e7a56da27d8eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a4800018eaf04151687736326c9fea17e25fc5287613693c912909cb226aa4794f26a48030000000100000000000000804f1200d9fa590db58b192d3e27054e3210b8e905fc0f1c043dfce81ec6bd3bbaad55ec',
     );
@@ -191,19 +204,36 @@ describe('canonical SCALE encoding', () => {
       [{ type: 'Plain', bytes: plaintext } as const, { Plain: u8aToHex(plaintext) }],
       [{ type: 'Plain', bytes: long } as const, { Plain: u8aToHex(long) }],
       [
-        { type: 'Sealed', senderKey: new Uint8Array(32).fill(0xa1), nonce: new Uint8Array(24).fill(7), ciphertext: long } as const,
-        { Sealed: { sender_key: new Uint8Array(32).fill(0xa1), nonce: new Uint8Array(24).fill(7), ciphertext: u8aToHex(long) } },
+        {
+          type: 'Sealed',
+          senderKey: new Uint8Array(32).fill(0xa1),
+          nonce: new Uint8Array(24).fill(7),
+          ciphertext: long,
+        } as const,
+        {
+          Sealed: {
+            sender_key: new Uint8Array(32).fill(0xa1),
+            nonce: new Uint8Array(24).fill(7),
+            ciphertext: u8aToHex(long),
+          },
+        },
       ],
     ] as const;
     for (const [ours, theirs] of cases) {
-      expect(u8aToHex(encodeBody(ours))).toBe(u8aToHex(registry.createType('ScalarBody', theirs).toU8a()));
+      expect(u8aToHex(encodeBody(ours))).toBe(
+        u8aToHex(registry.createType('ScalarBody', theirs).toU8a()),
+      );
     }
   });
 
   it('round-trips SignedMessage for every body type', () => {
     const bobKey = deriveMessagingKey('//Bob');
     const aliceKey = deriveMessagingKey('//Alice');
-    for (const body of [undefined, { type: 'None' } as const, sealBody(plaintext, aliceKey, bobKey.publicKey)]) {
+    for (const body of [
+      undefined,
+      { type: 'None' } as const,
+      sealBody(plaintext, aliceKey, bobKey.publicKey),
+    ]) {
       const m = msg({ body, agreement: { account: bob.address, seq: 9 } });
       expect(decodeSignedMessage(bytes(m))).toEqual(m);
     }
@@ -218,7 +248,9 @@ describe('canonical SCALE encoding', () => {
     expect(() => encodeEnvelope(envelope({ nonce: -1n }))).toThrow(/nonce/);
     expect(() => encodeEnvelope(envelope({ nonce: 2n ** 64n }))).toThrow(/nonce/);
     expect(() => encodeEnvelope(envelope({ expiresAtBlock: 2 ** 32 }))).toThrow(/expiresAtBlock/);
-    expect(() => encodeEnvelope(envelope({ payloadHash: new Uint8Array(31) }))).toThrow(/payloadHash/);
+    expect(() => encodeEnvelope(envelope({ payloadHash: new Uint8Array(31) }))).toThrow(
+      /payloadHash/,
+    );
     expect(() => encodeEnvelope(envelope({ kind: 'Nope' as never }))).toThrow(/kind/);
   });
 
@@ -241,7 +273,10 @@ describe('canonical SCALE encoding', () => {
 describe('signing hash', () => {
   it('is blake2_256 of the domain prefix, the genesis hash and the SCALE bytes', () => {
     const e = envelope();
-    const expected = blake2AsU8a(u8aConcat(stringToU8a('ScalarMsg/v1|'), GENESIS, encodeEnvelope(e)), 256);
+    const expected = blake2AsU8a(
+      u8aConcat(stringToU8a('ScalarMsg/v1|'), GENESIS, encodeEnvelope(e)),
+      256,
+    );
     expect(SIGNING_DOMAIN).toBe('ScalarMsg/v1|');
     expect(u8aToHex(envelopeSigningHash(e, GENESIS))).toBe(u8aToHex(expected));
   });
@@ -256,12 +291,18 @@ describe('createMessage', () => {
     const m = msg();
     expect(u8aToHex(m.envelope.payloadHash)).toBe(u8aToHex(blake2AsU8a(plaintext, 256)));
     expect(u8aToHex(m.envelope.from)).toBe(u8aToHex(alice.publicKey));
-    expect(sr25519Verify(envelopeSigningHash(m.envelope, GENESIS), m.signature, alice.publicKey)).toBe(true);
+    expect(
+      sr25519Verify(envelopeSigningHash(m.envelope, GENESIS), m.signature, alice.publicKey),
+    ).toBe(true);
     expect(m.body).toEqual({ type: 'Plain', bytes: plaintext });
   });
 
   it('keeps payload_hash over the plaintext when the body is sealed', () => {
-    const sealed = sealBody(plaintext, deriveMessagingKey('//Alice'), deriveMessagingKey('//Bob').publicKey);
+    const sealed = sealBody(
+      plaintext,
+      deriveMessagingKey('//Alice'),
+      deriveMessagingKey('//Bob').publicKey,
+    );
     const m = msg({ body: sealed });
     expect(u8aToHex(m.envelope.payloadHash)).toBe(u8aToHex(blake2AsU8a(plaintext, 256)));
   });
@@ -299,7 +340,9 @@ describe('MessageInbox.receive — verification rules', () => {
   });
 
   it('rejects a message signed for another chain (genesis binding)', () => {
-    expect(reason(() => inbox().receive(bytes(msg({ genesisHash: OTHER_GENESIS })), 1))).toBe('bad-signature');
+    expect(reason(() => inbox().receive(bytes(msg({ genesisHash: OTHER_GENESIS })), 1))).toBe(
+      'bad-signature',
+    );
   });
 
   it('rejects a message addressed to someone else', () => {
@@ -313,8 +356,13 @@ describe('MessageInbox.receive — verification rules', () => {
 
   it('rejects a body whose blake2_256 differs from payload_hash', () => {
     const m = msg();
-    const swapped = { ...m, body: { type: 'Plain' as const, bytes: stringToU8a('{"offer":"1 CMN"}') } };
-    expect(reason(() => inbox().receive(encodeSignedMessage(swapped), 1))).toBe('payload-hash-mismatch');
+    const swapped = {
+      ...m,
+      body: { type: 'Plain' as const, bytes: stringToU8a('{"offer":"1 CMN"}') },
+    };
+    expect(reason(() => inbox().receive(encodeSignedMessage(swapped), 1))).toBe(
+      'payload-hash-mismatch',
+    );
   });
 
   it('rejects replays and non-increasing nonces per (from, to)', () => {
@@ -359,8 +407,15 @@ describe('MessageInbox.receive — verification rules', () => {
 
   it('shares state through an injected NonceTracker (restart safety)', () => {
     const tracker = new NonceTracker();
-    new MessageInbox({ self: bob.address, genesisHash: GENESIS, nonces: tracker }).receive(bytes(msg({ nonce: 3n })), 1);
-    const box = new MessageInbox({ self: bob.address, genesisHash: GENESIS, nonces: new NonceTracker(tracker.toJSON()) });
+    new MessageInbox({ self: bob.address, genesisHash: GENESIS, nonces: tracker }).receive(
+      bytes(msg({ nonce: 3n })),
+      1,
+    );
+    const box = new MessageInbox({
+      self: bob.address,
+      genesisHash: GENESIS,
+      nonces: new NonceTracker(tracker.toJSON()),
+    });
     expect(reason(() => box.receive(bytes(msg({ nonce: 3n })), 1))).toBe('replay');
   });
 });
@@ -378,7 +433,9 @@ describe('MessageInbox.receive — Sealed bodies', () => {
 
   it('rejects when the sender has no published key, or a different one', () => {
     expect(reason(() => inbox().receive(bytes(sealed()), 1))).toBe('sender-key-mismatch');
-    expect(reason(() => inbox().receive(bytes(sealed()), 1, { senderMessagingKey: null }))).toBe('sender-key-mismatch');
+    expect(reason(() => inbox().receive(bytes(sealed()), 1, { senderMessagingKey: null }))).toBe(
+      'sender-key-mismatch',
+    );
     const rotated = deriveMessagingKey('//Alice', { rotation: 1 }).publicKey;
     expect(reason(() => inbox().receive(bytes(sealed()), 1, { senderMessagingKey: rotated }))).toBe(
       'sender-key-mismatch',
@@ -386,17 +443,21 @@ describe('MessageInbox.receive — Sealed bodies', () => {
   });
 
   it('rejects a box it cannot open (sealed to someone else)', () => {
-    const toCarol = msg({ body: sealBody(plaintext, aliceKey(), deriveMessagingKey('//Charlie').publicKey) });
-    expect(reason(() => inbox().receive(bytes(toCarol), 1, { senderMessagingKey: aliceKey().publicKey }))).toBe(
-      'decrypt-failed',
-    );
+    const toCarol = msg({
+      body: sealBody(plaintext, aliceKey(), deriveMessagingKey('//Charlie').publicKey),
+    });
+    expect(
+      reason(() =>
+        inbox().receive(bytes(toCarol), 1, { senderMessagingKey: aliceKey().publicKey }),
+      ),
+    ).toBe('decrypt-failed');
   });
 
   it('rejects a sealed message when the inbox has no messaging key', () => {
     const box = new MessageInbox({ self: bob.address, genesisHash: GENESIS });
-    expect(reason(() => box.receive(bytes(sealed()), 1, { senderMessagingKey: aliceKey().publicKey }))).toBe(
-      'decrypt-failed',
-    );
+    expect(
+      reason(() => box.receive(bytes(sealed()), 1, { senderMessagingKey: aliceKey().publicKey })),
+    ).toBe('decrypt-failed');
   });
 });
 
@@ -431,7 +492,9 @@ describe('MessageInbox.receive — on-chain call must repeat the envelope (rule 
     if (patch.agreement && (patch.agreement as { account: string }).account === '') {
       patch.agreement = { account: bob.address, seq: 4 };
     }
-    expect(reason(() => inbox().receive(bytes(m()), 1, { call: call(patch) }))).toBe('call-mismatch');
+    expect(reason(() => inbox().receive(bytes(m()), 1, { call: call(patch) }))).toBe(
+      'call-mismatch',
+    );
   });
 });
 

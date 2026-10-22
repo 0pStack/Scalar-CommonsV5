@@ -32,7 +32,9 @@ const chainless = new Proxy(
   {},
   {
     get(_target, property) {
-      throw new Error(`the root index must not use the faucet service; it reached for "${String(property)}"`);
+      throw new Error(
+        `the root index must not use the faucet service; it reached for "${String(property)}"`,
+      );
     },
   },
 ) as unknown as FaucetService;

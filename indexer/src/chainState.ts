@@ -44,9 +44,9 @@ type StorageEntryPair = [{ args: { toString(): string }[]; toHex(): string }, un
 
 /** Resolves a storage item, refusing to run against a runtime that lacks it. */
 function entry(api: ApiPromise, pallet: string, item: string): StorageEntry {
-  const resolved = (api.query as unknown as Record<string, Record<string, StorageEntry | undefined>>)[
-    pallet
-  ]?.[item];
+  const resolved = (
+    api.query as unknown as Record<string, Record<string, StorageEntry | undefined>>
+  )[pallet]?.[item];
   if (resolved === undefined) {
     throw new Error(`runtime does not expose storage ${pallet}.${item}`);
   }
@@ -131,7 +131,9 @@ export interface LiveList<T> {
 
 /** Reads a `#[pallet::constant]` off the runtime metadata. */
 function constant(api: ApiPromise, pallet: string, name: string): { toString(): string } {
-  const value = (api.consts as unknown as Record<string, Record<string, { toString(): string }>>)[pallet]?.[name];
+  const value = (api.consts as unknown as Record<string, Record<string, { toString(): string }>>)[
+    pallet
+  ]?.[name];
   if (value === undefined) {
     throw new Error(`runtime does not expose constant ${pallet}.${name}`);
   }
@@ -152,7 +154,10 @@ export interface ChainStatus {
 }
 
 /** Chain identity plus where its head currently is. */
-export async function fetchChainStatus(api: ApiPromise, chain: ChainConnection): Promise<ChainStatus['chain']> {
+export async function fetchChainStatus(
+  api: ApiPromise,
+  chain: ChainConnection,
+): Promise<ChainStatus['chain']> {
   const [chainName, bestHeader, finalizedHash] = await Promise.all([
     api.rpc.system.chain(),
     api.rpc.chain.getHeader(),
@@ -358,7 +363,11 @@ export interface EscrowAgreement {
 }
 
 /** The agreement statuses this build knows how to report. */
-const AGREEMENT_STATUSES: readonly EscrowAgreement['status'][] = ['Created', 'Delivered', 'Disputed'];
+const AGREEMENT_STATUSES: readonly EscrowAgreement['status'][] = [
+  'Created',
+  'Delivered',
+  'Disputed',
+];
 
 /**
  * Shapes one decoded `Agreement` for the API.
@@ -369,7 +378,11 @@ const AGREEMENT_STATUSES: readonly EscrowAgreement['status'][] = ['Created', 'De
  * with the old variants yields `undefined + 1 = NaN`, which serialises as
  * `null` and makes the agreement vanish from the split with no error anywhere.
  */
-export function toAgreement(buyer: string, provider: string, raw: Record<string, any>): EscrowAgreement {
+export function toAgreement(
+  buyer: string,
+  provider: string,
+  raw: Record<string, any>,
+): EscrowAgreement {
   const status = String(raw.status.type);
   if (!AGREEMENT_STATUSES.includes(status as EscrowAgreement['status'])) {
     throw new Error(
@@ -436,7 +449,8 @@ export async function fetchEscrows(
       const buyer = key.args[0]!.toString();
       const provider = key.args[1]!.toString();
       if (filter.provider !== undefined && filter.provider !== provider) continue;
-      if (filter.party !== undefined && filter.party !== buyer && filter.party !== provider) continue;
+      if (filter.party !== undefined && filter.party !== buyer && filter.party !== provider)
+        continue;
       for (const raw of value as unknown as Record<string, any>[]) {
         agreements.push(toAgreement(buyer, provider, raw));
       }
@@ -612,7 +626,11 @@ export async function fetchEmissions(api: ApiPromise): Promise<EmissionsState> {
       eraDurationBlocks: count(constant(api, 'emissions', 'eraDuration')),
       initialEmissionPerEraPlancks: constant(api, 'emissions', 'initialEmissionsPerEra').toString(),
       floorEmissionPerEraPlancks: constant(api, 'emissions', 'floorEmissionPerEra').toString(),
-      targetEmissionPerAgentPlancks: constant(api, 'emissions', 'targetEmissionPerAgent').toString(),
+      targetEmissionPerAgentPlancks: constant(
+        api,
+        'emissions',
+        'targetEmissionPerAgent',
+      ).toString(),
       velocityBonusBps: count(constant(api, 'emissions', 'velocityBonusBps')),
       oracleBonusBps: count(constant(api, 'emissions', 'oracleBonusBps')),
       minQualifyingVolumePlancks: constant(api, 'emissions', 'minQualifyingVol').toString(),

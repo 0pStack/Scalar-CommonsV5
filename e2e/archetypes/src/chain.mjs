@@ -85,7 +85,9 @@ export function submit(api, tx, signer, { tip = 0 } = {}) {
         return resolve({ ok: false, error: `transaction ${status.type}`, events: [] });
       }
     })
-      .then((u) => { unsub = u; })
+      .then((u) => {
+        unsub = u;
+      })
       .catch(reject);
   });
 }
@@ -135,7 +137,9 @@ export async function claimable(api, address) {
       const v = await api.call.emissionsApi.pendingRewards(address);
       return BigInt(v.toString());
     }
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   return 0n;
 }
 
@@ -148,10 +152,12 @@ export async function waitForBlock(api, target, onTick = () => {}) {
   let now = await head(api);
   if (now >= target) return now;
   return new Promise((resolve, reject) => {
-    api.rpc.chain.subscribeNewHeads((h) => {
-      now = h.number.toNumber();
-      onTick(now, target);
-      if (now >= target) resolve(now);
-    }).catch(reject);
+    api.rpc.chain
+      .subscribeNewHeads((h) => {
+        now = h.number.toNumber();
+        onTick(now, target);
+        if (now >= target) resolve(now);
+      })
+      .catch(reject);
   });
 }

@@ -33,8 +33,17 @@ describe('classifyActivity', () => {
     // The classifier is an allow-list, so a missing method is SILENT — the rows
     // just never appear — which is why each one is named here rather than
     // spot-checked.
-    for (const method of ['AgreementCreated', 'DeliveryRecorded', 'DeliveryConfirmed', 'RefundClaimed', 'DeadlineExtended',
-                          'AgreementAccepted', 'AgreementRejected', 'PendingCancelled', 'AgreementExpired']) {
+    for (const method of [
+      'AgreementCreated',
+      'DeliveryRecorded',
+      'DeliveryConfirmed',
+      'RefundClaimed',
+      'DeadlineExtended',
+      'AgreementAccepted',
+      'AgreementRejected',
+      'PendingCancelled',
+      'AgreementExpired',
+    ]) {
       expect(classifyActivity('escrow', method), method).toBe('agreement');
     }
     expect(classifyActivity('escrow', 'DisputeOpened')).toBe('dispute');
@@ -85,7 +94,10 @@ describe('parseActivityKind', () => {
   });
 
   it('narrows the sources to one kind', () => {
-    expect(sourcesFor('dispute').map((source) => source.method)).toEqual(['DisputeOpened', 'DisputeResolved']);
+    expect(sourcesFor('dispute').map((source) => source.method)).toEqual([
+      'DisputeOpened',
+      'DisputeResolved',
+    ]);
     expect(sourcesFor(undefined)).toEqual(ACTIVITY_SOURCES);
   });
 });
@@ -120,15 +132,26 @@ describe('activityItem', () => {
 
   it('refuses an event that is not activity rather than mislabelling it', () => {
     const event = {
-      id: '1-0', blockNumber: 1, index: 0, section: 'balances', method: 'Transfer', phase: 'ApplyExtrinsic',
-      extrinsicId: null, data: {}, accounts: [], timestampMs: null,
+      id: '1-0',
+      blockNumber: 1,
+      index: 0,
+      section: 'balances',
+      method: 'Transfer',
+      phase: 'ApplyExtrinsic',
+      extrinsicId: null,
+      data: {},
+      accounts: [],
+      timestampMs: null,
     };
     expect(() => activityItem(event)).toThrow(/balances\.Transfer/);
   });
 });
 
 /** One block holding the given events, in the order given. */
-function blockOf(number: number, events: Omit<EventRow, 'id' | 'blockNumber' | 'index' | 'phase' | 'extrinsicId'>[]): IndexedBlock {
+function blockOf(
+  number: number,
+  events: Omit<EventRow, 'id' | 'blockNumber' | 'index' | 'phase' | 'extrinsicId'>[],
+): IndexedBlock {
   return {
     block: {
       number,
@@ -160,21 +183,46 @@ describe('IndexerStore.listActivity', () => {
     store.saveBlock(
       blockOf(1, [
         { section: 'agents', method: 'AgentRegistered', data: { who: ALICE }, accounts: [ALICE] },
-        { section: 'balances', method: 'Transfer', data: { from: ALICE, to: BOB }, accounts: [ALICE, BOB] },
+        {
+          section: 'balances',
+          method: 'Transfer',
+          data: { from: ALICE, to: BOB },
+          accounts: [ALICE, BOB],
+        },
       ]),
     );
     store.saveBlock(
       blockOf(2, [
         { section: 'agents', method: 'HeartbeatSent', data: { who: ALICE }, accounts: [ALICE] },
-        { section: 'escrow', method: 'AgreementCreated', data: { buyer: ALICE, provider: BOB }, accounts: [ALICE, BOB] },
+        {
+          section: 'escrow',
+          method: 'AgreementCreated',
+          data: { buyer: ALICE, provider: BOB },
+          accounts: [ALICE, BOB],
+        },
         { section: 'emissions', method: 'EraSettled', data: { era: 1 }, accounts: [] },
-        { section: 'messaging', method: 'MessageSent', data: { from: CHARLIE, to: BOB }, accounts: [CHARLIE, BOB] },
+        {
+          section: 'messaging',
+          method: 'MessageSent',
+          data: { from: CHARLIE, to: BOB },
+          accounts: [CHARLIE, BOB],
+        },
       ]),
     );
     store.saveBlock(
       blockOf(3, [
-        { section: 'escrow', method: 'DisputeOpened', data: { buyer: ALICE, provider: BOB }, accounts: [ALICE, BOB] },
-        { section: 'oracle', method: 'OracleResponseSubmitted', data: { agent: CHARLIE }, accounts: [CHARLIE] },
+        {
+          section: 'escrow',
+          method: 'DisputeOpened',
+          data: { buyer: ALICE, provider: BOB },
+          accounts: [ALICE, BOB],
+        },
+        {
+          section: 'oracle',
+          method: 'OracleResponseSubmitted',
+          data: { agent: CHARLIE },
+          accounts: [CHARLIE],
+        },
         { section: 'agents', method: 'SlashExecuted', data: { who: BOB }, accounts: [BOB] },
       ]),
     );
@@ -198,7 +246,12 @@ describe('IndexerStore.listActivity', () => {
   });
 
   it('filters by agent on either side of an event', () => {
-    const bob = store.listActivity({ limit: 25, offset: 0, sources: ACTIVITY_SOURCES, account: BOB });
+    const bob = store.listActivity({
+      limit: 25,
+      offset: 0,
+      sources: ACTIVITY_SOURCES,
+      account: BOB,
+    });
     expect(ids(bob)).toEqual(['3-2', '3-0', '2-3', '2-1']);
     expect(bob.total).toBe(4);
   });
@@ -206,14 +259,27 @@ describe('IndexerStore.listActivity', () => {
   it('filters by kind', () => {
     const disputes = store.listActivity({ limit: 25, offset: 0, sources: sourcesFor('dispute') });
     expect(ids(disputes)).toEqual(['3-0']);
-    const messages = store.listActivity({ limit: 25, offset: 0, sources: sourcesFor('message'), account: CHARLIE });
+    const messages = store.listActivity({
+      limit: 25,
+      offset: 0,
+      sources: sourcesFor('message'),
+      account: CHARLIE,
+    });
     expect(ids(messages)).toEqual(['2-3']);
   });
 
   it('pages without dropping or repeating a row', () => {
     const first = store.listActivity({ limit: 4, offset: 0, sources: ACTIVITY_SOURCES });
     const second = store.listActivity({ limit: 4, offset: 4, sources: ACTIVITY_SOURCES });
-    expect([...ids(first), ...ids(second)]).toEqual(['3-2', '3-1', '3-0', '2-3', '2-1', '2-0', '1-0']);
+    expect([...ids(first), ...ids(second)]).toEqual([
+      '3-2',
+      '3-1',
+      '3-0',
+      '2-3',
+      '2-1',
+      '2-0',
+      '1-0',
+    ]);
     expect(second.total).toBe(7);
   });
 });

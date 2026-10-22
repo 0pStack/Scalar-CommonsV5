@@ -7,7 +7,14 @@
  * recorded rather than swallowed.
  */
 import { describe, expect, it } from 'vitest';
-import { newLedger, recordFunding, recordExtrinsic, recordFailure, note, settle } from '../src/ledger.mjs';
+import {
+  newLedger,
+  recordFunding,
+  recordExtrinsic,
+  recordFailure,
+  note,
+  settle,
+} from '../src/ledger.mjs';
 import { cmnToPlancks } from '../src/units.mjs';
 
 const CMN = cmnToPlancks;
@@ -42,7 +49,9 @@ describe('ledger', () => {
 
   it('reports escrow-reserved funds separately, neither credited nor charged twice', () => {
     const l = recordFunding(newLedger('x'), 'addr1', CMN(3000));
-    const r = settle(l, [{ spendablePlancks: CMN(1900), frozenPlancks: CMN(1000), reservedPlancks: CMN(50) }]);
+    const r = settle(l, [
+      { spendablePlancks: CMN(1900), frozenPlancks: CMN(1000), reservedPlancks: CMN(50) },
+    ]);
     expect(r.reservedPlancks).toBe(CMN(50));
     expect(r.netPlancks).toBe(CMN(-1100));
   });
@@ -57,7 +66,11 @@ describe('ledger', () => {
     let l = newLedger('ring');
     for (const a of ['a', 'b', 'c']) l = recordFunding(l, a, CMN(3000));
     expect(l.fundedPlancks).toBe(CMN(9000));
-    const r = settle(l, [{ spendablePlancks: CMN(1000) }, { spendablePlancks: CMN(1000) }, { spendablePlancks: CMN(1000) }]);
+    const r = settle(l, [
+      { spendablePlancks: CMN(1000) },
+      { spendablePlancks: CMN(1000) },
+      { spendablePlancks: CMN(1000) },
+    ]);
     expect(r.netPlancks).toBe(CMN(-6000));
   });
 
@@ -68,7 +81,9 @@ describe('ledger', () => {
 
   it('counts extrinsics and notes', () => {
     let l = newLedger('x');
-    recordExtrinsic(l); recordExtrinsic(l); note(l, 'hello');
+    recordExtrinsic(l);
+    recordExtrinsic(l);
+    note(l, 'hello');
     expect(l.extrinsics).toBe(2);
     expect(l.notes).toEqual(['hello']);
   });

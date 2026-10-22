@@ -1,4 +1,11 @@
-import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import {
+  appendFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { Keyring } from '@polkadot/keyring';
 import { u8aToHex } from '@polkadot/util';
@@ -89,7 +96,8 @@ async function main(): Promise<void> {
     } catch (err) {
       emit('error', { step: 'tick', message: err instanceof Error ? err.message : String(err) });
     }
-    for (let i = 0; i < cfg.pollSeconds * 10 && !stopping; i++) await new Promise((r) => setTimeout(r, 100));
+    for (let i = 0; i < cfg.pollSeconds * 10 && !stopping; i++)
+      await new Promise((r) => setTimeout(r, 100));
   }
   await client.disconnect();
 }

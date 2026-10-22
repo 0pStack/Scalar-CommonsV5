@@ -31,7 +31,9 @@ async function main(): Promise<void> {
 
   const server = createApiServer({ store, api: chain.api, chain, indexer, config });
   await new Promise<void>((resolve) => server.listen(config.port, config.host, resolve));
-  console.log(`indexer: serving ${ROUTES.length} v1 endpoints on http://${config.host}:${config.port}`);
+  console.log(
+    `indexer: serving ${ROUTES.length} v1 endpoints on http://${config.host}:${config.port}`,
+  );
 
   const shutdown = async () => {
     console.log('indexer: shutting down');

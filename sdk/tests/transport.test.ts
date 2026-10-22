@@ -50,19 +50,21 @@ const message = (plaintext = stringToU8a('hello'), over: Record<string, unknown>
 
 function txApi() {
   const calls: { section: string; method: string; args: unknown[] }[] = [];
-  const makeTx = (section: string, method: string) => (...args: unknown[]) => {
-    calls.push({ section, method, args });
-    return {
-      signAndSend: (_s: unknown, cb: (r: unknown) => void) => {
-        cb({
-          status: { isInBlock: true, asInBlock: { toHex: () => '0xblock' }, type: 'InBlock' },
-          dispatchError: undefined,
-          txHash: { toHex: () => '0xtx' },
-        });
-        return Promise.resolve(() => {});
-      },
+  const makeTx =
+    (section: string, method: string) =>
+    (...args: unknown[]) => {
+      calls.push({ section, method, args });
+      return {
+        signAndSend: (_s: unknown, cb: (r: unknown) => void) => {
+          cb({
+            status: { isInBlock: true, asInBlock: { toHex: () => '0xblock' }, type: 'InBlock' },
+            dispatchError: undefined,
+            txHash: { toHex: () => '0xtx' },
+          });
+          return Promise.resolve(() => {});
+        },
+      };
     };
-  };
   const api = {
     tx: {
       messages: { send: makeTx('messages', 'send') },
@@ -90,9 +92,14 @@ describe('ScalarCommonsClient messaging extrinsics', () => {
     const key = new Uint8Array(32).fill(9);
     await client.setMessagingKey(alice, key);
     await client.clearMessagingKey(alice);
-    expect(calls.map((c) => `${c.section}.${c.method}`)).toEqual(['agents.setMessagingKey', 'agents.clearMessagingKey']);
+    expect(calls.map((c) => `${c.section}.${c.method}`)).toEqual([
+      'agents.setMessagingKey',
+      'agents.clearMessagingKey',
+    ]);
     expect(calls[0]!.args).toEqual([u8aToHex(key)]);
-    expect(u8aToHex((await client.messagingKeyOf(bob.address))!)).toBe(u8aToHex(new Uint8Array(32).fill(7)));
+    expect(u8aToHex((await client.messagingKeyOf(bob.address))!)).toBe(
+      u8aToHex(new Uint8Array(32).fill(7)),
+    );
     expect(await client.messagingKeyOf(carol.address)).toBeNull();
   });
 
@@ -110,7 +117,13 @@ describe('OnChainTransport', () => {
     const res = await new OnChainTransport(client, alice).send(m);
     expect(res.txHash).toBe('0xtx');
     expect(calls).toHaveLength(1);
-    const [to, kind, agreement, payloadHash, frame] = calls[0]!.args as [string, string, unknown, string, string];
+    const [to, kind, agreement, payloadHash, frame] = calls[0]!.args as [
+      string,
+      string,
+      unknown,
+      string,
+      string,
+    ];
     expect(to).toBe(bob.address);
     expect(kind).toBe('Offer');
     expect(agreement).toEqual([alice.address, 4]);
@@ -132,7 +145,9 @@ describe('OnChainTransport', () => {
     const agr = { agreement: { account: bob.address, seq: 3 } };
     // 111|147 envelope + 64 signature + 1 Body tag + 2 compact length bytes.
     expect(encodeSignedMessage(message(new Uint8Array(1870))).length).toBe(MAX_ONCHAIN_PAYLOAD);
-    expect(encodeSignedMessage(message(new Uint8Array(1834), agr)).length).toBe(MAX_ONCHAIN_PAYLOAD);
+    expect(encodeSignedMessage(message(new Uint8Array(1834), agr)).length).toBe(
+      MAX_ONCHAIN_PAYLOAD,
+    );
     await expect(t.send(message(new Uint8Array(1870)))).resolves.toBeTruthy();
     await expect(t.send(message(new Uint8Array(1834), agr))).resolves.toBeTruthy();
     await expect(t.send(message(new Uint8Array(1871)))).rejects.toThrow(/2048/);
@@ -157,21 +172,27 @@ describe('HttpsTransport', () => {
     const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe(`https://agent.example/${bob.address}/inbox`);
     expect(init.method).toBe('POST');
-    expect((init.headers as Record<string, string>)['content-type']).toBe('application/octet-stream');
+    expect((init.headers as Record<string, string>)['content-type']).toBe(
+      'application/octet-stream',
+    );
     expect(u8aToHex(init.body as Uint8Array)).toBe(u8aToHex(encodeSignedMessage(m)));
   });
 
   it('fails loudly on a non-2xx answer', async () => {
     const fetch = vi.fn(async () => new Response('nope', { status: 409 }));
-    await expect(new HttpsTransport(() => 'https://a.example/inbox', { fetch }).send(message())).rejects.toThrow(/409/);
+    await expect(
+      new HttpsTransport(() => 'https://a.example/inbox', { fetch }).send(message()),
+    ).rejects.toThrow(/409/);
   });
 
   it('refuses plain http except for loopback', async () => {
     const fetch = vi.fn(async () => new Response(null, { status: 200 }));
-    await expect(new HttpsTransport(() => 'http://agent.example/inbox', { fetch }).send(message())).rejects.toThrow(
-      /https/,
-    );
-    await expect(new HttpsTransport(() => 'http://127.0.0.1:8080/inbox', { fetch }).send(message())).resolves.toBeUndefined();
+    await expect(
+      new HttpsTransport(() => 'http://agent.example/inbox', { fetch }).send(message()),
+    ).rejects.toThrow(/https/);
+    await expect(
+      new HttpsTransport(() => 'http://127.0.0.1:8080/inbox', { fetch }).send(message()),
+    ).resolves.toBeUndefined();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
@@ -206,7 +227,10 @@ function chainApi(blocks: Map<number, MockBlock>) {
       leaf(e?.kind ?? 'Offer'),
       leaf(e?.agreement ? [encodeAddress(e.agreement.account, 42), e.agreement.seq] : null),
       leaf(e ? u8aToHex(e.payloadHash) : null),
-      { ...leaf(null), toU8a: (bare?: boolean) => (bare ? payload : new Uint8Array([0, ...payload])) },
+      {
+        ...leaf(null),
+        toU8a: (bare?: boolean) => (bare ? payload : new Uint8Array([0, ...payload])),
+      },
     ];
   };
   const api = {
@@ -264,23 +288,34 @@ describe('subscribeMessages', () => {
     const a = message(stringToU8a('a'));
     const b = message(stringToU8a('b'), { nonce: 2n, agreement: { account: bob.address, seq: 1 } });
     const blocks = new Map<number, MockBlock>([
-      [10, {
-        extrinsics: [
-          { section: 'timestamp', method: 'set', signer: '' },
-          send(a),
-          send(message(stringToU8a('c'), { to: carol.address })),
-        ],
-        events: [sentEvent(alice.address, bob.address, 1), sentEvent(alice.address, carol.address, 2)],
-      }],
+      [
+        10,
+        {
+          extrinsics: [
+            { section: 'timestamp', method: 'set', signer: '' },
+            send(a),
+            send(message(stringToU8a('c'), { to: carol.address })),
+          ],
+          events: [
+            sentEvent(alice.address, bob.address, 1),
+            sentEvent(alice.address, carol.address, 2),
+          ],
+        },
+      ],
       [12, { extrinsics: [send(b)], events: [sentEvent(alice.address, bob.address, 0)] }],
     ]);
     const { api, finalize } = chainApi(blocks);
     const got: InboundFrame[] = [];
     const done = new Promise<void>((resolve) => {
-      void subscribeMessages(api, bob.address, (f) => {
-        got.push(f);
-        if (got.length === 2) resolve();
-      }, { fromBlock: 10 });
+      void subscribeMessages(
+        api,
+        bob.address,
+        (f) => {
+          got.push(f);
+          if (got.length === 2) resolve();
+        },
+        { fromBlock: 10 },
+      );
     });
     await new Promise((r) => setTimeout(r, 0));
     finalize(12); // 10 and 11 were skipped by the finality notification
@@ -305,9 +340,14 @@ describe('subscribeMessages', () => {
     );
     const inbox = new MessageInbox({ self: bob.address, genesisHash: GENESIS });
     const received = new Promise<string>((resolve) => {
-      void subscribeMessages(api, bob.address, ({ frame, call, blockNumber }) => {
-        resolve(new TextDecoder().decode(inbox.receive(frame, blockNumber, { call }).plaintext));
-      }, { fromBlock: 3 });
+      void subscribeMessages(
+        api,
+        bob.address,
+        ({ frame, call, blockNumber }) => {
+          resolve(new TextDecoder().decode(inbox.receive(frame, blockNumber, { call }).plaintext));
+        },
+        { fromBlock: 3 },
+      );
     });
     await new Promise((r) => setTimeout(r, 0));
     finalize(3);
@@ -316,7 +356,13 @@ describe('subscribeMessages', () => {
 
   it('ignores an event whose extrinsic is not messages.send from the event sender', async () => {
     const blocks = new Map<number, MockBlock>([
-      [5, { extrinsics: [send(message(), carol.address)], events: [sentEvent(alice.address, bob.address, 0)] }],
+      [
+        5,
+        {
+          extrinsics: [send(message(), carol.address)],
+          events: [sentEvent(alice.address, bob.address, 0)],
+        },
+      ],
     ]);
     const { api, finalize } = chainApi(blocks);
     const handler = vi.fn();
@@ -334,9 +380,14 @@ describe('subscribeMessages', () => {
     ]);
     const { api, finalize, subscribed } = chainApi(blocks);
     const onError = vi.fn();
-    const unsub = await subscribeMessages(api, bob.address, () => {
-      throw new Error('handler bug');
-    }, { onError });
+    const unsub = await subscribeMessages(
+      api,
+      bob.address,
+      () => {
+        throw new Error('handler bug');
+      },
+      { onError },
+    );
     finalize(1);
     await new Promise((r) => setTimeout(r, 10));
     expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'handler bug' }));

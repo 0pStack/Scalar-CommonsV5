@@ -37,7 +37,13 @@ export const STORAGE_KEYS = {
   babeAuthorities: storageKey('Babe', 'Authorities'),
 };
 
-const rpc = (method, params, label, readings = []) => ({ kind: 'rpc', method, params, label, readings });
+const rpc = (method, params, label, readings = []) => ({
+  kind: 'rpc',
+  method,
+  params,
+  label,
+  readings,
+});
 const api = (path, readings = []) => ({ kind: 'api', path, readings });
 const events = (section, method, readings = []) =>
   api(`/v1/events?section=${section}&method=${method}&limit=${INDEXER_MAX_LIMIT}`, readings);
@@ -65,7 +71,14 @@ export const SOURCES = {
   },
 
   // Chain position and identity.
-  status: api('/v1/status', ['bestBlock', 'finalizedBlock', 'finalityLag', 'specVersion', 'networkStatus', 'heroHeight']),
+  status: api('/v1/status', [
+    'bestBlock',
+    'finalizedBlock',
+    'finalityLag',
+    'specVersion',
+    'networkStatus',
+    'heroHeight',
+  ]),
   blocks: api(`/v1/blocks?limit=${INDEXER_MAX_LIMIT}`, ['blocksPerMinute', 'blockTime']),
   // The era dial draws the era and its settlement block from this read; the countdown is its reading.
   era: api('/v1/eras/current', ['eraCountdown']),
@@ -112,8 +125,16 @@ export const SOURCES = {
     'state_getStorage(Session.Validators)',
     ['validators', 'networkStatus'],
   ),
-  queuedKeys: rpc('state_getStorage', [STORAGE_KEYS.sessionQueuedKeys], 'state_getStorage(Session.QueuedKeys)'),
-  babeAuthorities: rpc('state_getStorage', [STORAGE_KEYS.babeAuthorities], 'state_getStorage(Babe.Authorities)'),
+  queuedKeys: rpc(
+    'state_getStorage',
+    [STORAGE_KEYS.sessionQueuedKeys],
+    'state_getStorage(Session.QueuedKeys)',
+  ),
+  babeAuthorities: rpc(
+    'state_getStorage',
+    [STORAGE_KEYS.babeAuthorities],
+    'state_getStorage(Babe.Authorities)',
+  ),
   health: rpc('system_health', [], 'system_health', ['nodeHealth']),
   grandpa: rpc('grandpa_roundState', [], 'grandpa_roundState', []),
 
@@ -129,9 +150,11 @@ export const SOURCES = {
  */
 export const blockHashSource = (number) =>
   rpc('chain_getBlockHash', [number], `chain_getBlockHash(${number})`);
-export const blockSource = (hash) => rpc('chain_getBlock', [hash], `chain_getBlock(${String(hash).slice(0, 10)}…)`);
+export const blockSource = (hash) =>
+  rpc('chain_getBlock', [hash], `chain_getBlock(${String(hash).slice(0, 10)}…)`);
 // Every event one finalized block emitted, in emission order: the one read /pulse makes per block, so each animation is a real event and none is a poll's replay.
-export const blockEventsSource = (number) => api(`/v1/blocks/${number}/events?limit=${INDEXER_MAX_LIMIT}`);
+export const blockEventsSource = (number) =>
+  api(`/v1/blocks/${number}/events?limit=${INDEXER_MAX_LIMIT}`);
 
 // ── pure helpers ─────────────────────────────────────────────────────────────
 
@@ -205,11 +228,19 @@ export async function fetchHttp(source, path = source.path) {
     }
     if (!response.ok) {
       const detail = typeof data?.error === 'string' ? data.error : data?.message;
-      return { ...base, ok: false, raw, error: `HTTP ${response.status}${detail ? `: ${detail}` : ''}` };
+      return {
+        ...base,
+        ok: false,
+        raw,
+        error: `HTTP ${response.status}${detail ? `: ${detail}` : ''}`,
+      };
     }
     return { ...base, ok: true, raw, data };
   } catch (error) {
-    const reason = error.name === 'AbortError' ? `no response within ${FETCH_TIMEOUT_MS / 1000} s` : error.message;
+    const reason =
+      error.name === 'AbortError'
+        ? `no response within ${FETCH_TIMEOUT_MS / 1000} s`
+        : error.message;
     return { ...base, ok: false, raw: null, error: `request failed: ${reason}` };
   } finally {
     clearTimeout(timer);
@@ -391,7 +422,8 @@ export class RpcSocket extends Emitter {
       const { resolve, reject, timer } = this.pending.get(message.id);
       this.pending.delete(message.id);
       clearTimeout(timer);
-      if (message.error) reject(new Error(`RPC error ${message.error.code}: ${message.error.message}`));
+      if (message.error)
+        reject(new Error(`RPC error ${message.error.code}: ${message.error.message}`));
       else resolve({ raw, data: message });
       return;
     }

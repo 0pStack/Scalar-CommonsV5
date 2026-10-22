@@ -32,19 +32,27 @@ async function connect(): Promise<ApiPromise | undefined> {
 /** Sign+send, resolve with in-block events once included. */
 function send(tx: SubmittableExtrinsic<'promise'>, signer: typeof alice) {
   return new Promise<{ events: any[]; failed?: string }>((resolve, reject) => {
-    api!.rpc.system.accountNextIndex(signer.address).then((nonce) => tx.signAndSend(signer, { nonce }, (res) => {
-      if (res.dispatchError) {
-        const d = res.dispatchError;
-        const failed = d.isModule
-          ? (() => { const m = api!.registry.findMetaError(d.asModule); return `${m.section}.${m.name}`; })()
-          : d.toString();
-        resolve({ events: res.events.map((e) => e.event), failed });
-      } else if (res.status.isInBlock) {
-        resolve({ events: res.events.map((e) => e.event) });
-      } else if (res.status.isInvalid || res.status.isDropped || res.status.isUsurped) {
-        reject(new Error(`tx not included: ${res.status.type}`));
-      }
-    })).catch(reject);
+    api!.rpc.system
+      .accountNextIndex(signer.address)
+      .then((nonce) =>
+        tx.signAndSend(signer, { nonce }, (res) => {
+          if (res.dispatchError) {
+            const d = res.dispatchError;
+            const failed = d.isModule
+              ? (() => {
+                  const m = api!.registry.findMetaError(d.asModule);
+                  return `${m.section}.${m.name}`;
+                })()
+              : d.toString();
+            resolve({ events: res.events.map((e) => e.event), failed });
+          } else if (res.status.isInBlock) {
+            resolve({ events: res.events.map((e) => e.event) });
+          } else if (res.status.isInvalid || res.status.isDropped || res.status.isUsurped) {
+            reject(new Error(`tx not included: ${res.status.type}`));
+          }
+        }),
+      )
+      .catch(reject);
   });
 }
 
@@ -56,7 +64,9 @@ beforeAll(async () => {
   api = await connect();
   if (!api) console.warn(`[testkit] no node at ${WS}: auto-params lifecycle tests SKIPPED`);
 });
-afterAll(async () => { await api?.disconnect(); });
+afterAll(async () => {
+  await api?.disconnect();
+});
 
 describe('auto-params lifecycle', () => {
   it('bounds are seeded and readable', async (ctx) => {
@@ -84,7 +94,9 @@ describe('auto-params lifecycle', () => {
       const target = b.min;
       const ok = await send(api.tx.sudo.sudo(api.tx.autoParams.setParam(ALPHA, target)), alice);
       expect(ok.failed).toBeUndefined();
-      expect(ok.events.some((e) => e.section === 'autoParams' && e.method === 'ParamSetByGovernance')).toBe(true);
+      expect(
+        ok.events.some((e) => e.section === 'autoParams' && e.method === 'ParamSetByGovernance'),
+      ).toBe(true);
       expect((await api.query.autoParams.alpha()).toString()).toBe(String(target));
 
       // sudo wraps the inner result in Sudid{Err}; the extrinsic itself succeeds.

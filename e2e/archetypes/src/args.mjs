@@ -19,20 +19,37 @@ export function parseArgs(argv) {
       return v;
     };
     switch (a) {
-      case '--endpoint': out.endpoint = next(); break;
-      case '--eras': out.eras = Number(next()); break;
-      case '--rounds': out.rounds = Number(next()); break;
-      case '--archetype': out.archetype = next(); break;
-      case '--wait-minutes': out.waitMinutes = Number(next()); break;
-      case '--json': out.json = next(); break;
-      case '-h': case '--help': out.help = true; break;
+      case '--endpoint':
+        out.endpoint = next();
+        break;
+      case '--eras':
+        out.eras = Number(next());
+        break;
+      case '--rounds':
+        out.rounds = Number(next());
+        break;
+      case '--archetype':
+        out.archetype = next();
+        break;
+      case '--wait-minutes':
+        out.waitMinutes = Number(next());
+        break;
+      case '--json':
+        out.json = next();
+        break;
+      case '-h':
+      case '--help':
+        out.help = true;
+        break;
       default:
         if (a.startsWith('-')) throw new Error(`unrecognised flag: ${a}`);
     }
   }
-  if (!Number.isInteger(out.eras) || out.eras < 0) throw new Error('--eras must be a non-negative integer');
+  if (!Number.isInteger(out.eras) || out.eras < 0)
+    throw new Error('--eras must be a non-negative integer');
   if (!Number.isInteger(out.rounds) || out.rounds < 1) throw new Error('--rounds must be >= 1');
-  if (!Number.isFinite(out.waitMinutes) || out.waitMinutes < 0) throw new Error('--wait-minutes must be >= 0');
+  if (!Number.isFinite(out.waitMinutes) || out.waitMinutes < 0)
+    throw new Error('--wait-minutes must be >= 0');
   return out;
 }
 

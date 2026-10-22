@@ -161,7 +161,8 @@ export function nodeOf(agent, names) {
 
 /** A thread from a /v1/escrows item: buyer → provider, keyed as the chain keys the agreement. */
 export function linkOf(escrow) {
-  const status = escrow.status === 'Disputed' || escrow.status === 'Delivered' ? escrow.status : 'Created';
+  const status =
+    escrow.status === 'Disputed' || escrow.status === 'Delivered' ? escrow.status : 'Created';
   return {
     id: agreementKey(escrow.buyer, escrow.provider, escrow.seq),
     source: escrow.buyer,
@@ -196,7 +197,11 @@ export function partiesOfKey(key) {
   const hash = key.lastIndexOf('#');
   const arrow = key.indexOf('>');
   if (arrow <= 0 || hash <= arrow + 1 || hash === key.length - 1) return null;
-  return { buyer: key.slice(0, arrow), provider: key.slice(arrow + 1, hash), seq: key.slice(hash + 1) };
+  return {
+    buyer: key.slice(0, arrow),
+    provider: key.slice(arrow + 1, hash),
+    seq: key.slice(hash + 1),
+  };
 }
 
 /**
@@ -206,7 +211,7 @@ export function partiesOfKey(key) {
  * test as on the plate. Allocated once per event, never per frame.
  */
 export function burstParticles(n, seed = 1) {
-  let state = (Number(seed) >>> 0) || 1;
+  let state = Number(seed) >>> 0 || 1;
   const next = () => {
     // Park–Miller minimal standard: enough spread for twelve sparks, no Math.random.
     state = (state * 48271) % 2147483647;
@@ -228,7 +233,9 @@ export function burstParticles(n, seed = 1) {
 export function capDevicePixelRatio(win = window, max = DPR_MAX) {
   const current = Object.getOwnPropertyDescriptor(win, 'devicePixelRatio');
   if (current?.get?.pulseCapped === max) return win.devicePixelRatio;
-  const native = current?.get ? current.get.bind(win) : () => (Number.isFinite(current?.value) ? current.value : 1);
+  const native = current?.get
+    ? current.get.bind(win)
+    : () => (Number.isFinite(current?.value) ? current.value : 1);
   const get = () => Math.min(max, native() || 1);
   get.pulseCapped = max;
   Object.defineProperty(win, 'devicePixelRatio', { get, configurable: true, enumerable: true });
@@ -281,7 +288,11 @@ function buildPalette(theme) {
     ring: rgba(dim, 0.9),
     link: { Created: rgba(dim, 0.4), Delivered: rgba(settled, 0.5), Disputed: rgba(amber, 0.85) },
     linkBright: { Created: rgba(accent, 0.9), Delivered: rgba(settled, 0.9), Disputed: amber },
-    linkDim: { Created: rgba(dim, 0.08), Delivered: rgba(settled, 0.08), Disputed: rgba(amber, 0.15) },
+    linkDim: {
+      Created: rgba(dim, 0.08),
+      Delivered: rgba(settled, 0.08),
+      Disputed: rgba(amber, 0.15),
+    },
     ramp,
   };
 }
@@ -361,7 +372,9 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
     // update runs on a debounce, so what it holds can trail what flush() built.
     const ids = new Set();
     for (let i = 0; i < ns.length; i += 1) ids.add(ns[i].id);
-    spring.links(data.links.filter((link) => ids.has(endId(link.source)) && ids.has(endId(link.target))));
+    spring.links(
+      data.links.filter((link) => ids.has(endId(link.source)) && ids.has(endId(link.target))),
+    );
   };
 
   /** Cools the layout to the floor over `seconds`; never interrupts the warm-up. */
@@ -410,7 +423,13 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
     effect.tween =
       tween === null
         ? null
-        : gsap.to(effect, { t: 1, duration: lifetimeMs / 1000, ease: 'power2.out', ...tween, onComplete: () => finish(effect) });
+        : gsap.to(effect, {
+            t: 1,
+            duration: lifetimeMs / 1000,
+            ease: 'power2.out',
+            ...tween,
+            onComplete: () => finish(effect),
+          });
     effects.push(effect);
     if (effects.length > EFFECT_CAP) prune();
     return effect;
@@ -422,7 +441,8 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
     const set = hood === null ? palette.link : touches(link) ? palette.linkBright : palette.linkDim;
     return set[link.status] ?? set.Created;
   };
-  const linkWidth = (link) => (hood !== null && touches(link) ? 1.6 : link.status === 'Disputed' ? 1.4 : 1);
+  const linkWidth = (link) =>
+    hood !== null && touches(link) ? 1.6 : link.status === 'Disputed' ? 1.4 : 1;
   const radiusAt = (node, k) => (node.r > MIN_RADIUS_PX / k ? node.r : MIN_RADIUS_PX / k);
 
   const graph = new ForceGraph(host)
@@ -492,7 +512,8 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
           // The library's data update drops every single-hop particle; a
           // message still crossing is put back where it was.
           if (effect.kind === 'message') {
-            const photons = effect.link.__photons ?? (effect.link.__photons = []);
+            effect.link.__photons ??= [];
+            const photons = effect.link.__photons;
             if (!photons.includes(effect.photon)) photons.push(effect.photon);
           }
         }
@@ -568,7 +589,8 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
   /** Point sprites by radius bucket and state (bit 0: in dispute, bit 1: operator-run), at the plate's device pixel ratio. */
   const sprites = new Map();
   let spriteDpr = 0;
-  const spriteKey = (bucket, node) => bucket * 4 + (node.disputed ? 1 : 0) + (node.operator ? 2 : 0);
+  const spriteKey = (bucket, node) =>
+    bucket * 4 + (node.disputed ? 1 : 0) + (node.operator ? 2 : 0);
   /** Paints one sprite with the same arcs a point is made of: halo, disc, ring. Once per bucket and state, never per frame. */
   function makeSprite(bucket, node, dpr) {
     const r = bucket / SPRITE_STEP;
@@ -682,7 +704,14 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
     const effect = link.effect;
     const s = link.source;
     const t = link.target;
-    if (!effect || typeof s !== 'object' || typeof t !== 'object' || s.x === undefined || t.x === undefined) return;
+    if (
+      !effect ||
+      typeof s !== 'object' ||
+      typeof t !== 'object' ||
+      s.x === undefined ||
+      t.x === undefined
+    )
+      return;
     const p = effect.t;
     let colour = linkColor(link);
     let alpha = 1;
@@ -984,7 +1013,12 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
     addLink(link, { drawMs = LIFETIME_MS.agreement } = {}) {
       const id = link.id ?? agreementKey(endId(link.source), endId(link.target), link.seq);
       if (links.has(id)) return links.get(id);
-      const thread = linkOf({ buyer: endId(link.source), provider: endId(link.target), seq: link.seq, status: link.status });
+      const thread = linkOf({
+        buyer: endId(link.source),
+        provider: endId(link.target),
+        seq: link.seq,
+        status: link.status,
+      });
       thread.id = id;
       thread.origin = 'live';
       links.set(id, thread);
@@ -993,7 +1027,11 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
       if (a) touch(a);
       if (b) touch(b);
       if (!reduced && a && b) {
-        thread.effect = addEffect({ kind: 'agreement', link: thread, end: () => (thread.effect = null) }, drawMs, { ease: 'power1.out' });
+        thread.effect = addEffect(
+          { kind: 'agreement', link: thread, end: () => (thread.effect = null) },
+          drawMs,
+          { ease: 'power1.out' },
+        );
       }
       commit();
       nudge();
@@ -1019,7 +1057,13 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
       if (link.effect) finish(link.effect);
       seq += 1;
       link.effect = addEffect(
-        { kind: 'settled', link, node: provider, particles: burstParticles(BURST_COUNT, seq), end: () => removeLink(link) },
+        {
+          kind: 'settled',
+          link,
+          node: provider,
+          particles: burstParticles(BURST_COUNT, seq),
+          end: () => removeLink(link),
+        },
         LIFETIME_MS.settled,
         { ease: 'power2.out' },
       );
@@ -1044,7 +1088,11 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
       commit();
       if (reduced || !a || !b) return true;
       if (link.effect) finish(link.effect);
-      link.effect = addEffect({ kind: 'dispute', link, a, b, end: () => (link.effect = null) }, LIFETIME_MS.dispute, { ease: 'power2.out' });
+      link.effect = addEffect(
+        { kind: 'dispute', link, a, b, end: () => (link.effect = null) },
+        LIFETIME_MS.dispute,
+        { ease: 'power2.out' },
+      );
       return true;
     },
 
@@ -1061,7 +1109,11 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
         return true;
       }
       if (link.effect) finish(link.effect);
-      link.effect = addEffect({ kind: 'resolved', link, end: () => removeLink(link) }, LIFETIME_MS.resolved, { ease: 'none' });
+      link.effect = addEffect(
+        { kind: 'resolved', link, end: () => removeLink(link) },
+        LIFETIME_MS.resolved,
+        { ease: 'none' },
+      );
       return true;
     },
 
@@ -1080,7 +1132,8 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
       if (reduced || !a || !b) return false;
       const link = key ? links.get(key) : null;
       if (link && typeof link.source !== 'object') flush();
-      const going = link && link.effect && (link.effect.kind === 'settled' || link.effect.kind === 'resolved');
+      const going =
+        link && link.effect && (link.effect.kind === 'settled' || link.effect.kind === 'resolved');
       if (link && !going && typeof link.source === 'object') {
         if (endId(link.source) !== from) {
           addEffect({ kind: 'ride', a, b }, LIFETIME_MS.message, { ease: 'none' });
@@ -1123,7 +1176,15 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
     registered(address, node = {}) {
       const known = nodes.get(address);
       if (known) return known;
-      const fresh = nodeOf({ address, name: node.name, activeEscrowCount: 0, completedAgreements: node.completed ?? 0 }, null);
+      const fresh = nodeOf(
+        {
+          address,
+          name: node.name,
+          activeEscrowCount: 0,
+          completedAgreements: node.completed ?? 0,
+        },
+        null,
+      );
       if (typeof node.operator === 'boolean') fresh.operator = node.operator;
       placeNear(fresh);
       fresh.live = true;

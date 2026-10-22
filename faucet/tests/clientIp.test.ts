@@ -38,7 +38,10 @@ const PEER = '198.51.100.7';
  * and quietly turn the no-peer case into the has-peer case, which is exactly
  * the assertion that case exists to make.
  */
-function req(xff?: string | string[], opts: { remoteAddress?: string } = { remoteAddress: PEER }): IncomingMessage {
+function req(
+  xff?: string | string[],
+  opts: { remoteAddress?: string } = { remoteAddress: PEER },
+): IncomingMessage {
   return {
     headers: xff === undefined ? {} : { 'x-forwarded-for': xff },
     socket: { remoteAddress: opts.remoteAddress },

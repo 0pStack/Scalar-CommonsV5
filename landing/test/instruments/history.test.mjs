@@ -42,7 +42,15 @@ import { cmnNumber, formatCmn } from '../../src/observatory/format.js';
 // The live shape of /v1/eras?limit=14 on 2026-09-29: the era in progress,
 // then thirteen settled ones newest first.
 const ERAS = [
-  { era: 80, settled: false, totalEmissionPlancks: null, settledAtBlock: null, startBlock: 820862, durationBlocks: 3600, blocksElapsed: 14 },
+  {
+    era: 80,
+    settled: false,
+    totalEmissionPlancks: null,
+    settledAtBlock: null,
+    startBlock: 820862,
+    durationBlocks: 3600,
+    blocksElapsed: 14,
+  },
   { era: 79, settled: true, totalEmissionPlancks: '0', settledAtBlock: 820862, startBlock: null },
   { era: 78, settled: true, totalEmissionPlancks: '0', settledAtBlock: 817157, startBlock: null },
   { era: 77, settled: true, totalEmissionPlancks: '0', settledAtBlock: 813442, startBlock: null },
@@ -97,17 +105,41 @@ test('a block with no timestamp leaves both its pairs as breaks, never a guessed
   assert.ok(Number.isNaN(series.points[2].seconds) && series.points[2].number === 998);
   assert.ok(Number.isNaN(series.points[3].seconds) && series.points[3].number === 999);
   // A gap in the block numbers is not an interval either.
-  const gap = blockIntervals([{ number: 10, timestampMs: 60_000 }, { number: 8, timestampMs: 48_000 }], field);
+  const gap = blockIntervals(
+    [
+      { number: 10, timestampMs: 60_000 },
+      { number: 8, timestampMs: 48_000 },
+    ],
+    field,
+  );
   assert.equal(measured(gap).length, 0);
   assert.equal(gap.skipped, 1);
 });
 
 test('a missing block number or a missing timestampMs key is a decode failure, not a skip', () => {
-  assert.throws(() => blockIntervals([{ timestampMs: 1 }, { number: 1, timestampMs: 2 }], field), /response has no number/);
+  assert.throws(
+    () => blockIntervals([{ timestampMs: 1 }, { number: 1, timestampMs: 2 }], field),
+    /response has no number/,
+  );
   // A null timestamp is a skip; a key that is not there at all is a renamed field.
-  assert.throws(() => blockIntervals([{ number: 5 }, { number: 4 }], field), /response has no timestampMs/);
-  assert.throws(() => blockIntervals([{ number: 5, timestampMs: 1 }, { number: 4 }], field), /response has no timestampMs/);
-  assert.equal(blockIntervals([{ number: 5, timestampMs: null }, { number: 4, timestampMs: 1 }], field).skipped, 1);
+  assert.throws(
+    () => blockIntervals([{ number: 5 }, { number: 4 }], field),
+    /response has no timestampMs/,
+  );
+  assert.throws(
+    () => blockIntervals([{ number: 5, timestampMs: 1 }, { number: 4 }], field),
+    /response has no timestampMs/,
+  );
+  assert.equal(
+    blockIntervals(
+      [
+        { number: 5, timestampMs: null },
+        { number: 4, timestampMs: 1 },
+      ],
+      field,
+    ).skipped,
+    1,
+  );
 });
 
 test('the line and the area break at a skipped pair instead of bridging it', () => {
@@ -218,7 +250,10 @@ test('bucketing drops the eras a short event list cannot fill, and says where hi
   );
   assert.equal(late.historyFrom, 791227);
   // Nothing fillable at all.
-  const none = bucketByEra(whole, open, [{ blockNumber: 820900 }], { complete: false, indexFrom: 496606 });
+  const none = bucketByEra(whole, open, [{ blockNumber: 820900 }], {
+    complete: false,
+    indexFrom: 496606,
+  });
   assert.deepEqual(none.buckets, []);
   assert.equal(none.historyFrom, 820862);
   assert.equal(none.open.count, 1);
@@ -296,14 +331,27 @@ test('the agents registered before the index are counted from the agent list its
   ];
   assert.deepEqual(agentsBefore(items, field, 496606, 5), { before: 3, listed: 5 });
   // A page that does not hold the whole list is not a count.
-  assert.throws(() => agentsBefore(items, field, 496606, 6), /holds 6 agents but only 5 were listed/);
+  assert.throws(
+    () => agentsBefore(items, field, 496606, 6),
+    /holds 6 agents but only 5 were listed/,
+  );
   // A missing field is a decode failure.
-  assert.throws(() => agentsBefore([{ address: 'x' }], field, 496606, 1), /response has no registeredAtBlock/);
+  assert.throws(
+    () => agentsBefore([{ address: 'x' }], field, 496606, 1),
+    /response has no registeredAtBlock/,
+  );
 });
 
 test('the agent series starts from the agents the list says predate the index', () => {
   const registrations = [808497, 789416, 528191]; // newest first, as the index lists them
-  const series = agentSteps({ registrations, unstakes: [], totalNow: 6, before: 3, indexFrom: 496606, nowBlock: 820876 });
+  const series = agentSteps({
+    registrations,
+    unstakes: [],
+    totalNow: 6,
+    before: 3,
+    indexFrom: 496606,
+    nowBlock: 820876,
+  });
   assert.equal(series.baseline, 3);
   assert.equal(series.total, 6);
   assert.equal(series.start, 496606);
@@ -318,7 +366,14 @@ test('the agent series starts from the agents the list says predate the index', 
 });
 
 test('a departure steps the series down, and the events must explain the whole difference', () => {
-  const series = agentSteps({ registrations: [700, 600], unstakes: [650], totalNow: 4, before: 3, indexFrom: 500, nowBlock: 800 });
+  const series = agentSteps({
+    registrations: [700, 600],
+    unstakes: [650],
+    totalNow: 4,
+    before: 3,
+    indexFrom: 500,
+    nowBlock: 800,
+  });
   assert.equal(series.baseline, 3);
   assert.deepEqual(
     series.points.map((p) => p.count),
@@ -327,16 +382,49 @@ test('a departure steps the series down, and the events must explain the whole d
   // An agent evicted by a slash leaves no departure event: the total is one
   // short of what the events explain, and the series refuses to draw.
   assert.throws(
-    () => agentSteps({ registrations: [700, 600, 500], unstakes: [], totalNow: 4, before: 2, indexFrom: 100, nowBlock: 800 }),
+    () =>
+      agentSteps({
+        registrations: [700, 600, 500],
+        unstakes: [],
+        totalNow: 4,
+        before: 2,
+        indexFrom: 100,
+        nowBlock: 800,
+      }),
     /do not reconcile with the agent list \(2 before the index \+ 3 − 0 ≠ 4\)/,
   );
-  assert.throws(() => agentSteps({ registrations: [1, 2, 3], unstakes: [], totalNow: 2, before: 0, indexFrom: 0, nowBlock: 10 }), /reconcile/);
+  assert.throws(
+    () =>
+      agentSteps({
+        registrations: [1, 2, 3],
+        unstakes: [],
+        totalNow: 2,
+        before: 0,
+        indexFrom: 0,
+        nowBlock: 10,
+      }),
+    /reconcile/,
+  );
   // No now block: the series ends at its last event and says so.
-  const open = agentSteps({ registrations: [700], unstakes: [], totalNow: 1, before: 0, indexFrom: 500, nowBlock: null });
+  const open = agentSteps({
+    registrations: [700],
+    unstakes: [],
+    totalNow: 1,
+    before: 0,
+    indexFrom: 500,
+    nowBlock: null,
+  });
   assert.equal(open.end, null);
   assert.equal(open.points[open.points.length - 1].block, 700);
   // No events at all: a flat line from the index start to now.
-  const flat = agentSteps({ registrations: [], unstakes: [], totalNow: 3, before: 3, indexFrom: 500, nowBlock: 900 });
+  const flat = agentSteps({
+    registrations: [],
+    unstakes: [],
+    totalNow: 3,
+    before: 3,
+    indexFrom: 500,
+    nowBlock: 900,
+  });
   assert.deepEqual(flat.points, [
     { block: 500, count: 3 },
     { block: 900, count: 3 },
@@ -378,13 +466,18 @@ test('the open era bar is never invisible', () => {
 
 test('the target band counts measured intervals inside 5.5–6.5 s, edges included, breaks excluded', () => {
   assert.deepEqual(TARGET_BAND_S, [5.5, 6.5]);
-  const page = blocksPage(100, 6, { at: { 100: 1_790_000_000_000 + 100 * 6_000 + 6_000, 98: 1_790_000_000_000 + 98 * 6_000 - 500 } });
+  const page = blocksPage(100, 6, {
+    at: { 100: 1_790_000_000_000 + 100 * 6_000 + 6_000, 98: 1_790_000_000_000 + 98 * 6_000 - 500 },
+  });
   const series = blockIntervals(page, field);
   // 96→97: 6, 97→98: 5.5 (on the edge), 98→99: 6.5 (on the edge), 99→100: 12.
   const band = withinBand(series.points);
   assert.equal(band.measured, 5);
   assert.equal(band.within, 4);
-  assert.deepEqual(withinBand(blockIntervals(blocksPage(100, 5, { missing: [98] }), field).points), { within: 2, measured: 2 });
+  assert.deepEqual(
+    withinBand(blockIntervals(blocksPage(100, 5, { missing: [98] }), field).points),
+    { within: 2, measured: 2 },
+  );
   assert.deepEqual(withinBand([]), { within: 0, measured: 0 });
 });
 
@@ -392,8 +485,14 @@ test('running totals are exact, in order, and in plancks stay integers', () => {
   assert.deepEqual(cumulativeTotals([3, 0, 2, 5]), [3, 3, 5, 10]);
   assert.deepEqual(cumulativeTotals([]), []);
   assert.deepEqual(cumulativePlancks(['0', '0', '0']), ['0', '0', '0']);
-  assert.deepEqual(cumulativePlancks(['1000000000000', '2500000000000']), ['1000000000000', '3500000000000']);
-  assert.deepEqual(cumulativePlancks(['123456789012345678901234', '1']), ['123456789012345678901234', '123456789012345678901235']);
+  assert.deepEqual(cumulativePlancks(['1000000000000', '2500000000000']), [
+    '1000000000000',
+    '3500000000000',
+  ]);
+  assert.deepEqual(cumulativePlancks(['123456789012345678901234', '1']), [
+    '123456789012345678901234',
+    '123456789012345678901235',
+  ]);
 });
 
 test('the emission series can take every era in the run, not only the last twelve', () => {
@@ -403,12 +502,30 @@ test('the emission series can take every era in the run, not only the last twelv
 });
 
 test('supply figures are read as planck counts and the indexer’s own percentage, or refused', () => {
-  const live = { capPlancks: '100000000000000000000000', totalIssuancePlancks: '6054850322518573352172', remainingPlancks: '93945149677481426647828', percentIssued: 6.0548 };
-  assert.deepEqual(supplyFigures(live, field), { issuedPlancks: '6054850322518573352172', capPlancks: '100000000000000000000000', percent: 6.0548 });
+  const live = {
+    capPlancks: '100000000000000000000000',
+    totalIssuancePlancks: '6054850322518573352172',
+    remainingPlancks: '93945149677481426647828',
+    percentIssued: 6.0548,
+  };
+  assert.deepEqual(supplyFigures(live, field), {
+    issuedPlancks: '6054850322518573352172',
+    capPlancks: '100000000000000000000000',
+    percent: 6.0548,
+  });
   assert.equal(formatCmn(supplyFigures(live, field).issuedPlancks), '6,054,850,322');
-  assert.throws(() => supplyFigures({ ...live, totalIssuancePlancks: '6e21' }, field), /counts of plancks/);
-  assert.throws(() => supplyFigures({ ...live, percentIssued: '6' }, field), /non-numeric percentIssued/);
-  assert.throws(() => supplyFigures({ capPlancks: '1' }, field), /response has no totalIssuancePlancks/);
+  assert.throws(
+    () => supplyFigures({ ...live, totalIssuancePlancks: '6e21' }, field),
+    /counts of plancks/,
+  );
+  assert.throws(
+    () => supplyFigures({ ...live, percentIssued: '6' }, field),
+    /non-numeric percentIssued/,
+  );
+  assert.throws(
+    () => supplyFigures({ capPlancks: '1' }, field),
+    /response has no totalIssuancePlancks/,
+  );
 });
 
 test('the agents-over-time line is thinned to at most 240 points at 2,000 registrations, keeping each span’s closing count', () => {
@@ -418,13 +535,18 @@ test('the agents-over-time line is thinned to at most 240 points at 2,000 regist
   assert.ok(thin.length <= MAX_STEP_POINTS, `${thin.length} points`);
   assert.deepEqual(thin[0], points[0]);
   assert.deepEqual(thin.at(-1), points.at(-1), 'the last count is always drawn');
-  for (let i = 1; i < thin.length; i += 1) assert.ok(thin[i].block > thin[i - 1].block && thin[i].count >= thin[i - 1].count);
+  for (let i = 1; i < thin.length; i += 1)
+    assert.ok(thin[i].block > thin[i - 1].block && thin[i].count >= thin[i - 1].count);
   const few = points.slice(0, 50);
   assert.equal(thinSteps(few), few, 'a short series is drawn as it is');
 });
 
 test('agreements opened read back to the start of the oldest era drawn, so all twelve eras are counted, not one', () => {
-  const whole = Array.from({ length: 12 }, (_, k) => ({ era: 87 + k, start: 846_778 + k * 3_700, end: 846_778 + (k + 1) * 3_700 }));
+  const whole = Array.from({ length: 12 }, (_, k) => ({
+    era: 87 + k,
+    start: 846_778 + k * 3_700,
+    end: 846_778 + (k + 1) * 3_700,
+  }));
   const open = { era: 102, start: 902_353 };
   assert.equal(agreementsReadFrom({ whole, open }), 846_778);
   assert.equal(agreementsReadFrom({ whole: [], open }), 902_353, 'no whole era yet: the open one');
@@ -432,14 +554,18 @@ test('agreements opened read back to the start of the oldest era drawn, so all t
   assert.ok(AGREEMENT_PAGES * 200 >= 5_000);
   // 1,323 events, the newest 1,000 of them inside the last era: a 5-page read reaches one era at most.
   const events = [];
-  for (let k = 0; k < 1_000; k += 1) events.push({ blockNumber: whole[11].end - 1 - Math.floor(k * 3.5) });
+  for (let k = 0; k < 1_000; k += 1)
+    events.push({ blockNumber: whole[11].end - 1 - Math.floor(k * 3.5) });
   for (let k = 0; k < 323; k += 1) events.push({ blockNumber: whole[11].start - 1 - k * 120 });
   const before = bucketByEra(whole, open, events.slice(0, 1_000), { complete: false });
   assert.ok(before.buckets.length <= 1, `the old read keeps ${before.buckets.length} era(s)`);
   // Read back past the oldest era's start (reachedStart): every era drawn is whole.
   const after = bucketByEra(whole, open, events, { complete: true });
   assert.equal(after.buckets.length, 12);
-  assert.equal(after.buckets.reduce((n, b) => n + b.count, 0), events.filter((e) => e.blockNumber >= whole[0].start && e.blockNumber < whole[11].end).length);
+  assert.equal(
+    after.buckets.reduce((n, b) => n + b.count, 0),
+    events.filter((e) => e.blockNumber >= whole[0].start && e.blockNumber < whole[11].end).length,
+  );
 });
 
 test('the agreements read starts from the eras record, or says why it cannot: a failed or unreadable eras read is never a silent wait', () => {
@@ -447,7 +573,10 @@ test('the agreements read starts from the eras record, or says why it cannot: a 
   const start = agreementsStart(eras(ERAS), field);
   assert.equal(start.error, null);
   assert.equal(start.from, 776394, 'the start of era 68, the oldest of the twelve whole eras');
-  assert.deepEqual(agreementsStart({ ok: false, label: '/v1/eras', error: 'HTTP 503' }, field), { from: null, error: 'HTTP 503' });
+  assert.deepEqual(agreementsStart({ ok: false, label: '/v1/eras', error: 'HTTP 503' }, field), {
+    from: null,
+    error: 'HTTP 503',
+  });
   const broken = agreementsStart({ ok: true, label: '/v1/eras', data: {} }, field);
   assert.equal(broken.from, null);
   assert.match(broken.error, /items/, 'an unreadable eras body names what is missing');

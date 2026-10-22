@@ -36,7 +36,10 @@ const bad = (m: string) => console.log(`  ✗ ${m}`);
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 class Exit extends Error {
-  constructor(readonly code: number, message: string) {
+  constructor(
+    readonly code: number,
+    message: string,
+  ) {
     super(message);
   }
 }
@@ -51,13 +54,19 @@ async function address(cfg: Config): Promise<string> {
   // polkadot-js turns a mistyped phrase into a DIFFERENT, valid-looking wallet
   // instead of failing. Only a checksummed BIP-39 phrase is accepted here.
   if (!mnemonicValidate(cfg.secret)) {
-    throw new Exit(1, 'AGENT_MNEMONIC is not a valid 12-word key phrase — check the secret for typos, missing or extra words');
+    throw new Exit(
+      1,
+      'AGENT_MNEMONIC is not a valid 12-word key phrase — check the secret for typos, missing or extra words',
+    );
   }
   try {
     return new Keyring({ type: 'sr25519' }).addFromUri(cfg.secret).address;
   } catch {
     // Never echo the underlying message: it could quote the secret.
-    throw new Exit(1, 'AGENT_MNEMONIC is not a valid key phrase — check the secret for typos or extra words');
+    throw new Exit(
+      1,
+      'AGENT_MNEMONIC is not a valid key phrase — check the secret for typos or extra words',
+    );
   }
 }
 
@@ -70,7 +79,10 @@ async function connect(ws: string): Promise<ApiPromise> {
     await api.isReadyOrError;
     return api;
   } catch {
-    throw new Exit(1, `cannot reach the Scalar Commons testnet at ${ws} — check the internet connection and try again`);
+    throw new Exit(
+      1,
+      `cannot reach the Scalar Commons testnet at ${ws} — check the internet connection and try again`,
+    );
   } finally {
     clearTimeout(timeout);
   }
@@ -101,7 +113,10 @@ async function chainView(api: ApiPromise, who: string) {
 
 async function newKey(): Promise<void> {
   if (process.env.AGENT_MNEMONIC?.trim() || process.env.AGENT_URI?.trim()) {
-    throw new Exit(1, 'a key is already configured (AGENT_MNEMONIC). Refusing to make another: that would switch your agent to a different wallet');
+    throw new Exit(
+      1,
+      'a key is already configured (AGENT_MNEMONIC). Refusing to make another: that would switch your agent to a different wallet',
+    );
   }
   await cryptoWaitReady();
   const mnemonic = mnemonicGenerate(12);
@@ -140,15 +155,34 @@ async function check(cfg: Config, args: string[]): Promise<void> {
     else if (approved === '') bad('APPROVED_AGENT_ADDRESS is not set yet');
     else bad(`APPROVED_AGENT_ADDRESS is ${approved}, not this key's address`);
     info(`balance: ${formatCmn(v.free)} test CMN`);
-    info(v.registered ? `registered agent; last heartbeat at block #${v.lastHeartbeat ?? 'never'}` : 'not registered yet');
-    const need = registrationNeed({ stake: cfg.stake, registrationFee: v.fee, existentialDeposit: v.ed });
-    const plan = planStart({ chain: v.chain, address: who, approvedAddress: approved, registered: v.registered, free: v.free, need });
+    info(
+      v.registered
+        ? `registered agent; last heartbeat at block #${v.lastHeartbeat ?? 'never'}`
+        : 'not registered yet',
+    );
+    const need = registrationNeed({
+      stake: cfg.stake,
+      registrationFee: v.fee,
+      existentialDeposit: v.ed,
+    });
+    const plan = planStart({
+      chain: v.chain,
+      address: who,
+      approvedAddress: approved,
+      registered: v.registered,
+      free: v.free,
+      need,
+    });
 
     if (!forStart) {
       if (!v.registered) {
-        info(`registering locks ${formatCmn(cfg.stake)} test CMN and burns ${formatCmn(v.fee)}; needs ${formatCmn(need)} free`);
+        info(
+          `registering locks ${formatCmn(cfg.stake)} test CMN and burns ${formatCmn(v.fee)}; needs ${formatCmn(need)} free`,
+        );
       }
-      info(`start would: ${plan.action === 'faucet' ? 'ask the faucet for test CMN, then register' : plan.action === 'refuse' ? 'refuse' : plan.action === 'run' ? 'run' : 'register, then run'}`);
+      info(
+        `start would: ${plan.action === 'faucet' ? 'ask the faucet for test CMN, then register' : plan.action === 'refuse' ? 'refuse' : plan.action === 'run' ? 'run' : 'register, then run'}`,
+      );
       if (plan.action === 'refuse') info(plan.message);
       return;
     }
@@ -168,15 +202,26 @@ async function check(cfg: Config, args: string[]): Promise<void> {
       });
       const body = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
       if (res.status === 429) {
-        throw new Exit(3, `the faucet says wait: ${body?.error ?? 'rate limited'} (one drip per address and per network address per hour). Run start again later`);
+        throw new Exit(
+          3,
+          `the faucet says wait: ${body?.error ?? 'rate limited'} (one drip per address and per network address per hour). Run start again later`,
+        );
       }
-      if (!res.ok) throw new Exit(3, `the faucet answered ${res.status}: ${body?.error ?? body?.code ?? 'unknown error'}`);
+      if (!res.ok)
+        throw new Exit(
+          3,
+          `the faucet answered ${res.status}: ${body?.error ?? body?.code ?? 'unknown error'}`,
+        );
       ok('faucet sent test CMN; waiting for it to arrive');
       for (let i = 0; i < 24 && v.free < need; i++) {
         await sleep(5_000);
         v = await chainView(api, who);
       }
-      if (v.free < need) throw new Exit(3, `balance is ${formatCmn(v.free)} CMN, still below ${formatCmn(need)}; run start again in a minute`);
+      if (v.free < need)
+        throw new Exit(
+          3,
+          `balance is ${formatCmn(v.free)} CMN, still below ${formatCmn(need)}; run start again in a minute`,
+        );
       ok(`balance now ${formatCmn(v.free)} test CMN — the agent will register itself`);
       return;
     }
@@ -190,8 +235,17 @@ async function findIndexed(who: string, tx: string, waitSeconds: number) {
   for (let waited = 0; ; waited += 5) {
     const { status, body } = await getJson(`${INDEXER}/v1/accounts/${who}/extrinsics?limit=100`);
     if (status === 200) {
-      const hit = (body?.items ?? []).find((x: { hash: string }) => x.hash.toLowerCase() === tx.toLowerCase());
-      if (hit) return hit as { id: string; section: string; method: string; success: boolean; blockNumber: number };
+      const hit = (body?.items ?? []).find(
+        (x: { hash: string }) => x.hash.toLowerCase() === tx.toLowerCase(),
+      );
+      if (hit)
+        return hit as {
+          id: string;
+          section: string;
+          method: string;
+          success: boolean;
+          blockNumber: number;
+        };
     }
     if (waited >= waitSeconds) return null;
     await sleep(5_000);
@@ -203,17 +257,28 @@ async function verify(cfg: Config, args: string[]): Promise<void> {
   const logPath = join(cfg.stateDir, 'agent.jsonl');
   let tx = args[0]?.startsWith('0x') ? args[0] : undefined;
   if (tx === undefined && existsSync(logPath)) tx = latestTx(readFileSync(logPath, 'utf8'))?.tx;
-  if (tx === undefined) throw new Exit(1, 'no transaction to verify yet: the agent has not sent one. Run start first');
+  if (tx === undefined)
+    throw new Exit(1, 'no transaction to verify yet: the agent has not sent one. Run start first');
 
   console.log(`Verifying transaction ${tx}`);
   const hit = await findIndexed(who, tx, 60);
-  if (hit === null) throw new Exit(1, 'the public indexer does not show this transaction yet. Wait a minute and run verify again');
+  if (hit === null)
+    throw new Exit(
+      1,
+      'the public indexer does not show this transaction yet. Wait a minute and run verify again',
+    );
   const [block, index] = hit.id.split('-');
   const ev = await getJson(`${INDEXER}/v1/extrinsics/${hit.id}/events`);
-  const events = (ev.body?.items ?? []).map((e: { section: string; method: string }) => `${e.section}.${e.method}`);
-  (hit.success ? ok : bad)(`${hit.section}.${hit.method} is on chain in block #${block}, ${hit.success ? 'succeeded' : 'FAILED'}`);
+  const events = (ev.body?.items ?? []).map(
+    (e: { section: string; method: string }) => `${e.section}.${e.method}`,
+  );
+  (hit.success ? ok : bad)(
+    `${hit.section}.${hit.method} is on chain in block #${block}, ${hit.success ? 'succeeded' : 'FAILED'}`,
+  );
   info(`events: ${events.join(', ')}`);
-  console.log(`\n  Open this link to see it yourself:\n  ${EXPLORER}/extrinsic/${block}/${index}\n`);
+  console.log(
+    `\n  Open this link to see it yourself:\n  ${EXPLORER}/extrinsic/${block}/${index}\n`,
+  );
   if (!hit.success) throw new Exit(1, 'the transaction is on chain but failed');
 }
 
@@ -221,7 +286,7 @@ async function waitFirst(cfg: Config, args: string[]): Promise<void> {
   const since = flag(args, '--since') ?? new Date().toISOString();
   const timeout = Number(flag(args, '--timeout') ?? '180');
   const logPath = join(cfg.stateDir, 'agent.jsonl');
-  console.log('Waiting for the agent\'s first transaction of this run …');
+  console.log("Waiting for the agent's first transaction of this run …");
   for (let t = 0; t < timeout; t += 3) {
     const log = existsSync(logPath) ? readFileSync(logPath, 'utf8') : '';
     const hit = latestTx(log, since);
@@ -248,22 +313,35 @@ async function status(cfg: Config): Promise<void> {
     info(`agent ${who}`);
     info(`balance ${formatCmn(v.free)} test CMN (includes the locked stake)`);
     if (v.registered) {
-      ok(`registered; last heartbeat block #${v.lastHeartbeat ?? 'never'}${v.lastHeartbeat ? ` (${v.head - Number(v.lastHeartbeat)} blocks ago)` : ''}`);
+      ok(
+        `registered; last heartbeat block #${v.lastHeartbeat ?? 'never'}${v.lastHeartbeat ? ` (${v.head - Number(v.lastHeartbeat)} blocks ago)` : ''}`,
+      );
     } else bad('not registered yet');
   } finally {
     await api.disconnect();
   }
   const { status: code, body } = await getJson(`${INDEXER}/v1/agents/${who}`);
-  if (code === 200) info(`public record: ${INDEXER}/v1/agents/${who} (completed jobs: ${body?.completedAgreements ?? 0})`);
+  if (code === 200)
+    info(
+      `public record: ${INDEXER}/v1/agents/${who} (completed jobs: ${body?.completedAgreements ?? 0})`,
+    );
 
   const logPath = join(cfg.stateDir, 'agent.jsonl');
   if (!existsSync(logPath)) return;
   console.log('\nRecent agent activity');
   for (const line of readFileSync(logPath, 'utf8').trim().split('\n').slice(-6)) {
     try {
-      const r = JSON.parse(line) as { ts: string; event: string; step?: string; message?: string; tx?: string };
+      const r = JSON.parse(line) as {
+        ts: string;
+        event: string;
+        step?: string;
+        message?: string;
+        tx?: string;
+      };
       const what = r.event === 'error' ? `problem in ${r.step}: ${r.message}` : r.event;
-      info(`${r.ts.replace('T', ' ').slice(0, 19)} UTC  ${what}${r.tx ? `  (tx ${r.tx.slice(0, 12)}…)` : ''}`);
+      info(
+        `${r.ts.replace('T', ' ').slice(0, 19)} UTC  ${what}${r.tx ? `  (tx ${r.tx.slice(0, 12)}…)` : ''}`,
+      );
     } catch {
       /* a partial last line while the agent is writing */
     }
@@ -274,9 +352,10 @@ async function main(): Promise<void> {
   const [cmd, ...args] = process.argv.slice(2);
   if (cmd === 'new-key') return newKey();
   // `verify --address` checks any account's transaction and needs no key of its own.
-  const env = cmd === 'verify' && flag(args, '--address') && !process.env.AGENT_MNEMONIC
-    ? { ...process.env, AGENT_URI: '//unused' }
-    : process.env;
+  const env =
+    cmd === 'verify' && flag(args, '--address') && !process.env.AGENT_MNEMONIC
+      ? { ...process.env, AGENT_URI: '//unused' }
+      : process.env;
   let cfg: Config;
   try {
     cfg = loadConfig(env);
@@ -287,7 +366,10 @@ async function main(): Promise<void> {
   if (cmd === 'status') return status(cfg);
   if (cmd === 'verify') return verify(cfg, args);
   if (cmd === 'wait-first') return waitFirst(cfg, args);
-  throw new Exit(2, 'commands: new-key | check [--for-start] [--dry-run] | status | verify [txHash] | wait-first');
+  throw new Exit(
+    2,
+    'commands: new-key | check [--for-start] [--dry-run] | status | verify [txHash] | wait-first',
+  );
 }
 
 main().then(

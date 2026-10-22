@@ -1,5 +1,14 @@
 import { afterAll, describe, it, expect } from 'vitest';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -305,7 +314,12 @@ const HOUR = 60 * 60_000;
 const DAY = 24 * HOUR;
 
 function globalLimiter(
-  opts: { hourly?: number; daily?: number; store?: MemoryStore; clock?: ReturnType<typeof fakeClock> } = {},
+  opts: {
+    hourly?: number;
+    daily?: number;
+    store?: MemoryStore;
+    clock?: ReturnType<typeof fakeClock>;
+  } = {},
 ) {
   const clock = opts.clock ?? fakeClock();
   const store = opts.store ?? new MemoryStore();
@@ -563,16 +577,19 @@ describe('JsonFileStore', () => {
     expect([...new JsonFileStore(path).load()]).toEqual([['address:a', [1]]]);
   });
 
-  it.skipIf(process.platform === 'win32')('replaces a planted temp symlink instead of writing through it', () => {
-    const path = join(dir, 'planted.json');
-    const victim = join(dir, 'victim.txt');
-    writeFileSync(victim, 'untouched');
-    symlinkSync(victim, `${path}.${process.pid}.tmp`);
+  it.skipIf(process.platform === 'win32')(
+    'replaces a planted temp symlink instead of writing through it',
+    () => {
+      const path = join(dir, 'planted.json');
+      const victim = join(dir, 'victim.txt');
+      writeFileSync(victim, 'untouched');
+      symlinkSync(victim, `${path}.${process.pid}.tmp`);
 
-    new JsonFileStore(path).save(new Map([['address:a', [1]]]));
-    expect(readFileSync(victim, 'utf8')).toBe('untouched');
-    expect([...new JsonFileStore(path).load()]).toEqual([['address:a', [1]]]);
-  });
+      new JsonFileStore(path).save(new Map([['address:a', [1]]]));
+      expect(readFileSync(victim, 'utf8')).toBe('untouched');
+      expect([...new JsonFileStore(path).load()]).toEqual([['address:a', [1]]]);
+    },
+  );
 
   it.skipIf(process.platform === 'win32')('writes a file only its owner can read', () => {
     const path = join(dir, 'mode.json');

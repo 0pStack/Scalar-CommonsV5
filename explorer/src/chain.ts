@@ -169,10 +169,7 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
     api = await Promise.race([
       ApiPromise.create({ provider, noInitWarn: true, throwOnConnect: true }),
       new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(
-          () => reject(new Error(`timed out after ${timeoutMs}ms`)),
-          timeoutMs,
-        );
+        timer = setTimeout(() => reject(new Error(`timed out after ${timeoutMs}ms`)), timeoutMs);
       }),
     ]);
   } catch (error) {
@@ -291,7 +288,9 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
       `runtime at block ${hash} exposes no system.events storage`,
     );
     const records = (await systemEvents()) as unknown as EventRecord[];
-    const timestampMs = apiAt.query.timestamp?.now ? toBigInt(await apiAt.query.timestamp.now()) : null;
+    const timestampMs = apiAt.query.timestamp?.now
+      ? toBigInt(await apiAt.query.timestamp.now())
+      : null;
 
     const extrinsics = signedBlock.block.extrinsics.map((extrinsic, index): DecodedExtrinsic => {
       // Each record keeps the position it holds in the block's event list, so
@@ -322,7 +321,9 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
       // The signer is an `Address` (a MultiAddress on this runtime), so it is
       // resolved through the same codec walk as everything else rather than by
       // assuming which variant it is.
-      const signer = extrinsic.isSigned ? (collectAccounts([extrinsic.signer], ss58Format)[0] ?? null) : null;
+      const signer = extrinsic.isSigned
+        ? (collectAccounts([extrinsic.signer], ss58Format)[0] ?? null)
+        : null;
 
       const accounts = collectAccounts(
         [

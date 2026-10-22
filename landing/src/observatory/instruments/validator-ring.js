@@ -20,7 +20,13 @@
 // data changes. Points are labelled "Validator 1" to "Validator n"; the
 // address is a tooltip on the point and a link in the list.
 
-import { decodeValidators, decodeQueuedKeys, decodeBabeAuthorities, bytesToHex, babePreDigestOf } from '../scale.js';
+import {
+  decodeValidators,
+  decodeQueuedKeys,
+  decodeBabeAuthorities,
+  bytesToHex,
+  babePreDigestOf,
+} from '../scale.js';
 import { encodeSs58 } from '../ss58.js';
 
 const SET_INTERVAL_MS = 60_000;
@@ -111,7 +117,10 @@ export function labelAnchor(angle) {
  * is drawn at a constant rendered size, so its size in units is the rendered
  * size divided by `scale` (rendered px per unit).
  */
-export function labelPlacement(angle, { scale = 1, showAddress = false, indexDigits = 1, addrChars = 9 } = {}) {
+export function labelPlacement(
+  angle,
+  { scale = 1, showAddress = false, indexDigits = 1, addrChars = 9 } = {},
+) {
   const at = pointAt(angle, LABEL_R);
   const s = Math.sin(angle);
   const anchor = labelAnchor(angle);
@@ -145,7 +154,12 @@ export function labelPlacement(angle, { scale = 1, showAddress = false, indexDig
     anchor,
     indexY,
     addrY,
-    box: { x0: fix(x0), y0: fix(Math.min(...tops)), x1: fix(x0 + width), y1: fix(Math.max(...bottoms)) },
+    box: {
+      x0: fix(x0),
+      y0: fix(Math.min(...tops)),
+      x1: fix(x0 + width),
+      y1: fix(Math.max(...bottoms)),
+    },
   };
 }
 
@@ -237,7 +251,12 @@ export function buildSet({ validators, queued = null, babe = null }) {
  * not in the queued session keys.
  */
 export function stashForAuthority(authorityIndex, authorities) {
-  if (!Number.isInteger(authorityIndex) || authorityIndex < 0 || authorityIndex >= authorities.length) return null;
+  if (
+    !Number.isInteger(authorityIndex) ||
+    authorityIndex < 0 ||
+    authorityIndex >= authorities.length
+  )
+    return null;
   return authorities[authorityIndex] ?? null;
 }
 
@@ -245,7 +264,11 @@ export function stashForAuthority(authorityIndex, authorities) {
 export function unmappedReason(authorityIndex, authorities, keys) {
   if (keys === 'pending') return 'sealed before the session keys were read';
   if (keys !== 'ok') return 'session keys unavailable';
-  if (!Number.isInteger(authorityIndex) || authorityIndex < 0 || authorityIndex >= authorities.length) {
+  if (
+    !Number.isInteger(authorityIndex) ||
+    authorityIndex < 0 ||
+    authorityIndex >= authorities.length
+  ) {
     return 'beyond the authority list';
   }
   return 'not in queued keys';
@@ -277,9 +300,11 @@ export class VoteSampler {
   add({ setId, round, threshold, prevotes, precommits }, ids) {
     if (!Number.isInteger(setId)) throw new Error('setId is not an integer');
     if (!Number.isInteger(round)) throw new Error('round is not an integer');
-    if (!Number.isInteger(threshold) || threshold < 1) throw new Error('thresholdWeight is not a positive integer');
+    if (!Number.isInteger(threshold) || threshold < 1)
+      throw new Error('thresholdWeight is not a positive integer');
     for (const stage of [prevotes, precommits]) {
-      if (!Number.isInteger(stage?.currentWeight)) throw new Error('currentWeight is not an integer');
+      if (!Number.isInteger(stage?.currentWeight))
+        throw new Error('currentWeight is not an integer');
       if (!Array.isArray(stage?.missing)) throw new Error('missing is not a list');
     }
     // Only a stage that reached the threshold says anything about who was absent.
@@ -345,7 +370,8 @@ export function votesPhrase(counts, formatInteger) {
 export function ariaSummary({ active, queued, lastAuthor }) {
   const n = active;
   const parts = [`${n} validator${n === 1 ? '' : 's'} in the active set`];
-  if (lastAuthor !== null && lastAuthor !== undefined) parts.push(`validator ${lastAuthor} sealed the latest block`);
+  if (lastAuthor !== null && lastAuthor !== undefined)
+    parts.push(`validator ${lastAuthor} sealed the latest block`);
   if (queued > 0) parts.push(`${queued} joining next session`);
   return parts.join('; ');
 }
@@ -526,11 +552,19 @@ export function init(root, ctx) {
     for (const validator of all) {
       const p = positions[validator.index];
       const authoring = !validator.queued && validator.stashHex === lastAuthorHex;
-      const g = el('g', { 'data-index': validator.index + 1 }, `ring-node${validator.queued ? ' is-queued' : ''}${authoring ? ' is-authoring' : ''}`);
+      const g = el(
+        'g',
+        { 'data-index': validator.index + 1 },
+        `ring-node${validator.queued ? ' is-queued' : ''}${authoring ? ' is-authoring' : ''}`,
+      );
       const halo = el('circle', { cx: p.x, cy: p.y, r: POINT_R, opacity: 0 }, 'ring-halo');
       const votes = el('g', {}, 'ring-votes');
       const latest = el('circle', { cx: p.x, cy: p.y, r: LATEST_R }, 'ring-latest');
-      const point = el('circle', { cx: p.x, cy: p.y, r: POINT_R }, `ring-point${validator.queued ? ' is-queued' : ''}${authoring ? ' is-authoring' : ''}`);
+      const point = el(
+        'circle',
+        { cx: p.x, cy: p.y, r: POINT_R },
+        `ring-point${validator.queued ? ' is-queued' : ''}${authoring ? ' is-authoring' : ''}`,
+      );
       const from = pointAt(p.angle, TICK_FROM);
       const to = pointAt(p.angle, TICK_TO);
       const tick = el('line', { x1: from.x, y1: from.y, x2: to.x, y2: to.y }, 'ring-tick');
@@ -594,7 +628,9 @@ export function init(root, ctx) {
       const addr = html('span', 'v-addr');
       const a = html('a', 'mono', shortAddress(validator.address));
       a.href = `${ctx.EXPLORER_ORIGIN}/account/${validator.address}`;
-      a.append(html('span', 'visually-hidden', ` (full address ${validator.address}, on the explorer)`));
+      a.append(
+        html('span', 'visually-hidden', ` (full address ${validator.address}, on the explorer)`),
+      );
       addr.append(a);
       if (validator.queued) addr.append(' ', html('span', 'v-mark', 'joining next session'));
       const meta = html('span', 'v-meta');
@@ -649,7 +685,8 @@ export function init(root, ctx) {
       const { validator } = node;
       if (validator.queued || !validator.grandpaAddress) continue;
       const counts = sampler.countsFor(validator.grandpaAddress);
-      const recent = counts.sampled >= MIN_SAMPLES ? sampler.recentFor(validator.grandpaAddress) : [];
+      const recent =
+        counts.sampled >= MIN_SAMPLES ? sampler.recentFor(validator.grandpaAddress) : [];
       const ticksKey = recent.map((r) => `${r.key}${r.seen ? '+' : '-'}`).join(',');
       if (ticksKey === node.ticksKey) continue;
       const before = node.ticksKey ? node.ticksKey.split(',').length : 0;
@@ -658,7 +695,11 @@ export function init(root, ctx) {
       node.votes.replaceChildren();
       const fresh = [];
       voteTicks(recent, node.cx, node.cy).forEach((t, k) => {
-        const line = el('line', { x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2 }, `ring-vote-tick${t.seen ? ' is-seen' : ''}`);
+        const line = el(
+          'line',
+          { x1: t.x1, y1: t.y1, x2: t.x2, y2: t.y2 },
+          `ring-vote-tick${t.seen ? ' is-seen' : ''}`,
+        );
         node.votes.append(line);
         if (k >= before) fresh.push(line);
       });
@@ -673,7 +714,10 @@ export function init(root, ctx) {
 
   function updateAria() {
     if (!set) return;
-    svg.setAttribute('aria-label', ariaSummary({ active: set.active.length, queued: set.queued.length, lastAuthor }));
+    svg.setAttribute(
+      'aria-label',
+      ariaSummary({ active: set.active.length, queued: set.queued.length, lastAuthor }),
+    );
   }
 
   /** Marks `node` as the point that sealed the latest block, with one halo beat. The mark stays until the next mapped head. */
@@ -714,15 +758,25 @@ export function init(root, ctx) {
   function drawStatus() {
     const lines = [];
     if (records.queued && !records.queued.ok) {
-      lines.push(statusLine([`Session keys unavailable (${records.queued.label}): ${records.queued.error} — blocks cannot be attributed to a validator.`]));
+      lines.push(
+        statusLine([
+          `Session keys unavailable (${records.queued.label}): ${records.queued.error} — blocks cannot be attributed to a validator.`,
+        ]),
+      );
     } else if (records.queued?.ok && set) {
       const joining = set.queued.length
         ? `${formatInteger(set.queued.length)} more joining next session`
         : 'none queued to join';
-      lines.push(statusLine([`${records.queued.label} · ${utcTime(records.queued.at)} · ${joining}.`]));
+      lines.push(
+        statusLine([`${records.queued.label} · ${utcTime(records.queued.at)} · ${joining}.`]),
+      );
     }
     if (records.babe && !records.babe.ok) {
-      lines.push(statusLine([`Authority list unavailable (${records.babe.label}): ${records.babe.error} — blocks cannot be attributed to a validator.`]));
+      lines.push(
+        statusLine([
+          `Authority list unavailable (${records.babe.label}): ${records.babe.error} — blocks cannot be attributed to a validator.`,
+        ]),
+      );
     }
     if (grandpaRecord) {
       if (grandpaRecord.ok) {
@@ -744,10 +798,18 @@ export function init(root, ctx) {
             ]),
           );
         } catch (error) {
-          lines.push(statusLine([`Finality sample could not be read (${grandpaRecord.label}): ${error.message}`]));
+          lines.push(
+            statusLine([
+              `Finality sample could not be read (${grandpaRecord.label}): ${error.message}`,
+            ]),
+          );
         }
       } else {
-        lines.push(statusLine([`Finality sample unavailable (${grandpaRecord.label}): ${grandpaRecord.error}`]));
+        lines.push(
+          statusLine([
+            `Finality sample unavailable (${grandpaRecord.label}): ${grandpaRecord.error}`,
+          ]),
+        );
       }
     }
     if (headNote) lines.push(statusLine([headNote]));
@@ -780,8 +842,13 @@ export function init(root, ctx) {
           }
         }
         set = buildSet({ validators, queued, babe });
-        ctx.readout.showValue(targets.validators, record, { value: set.active.length, motion: ctx.motion });
-        const signature = [...set.active, ...set.queued].map((v) => `${v.stashHex}:${v.queued ? 'q' : 'a'}:${v.grandpaAddress ?? ''}`).join('|');
+        ctx.readout.showValue(targets.validators, record, {
+          value: set.active.length,
+          motion: ctx.motion,
+        });
+        const signature = [...set.active, ...set.queued]
+          .map((v) => `${v.stashHex}:${v.queued ? 'q' : 'a'}:${v.grandpaAddress ?? ''}`)
+          .join('|');
         if (signature !== setKey) {
           setKey = signature;
           buildRing();
@@ -851,7 +918,10 @@ export function init(root, ctx) {
             missing: ctx.field(record.data, 'result.best.precommits.missing'),
           },
         };
-        sampler.add(sample, set.active.map((v) => v.grandpaAddress));
+        sampler.add(
+          sample,
+          set.active.map((v) => v.grandpaAddress),
+        );
       } catch (error) {
         grandpaRecord = { ...record, ok: false, error: error.message };
       }
@@ -889,7 +959,12 @@ export function init(root, ctx) {
     const stashHex = stashForAuthority(author.authorityIndex, set.authorities);
     const node = stashHex ? nodes.get(stashHex) : null;
     if (!node) {
-      const keys = !records.queued || !records.babe ? 'pending' : records.queued.ok && records.babe.ok ? 'ok' : 'failed';
+      const keys =
+        !records.queued || !records.babe
+          ? 'pending'
+          : records.queued.ok && records.babe.ok
+            ? 'ok'
+            : 'failed';
       const reason = unmappedReason(author.authorityIndex, set.authorities, keys);
       const entry = unmapped.get(author.authorityIndex) ?? { count: 0, last: null, reason };
       entry.count += 1;
@@ -919,9 +994,30 @@ export function init(root, ctx) {
     updateAria();
   }
 
-  ctx.watch('validators', (record) => { records.validators = record; rebuild(); }, SET_INTERVAL_MS);
-  ctx.watch('queuedKeys', (record) => { records.queued = record; rebuild(); }, SET_INTERVAL_MS);
-  ctx.watch('babeAuthorities', (record) => { records.babe = record; rebuild(); }, SET_INTERVAL_MS);
+  ctx.watch(
+    'validators',
+    (record) => {
+      records.validators = record;
+      rebuild();
+    },
+    SET_INTERVAL_MS,
+  );
+  ctx.watch(
+    'queuedKeys',
+    (record) => {
+      records.queued = record;
+      rebuild();
+    },
+    SET_INTERVAL_MS,
+  );
+  ctx.watch(
+    'babeAuthorities',
+    (record) => {
+      records.babe = record;
+      rebuild();
+    },
+    SET_INTERVAL_MS,
+  );
   ctx.watch('health', onHealth, HEALTH_INTERVAL_MS);
   ctx.watch('grandpa', onGrandpa, GRANDPA_INTERVAL_MS);
 

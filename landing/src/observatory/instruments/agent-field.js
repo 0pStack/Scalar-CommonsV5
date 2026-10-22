@@ -41,8 +41,18 @@ export const LIST_PAGE = 50;
 export const GRAPH_BUNDLE = 'observatory-graph.js';
 /** The four states, least urgent first. */
 export const STATES = ['idle', 'working', 'disputed', 'slashed'];
-export const STATE_COLOUR = { idle: 'idle', working: 'active', disputed: 'disputed', slashed: 'slash' };
-export const STATE_WORD = { idle: 'idle', working: 'working', disputed: 'in dispute', slashed: 'slashed in the last hour' };
+export const STATE_COLOUR = {
+  idle: 'idle',
+  working: 'active',
+  disputed: 'disputed',
+  slashed: 'slash',
+};
+export const STATE_WORD = {
+  idle: 'idle',
+  working: 'working',
+  disputed: 'in dispute',
+  slashed: 'slashed in the last hour',
+};
 
 const AGENTS_INTERVAL_MS = 60_000;
 const ESCROWS_INTERVAL_MS = 30_000;
@@ -162,7 +172,10 @@ export function cellsFor(ordered, stateOf, threshold = BUCKET_THRESHOLD) {
       ring: operator === agents.length,
     });
   }
-  const states = size === 1 ? cells.map((c) => STATES.reduce((best, st) => (c.counts[st] ? st : best), 'idle')) : bucketStates(cells.map((c) => c.counts));
+  const states =
+    size === 1
+      ? cells.map((c) => STATES.reduce((best, st) => (c.counts[st] ? st : best), 'idle'))
+      : bucketStates(cells.map((c) => c.counts));
   cells.forEach((cell, i) => {
     cell.state = states[i];
   });
@@ -176,7 +189,8 @@ export function cellsFor(ordered, stateOf, threshold = BUCKET_THRESHOLD) {
  * nothing to place.
  */
 export function gridLayout(count, width, height, { maxPitch = MAX_PITCH } = {}) {
-  if (count <= 0 || width <= 0 || height <= 0) return { count: 0, cols: 0, rows: 0, pitch: 0, x0: 0, y0: 0 };
+  if (count <= 0 || width <= 0 || height <= 0)
+    return { count: 0, cols: 0, rows: 0, pitch: 0, x0: 0, y0: 0 };
   const guess = Math.max(1, Math.min(count, Math.ceil(Math.sqrt((count * width) / height))));
   let best = { cols: guess, pitch: 0 };
   for (let cols = Math.max(1, guess - 4); cols <= Math.min(count, guess + 4); cols += 1) {
@@ -232,7 +246,8 @@ export function tally(agents, { working, disputed }) {
   let active = 0;
   let inDispute = 0;
   for (const agent of agents) {
-    if (agent.activeEscrowCount > 0 || working.has(agent.address) || disputed.has(agent.address)) active += 1;
+    if (agent.activeEscrowCount > 0 || working.has(agent.address) || disputed.has(agent.address))
+      active += 1;
     if (disputed.has(agent.address)) inDispute += 1;
   }
   return { active, disputed: inDispute };
@@ -330,7 +345,10 @@ export function init(root, ctx) {
       render();
       return;
     }
-    parties = failures.open || openList === null ? { working: new Set(), disputed: new Set() } : partiesOf(openList);
+    parties =
+      failures.open || openList === null
+        ? { working: new Set(), disputed: new Set() }
+        : partiesOf(openList);
     ordered = orderAgents(agentsList);
     const next = cellsFor(ordered, stateOf);
     // Cells that are new fade in; cells whose state changed blend to the new colour.
@@ -399,7 +417,9 @@ export function init(root, ctx) {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = colour('text-dim');
-    lines.forEach((line, i) => g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 18));
+    lines.forEach((line, i) => {
+      g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 18);
+    });
   }
 
   function draw() {
@@ -430,7 +450,8 @@ export function init(root, ctx) {
       const e = shown.get(cell.key);
       const { x, y } = cellCentre(layout, i);
       g.globalAlpha = e?.alpha ?? 1;
-      g.fillStyle = e && e.mix < 1 ? mixColour(inks[e.from], inks[cell.state], e.mix) : inks[cell.state];
+      g.fillStyle =
+        e && e.mix < 1 ? mixColour(inks[e.from], inks[cell.state], e.mix) : inks[cell.state];
       g.beginPath();
       g.arc(x, y, r, 0, Math.PI * 2);
       g.fill();
@@ -451,7 +472,12 @@ export function init(root, ctx) {
       const half = layout.pitch / 2 - 0.5;
       g.strokeStyle = colour('text');
       g.lineWidth = 1;
-      g.strokeRect(Math.round(x - half) + 0.5, Math.round(y - half) + 0.5, Math.round(half * 2) - 1, Math.round(half * 2) - 1);
+      g.strokeRect(
+        Math.round(x - half) + 0.5,
+        Math.round(y - half) + 0.5,
+        Math.round(half * 2) - 1,
+        Math.round(half * 2) - 1,
+      );
       positionTip();
     }
   }
@@ -460,7 +486,10 @@ export function init(root, ctx) {
   function counts() {
     const floor = agentsTruncated || !agentsComplete;
     if (agentsList === null) return null;
-    const t = failures.open || openList === null ? { active: null, disputed: null } : tally(agentsList, parties);
+    const t =
+      failures.open || openList === null
+        ? { active: null, disputed: null }
+        : tally(agentsList, parties);
     return { agents: agentsTotal, floor, ...t };
   }
 
@@ -474,10 +503,20 @@ export function init(root, ctx) {
   function renderFoot() {
     if (!foot) return;
     if (agentsList === null || failures.agents) {
-      foot.textContent = 'One cell per agent. External agents come first, then operator-run, each in order of registration.';
+      foot.textContent =
+        'One cell per agent. External agents come first, then operator-run, each in order of registration.';
       return;
     }
-    let text = footnote({ size: model.size, truncated: agentsTruncated, scanLimit, listed: agentsList.length, total: agentsTotal }, formatInteger);
+    let text = footnote(
+      {
+        size: model.size,
+        truncated: agentsTruncated,
+        scanLimit,
+        listed: agentsList.length,
+        total: agentsTotal,
+      },
+      formatInteger,
+    );
     if (failures.open) text += ` Open agreements could not be read: ${failures.open}.`;
     if (failures.slashes) text += ` Slashes could not be read: ${failures.slashes}.`;
     foot.textContent = text;
@@ -505,7 +544,8 @@ export function init(root, ctx) {
     return a;
   }
 
-  const nameOf = (agent) => (agent.name ? `${agent.name} · ${shortAddress(agent.address)}` : shortAddress(agent.address));
+  const nameOf = (agent) =>
+    agent.name ? `${agent.name} · ${shortAddress(agent.address)}` : shortAddress(agent.address);
   const providerText = (agent) =>
     `as provider: ${formatInteger(agent.activeEscrowCount)} open · ${formatInteger(agent.completedAgreements)} completed`;
 
@@ -517,7 +557,9 @@ export function init(root, ctx) {
     if (failures.agents || agentsList === null) {
       const li = document.createElement('li');
       li.className = 'dim';
-      li.textContent = failures.agents ? `unavailable — ${failures.agents}` : 'reading the agent list…';
+      li.textContent = failures.agents
+        ? `unavailable — ${failures.agents}`
+        : 'reading the agent list…';
       list.append(li);
       if (pager) pager.hidden = true;
       return;
@@ -560,21 +602,44 @@ export function init(root, ctx) {
     const touch = lastPointerType === 'touch';
     if (model.size === 1) {
       const agent = cell.agents[0];
-      const open = openList === null || failures.open ? null : openList.filter((a) => a.buyer === agent.address || a.provider === agent.address).length;
+      const open =
+        openList === null || failures.open
+          ? null
+          : openList.filter((a) => a.buyer === agent.address || a.provider === agent.address)
+              .length;
       lines.push([nameOf(agent), true]);
       lines.push([STATE_WORD[cell.state], false]);
       if (isOperatorRun(agent.name)) lines.push(['operator-run (swarm- prefix)', false]);
-      lines.push([open === null ? 'open agreements unavailable' : `${formatInteger(open)} open ${open === 1 ? 'agreement' : 'agreements'}, either side`, false]);
+      lines.push([
+        open === null
+          ? 'open agreements unavailable'
+          : `${formatInteger(open)} open ${open === 1 ? 'agreement' : 'agreements'}, either side`,
+        false,
+      ]);
       lines.push([providerText(agent), false]);
-      lines.push([touch ? 'tap again to open in the explorer' : 'click to open in the explorer', false]);
+      lines.push([
+        touch ? 'tap again to open in the explorer' : 'click to open in the explorer',
+        false,
+      ]);
     } else {
-      lines.push([`Agents ${formatInteger(cell.from + 1)}–${formatInteger(cell.to + 1)} of ${formatInteger(ordered.length)}`, true]);
-      const parts = STATES.filter((s) => cell.counts[s] > 0).map((s) => `${formatInteger(cell.counts[s])} ${STATE_WORD[s]}`);
+      lines.push([
+        `Agents ${formatInteger(cell.from + 1)}–${formatInteger(cell.to + 1)} of ${formatInteger(ordered.length)}`,
+        true,
+      ]);
+      const parts = STATES.filter((s) => cell.counts[s] > 0).map(
+        (s) => `${formatInteger(cell.counts[s])} ${STATE_WORD[s]}`,
+      );
       lines.push([parts.join(' · '), false]);
-      lines.push([`${formatInteger(cell.operator)} of ${formatInteger(cell.agents.length)} operator-run`, false]);
+      lines.push([
+        `${formatInteger(cell.operator)} of ${formatInteger(cell.agents.length)} operator-run`,
+        false,
+      ]);
       const first = cell.agents[0];
       const last = cell.agents[cell.agents.length - 1];
-      lines.push([`registered blocks ${formatInteger(first.registeredAtBlock)}–${formatInteger(last.registeredAtBlock)}`, false]);
+      lines.push([
+        `registered blocks ${formatInteger(first.registeredAtBlock)}–${formatInteger(last.registeredAtBlock)}`,
+        false,
+      ]);
       lines.push(['each agent is in the list below', false]);
     }
     return lines;
@@ -648,7 +713,11 @@ export function init(root, ctx) {
       return;
     }
     if (model.size === 1) {
-      window.open(`${ctx.EXPLORER_ORIGIN}/activity?agent=${encodeURIComponent(model.cells[i].agents[0].address)}`, '_blank', 'noopener');
+      window.open(
+        `${ctx.EXPLORER_ORIGIN}/activity?agent=${encodeURIComponent(model.cells[i].agents[0].address)}`,
+        '_blank',
+        'noopener',
+      );
     }
   });
 
@@ -693,7 +762,10 @@ export function init(root, ctx) {
             activeEscrowCount: ctx.field(item, 'activeEscrowCount'),
             // Both are documented as nullable: null is "none", not a missing field.
             name: item.metadata === null ? null : ctx.field(item, 'metadata.name'),
-            leaving: item.unstakeAtBlock === null ? false : Number.isFinite(ctx.field(item, 'unstakeAtBlock')),
+            leaving:
+              item.unstakeAtBlock === null
+                ? false
+                : Number.isFinite(ctx.field(item, 'unstakeAtBlock')),
           }));
           agentsComplete = record.complete;
           agentsList = rows;
@@ -703,7 +775,9 @@ export function init(root, ctx) {
           ctx.readout.showValue(targets.agents, record, {
             value: total,
             prefix: floor ? '≥ ' : '',
-            extra: agentsTruncated ? 'live scan cut short at the indexer’s cap' : `${formatInteger(rows.length)} listed`,
+            extra: agentsTruncated
+              ? 'live scan cut short at the indexer’s cap'
+              : `${formatInteger(rows.length)} listed`,
             motion: ctx.motion,
           });
           const operator = rows.filter((row) => isOperatorRun(row.name)).length;
@@ -721,7 +795,9 @@ export function init(root, ctx) {
       });
       if (!ok) {
         agentsList = null;
-        failures.agents = record.ok ? failed ?? 'a field was missing from the response' : record.error;
+        failures.agents = record.ok
+          ? (failed ?? 'a field was missing from the response')
+          : record.error;
       }
       rebuild();
     },

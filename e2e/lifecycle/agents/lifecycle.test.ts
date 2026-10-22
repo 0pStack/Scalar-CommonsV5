@@ -31,7 +31,8 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
     await api?.disconnect();
   });
 
-  const stakeOf = async (who: KeyringPair) => (await api.query.agents.agentStake(who.address)).toJSON();
+  const stakeOf = async (who: KeyringPair) =>
+    (await api.query.agents.agentStake(who.address)).toJSON();
 
   it('rejects heartbeat / delegation / unstake from an unregistered account and writes nothing', async () => {
     for (const tx of [
@@ -49,13 +50,17 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
   });
 
   it('rejects registration below MinStake without locking or burning anything', async () => {
-    const before = (await api.query.system.account(agent.address)).toJSON() as { data: { free: string | number } };
+    const before = (await api.query.system.account(agent.address)).toJSON() as {
+      data: { free: string | number };
+    };
     const o = await send(api, api.tx.agents.register(minStake - 1n), agent);
     expect(o.ok).toBe(false);
     expect(o.error).toBe('agents.StakeTooLow');
     expect(eventsOf(o, 'agents')).toHaveLength(0);
     expect(await stakeOf(agent)).toBeNull();
-    const after = (await api.query.system.account(agent.address)).toJSON() as { data: { free: string | number } };
+    const after = (await api.query.system.account(agent.address)).toJSON() as {
+      data: { free: string | number };
+    };
     // The failed extrinsic still pays its transaction fee, but no stake lock was taken.
     expect(BigInt(after.data.free)).toBeLessThanOrEqual(BigInt(before.data.free));
     expect(await api.query.balances.locks(agent.address)).toHaveLength(0);
@@ -74,7 +79,9 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
     const block = header.number.toNumber();
     expect((await api.query.agents.lastHeartbeat(agent.address)).toJSON()).toBe(block);
     expect((await api.query.agents.stakeRegisteredAt(agent.address)).toJSON()).toBe(block);
-    const locks = (await api.query.balances.locks(agent.address)).toJSON() as { amount: string | number }[];
+    const locks = (await api.query.balances.locks(agent.address)).toJSON() as {
+      amount: string | number;
+    }[];
     expect(locks.some((l) => BigInt(l.amount) === minStake)).toBe(true);
   });
 
@@ -105,11 +112,17 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
 
   it('E33: delegate_voting stores the record + event; expiry bounds are enforced; revoke clears it', async () => {
     const head = (await api.rpc.chain.getHeader()).number.toNumber();
-    const maxPeriod = (api.consts.agents.maxDelegationPeriod as unknown as { toNumber(): number }).toNumber();
+    const maxPeriod = (
+      api.consts.agents.maxDelegationPeriod as unknown as { toNumber(): number }
+    ).toNumber();
 
     const past = await send(api, api.tx.agents.delegateVoting(delegate.address, 1), agent);
     expect(past.error).toBe('agents.DelegationExpired');
-    const tooLong = await send(api, api.tx.agents.delegateVoting(delegate.address, head + maxPeriod + 1000), agent);
+    const tooLong = await send(
+      api,
+      api.tx.agents.delegateVoting(delegate.address, head + maxPeriod + 1000),
+      agent,
+    );
     expect(tooLong.error).toBe('agents.DelegationPeriodTooLong');
     expect((await api.query.agents.votingDelegations(agent.address)).toJSON()).toBeNull();
 
@@ -118,7 +131,10 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
     expect(ok.ok).toBe(true);
     const ev = eventsOf(ok, 'agents').find((e) => e.method === 'VotingDelegated');
     expect(ev?.data.to).toBe(delegate.address);
-    const rec = (await api.query.agents.votingDelegations(agent.address)).toJSON() as Record<string, unknown>;
+    const rec = (await api.query.agents.votingDelegations(agent.address)).toJSON() as Record<
+      string,
+      unknown
+    >;
     expect(rec.delegateTo).toBe(delegate.address);
     expect(rec.expiresAt).toBe(until);
 
@@ -145,7 +161,9 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
   });
 
   it('unstake cooldown: request records deadline = block + UnstakeCooldown; early completion is rejected; stake frozen', async () => {
-    const cooldown = (api.consts.agents.unstakeCooldown as unknown as { toNumber(): number }).toNumber();
+    const cooldown = (
+      api.consts.agents.unstakeCooldown as unknown as { toNumber(): number }
+    ).toNumber();
     const req = await send(api, api.tx.agents.requestUnstake(), agent);
     expect(req.ok).toBe(true);
     const block = (await api.rpc.chain.getHeader(req.blockHash)).number.toNumber();

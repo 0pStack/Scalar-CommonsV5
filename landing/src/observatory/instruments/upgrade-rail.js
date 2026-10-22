@@ -39,7 +39,11 @@ export function init(root, ctx) {
       const ok = ctx.readout.apply(lastTarget, record, (data) => {
         const items = ctx.field(data, 'items');
         const newest = ctx.field(data, 'items.0.blockNumber');
-        ctx.readout.showValue(lastTarget, record, { value: newest, prefix: '#', motion: ctx.motion });
+        ctx.readout.showValue(lastTarget, record, {
+          value: newest,
+          prefix: '#',
+          motion: ctx.motion,
+        });
         const byBlock = new Map(items.map((item) => [item.blockNumber, item]));
         for (const node of confirms) {
           const block = Number(node.dataset.confirmBlock);

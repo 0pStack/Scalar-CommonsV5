@@ -31,7 +31,8 @@ export function xxhash64(bytes, seed = 0n) {
     for (let k = 7; k >= 0; k -= 1) v = (v << 8n) | BigInt(bytes[o + k]);
     return v;
   };
-  const read32 = (o) => BigInt((bytes[o] | (bytes[o + 1] << 8) | (bytes[o + 2] << 16) | (bytes[o + 3] << 24)) >>> 0);
+  const read32 = (o) =>
+    BigInt((bytes[o] | (bytes[o + 1] << 8) | (bytes[o + 2] << 16) | (bytes[o + 3] << 24)) >>> 0);
   const round = (acc, lane) => (rotl64((acc + lane * P2) & MASK64, 31) * P1) & MASK64;
   let i = 0;
   let h;
@@ -81,7 +82,10 @@ export function xxhash64(bytes, seed = 0n) {
 
 const le64Hex = (value) => {
   let out = '';
-  for (let k = 0; k < 8; k += 1) out += Number((value >> BigInt(8 * k)) & 0xffn).toString(16).padStart(2, '0');
+  for (let k = 0; k < 8; k += 1)
+    out += Number((value >> BigInt(8 * k)) & 0xffn)
+      .toString(16)
+      .padStart(2, '0');
   return out;
 };
 
@@ -124,7 +128,11 @@ export function readCompact(bytes, offset = 0) {
   }
   if (mode === 2) {
     if (offset + 4 > bytes.length) throw new Error('truncated compact integer');
-    const raw = bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16) | (bytes[offset + 3] << 24);
+    const raw =
+      bytes[offset] |
+      (bytes[offset + 1] << 8) |
+      (bytes[offset + 2] << 16) |
+      (bytes[offset + 3] << 24);
     return { value: raw >>> 2, next: offset + 4 };
   }
   // Big-integer mode: the top six bits give the byte count minus four.
@@ -207,12 +215,17 @@ export function decodeBabePreDigest(logHex) {
   if (bytes.length < 6 || bytes[0] !== 0x06) return null;
   if (!BABE_ENGINE.every((b, i) => bytes[1 + i] === b)) return null;
   const { value: length, next } = readCompact(bytes, 5);
-  if (bytes.length !== next + length) throw new Error('BABE pre-digest length does not match its prefix');
+  if (bytes.length !== next + length)
+    throw new Error('BABE pre-digest length does not match its prefix');
   const kinds = { 1: 'primary', 2: 'secondary-plain', 3: 'secondary-vrf' };
   const kind = kinds[bytes[next]];
   if (!kind || length < 13) throw new Error(`unrecognised BABE pre-digest variant ${bytes[next]}`);
   const authorityIndex =
-    (bytes[next + 1] | (bytes[next + 2] << 8) | (bytes[next + 3] << 16) | (bytes[next + 4] << 24)) >>> 0;
+    (bytes[next + 1] |
+      (bytes[next + 2] << 8) |
+      (bytes[next + 3] << 16) |
+      (bytes[next + 4] << 24)) >>>
+    0;
   return { kind, authorityIndex, slot: Number(readU64LE(bytes, next + 5)) };
 }
 

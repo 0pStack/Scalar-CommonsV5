@@ -53,18 +53,27 @@ describe('buyer fails closed', () => {
 
   it('refuses buyer and both modes without BUYER_PEERS', () => {
     expect(() => loadConfig({ ...base, AGENT_MODE: 'buyer' })).toThrow(/BUYER_PEERS/);
-    expect(() => loadConfig({ ...base, AGENT_MODE: 'both', BUYER_PEERS: ' , ' })).toThrow(/BUYER_PEERS/);
+    expect(() => loadConfig({ ...base, AGENT_MODE: 'both', BUYER_PEERS: ' , ' })).toThrow(
+      /BUYER_PEERS/,
+    );
   });
 
   it('starts a buyer with an explicit allowlist, and a provider without one', () => {
-    expect(loadConfig({ ...base, AGENT_MODE: 'buyer', BUYER_PEERS: '5A' }).buyerPeers).toEqual(['5A']);
+    expect(loadConfig({ ...base, AGENT_MODE: 'buyer', BUYER_PEERS: '5A' }).buyerPeers).toEqual([
+      '5A',
+    ]);
     expect(loadConfig({ ...base }).mode).toBe('provider');
   });
 });
 
 describe('isLoopbackWs', () => {
   it('accepts exact loopback hosts', () => {
-    for (const u of ['ws://127.0.0.1:9955', 'ws://localhost:9944', 'wss://localhost', 'ws://[::1]:9944']) {
+    for (const u of [
+      'ws://127.0.0.1:9955',
+      'ws://localhost:9944',
+      'wss://localhost',
+      'ws://[::1]:9944',
+    ]) {
       expect(isLoopbackWs(u), u).toBe(true);
     }
   });

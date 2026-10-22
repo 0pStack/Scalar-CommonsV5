@@ -19,7 +19,12 @@ import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import type { IndexerConfig } from './config.ts';
 import type { ChainConnection } from './chain.ts';
 import type { ChainIndexer } from './indexer.ts';
-import { UnknownActivityKindError, activityItem, parseActivityKind, sourcesFor } from './activity.ts';
+import {
+  UnknownActivityKindError,
+  activityItem,
+  parseActivityKind,
+  sourcesFor,
+} from './activity.ts';
 import { InvalidQueryError, parseOptionalInteger, parsePage, type Page } from './pagination.ts';
 import type { IndexerStore, PageResult } from './store.ts';
 import {
@@ -369,7 +374,10 @@ export const ROUTES: readonly RouteDefinition[] = [
     summary: 'Extrinsics signed by an account.',
     handler: async (context) => {
       const address = normalizeAddress(context.params.address!, context.chain.ss58Format);
-      return paged(context.store.listExtrinsics({ ...context.page, signer: address }), context.page);
+      return paged(
+        context.store.listExtrinsics({ ...context.page, signer: address }),
+        context.page,
+      );
     },
   },
   {
@@ -379,7 +387,8 @@ export const ROUTES: readonly RouteDefinition[] = [
     // The window goes down to the chain reader, not applied after the fact:
     // describing an agent costs ten storage reads, so a one-row page must not
     // cost ten reads per agent registered.
-    handler: async (context) => pagedLive(await fetchAgents(context.api, context.page), context.page),
+    handler: async (context) =>
+      pagedLive(await fetchAgents(context.api, context.page), context.page),
   },
   {
     name: 'agents.get',
@@ -520,14 +529,19 @@ export const ROUTES: readonly RouteDefinition[] = [
   {
     name: 'activity.list',
     path: '/v1/activity',
-    summary: 'Agent activity — messages, registrations, heartbeats, agreements, disputes, oracle votes, slashes — newest first; `?agent=`, `?kind=`.',
+    summary:
+      'Agent activity — messages, registrations, heartbeats, agreements, disputes, oracle votes, slashes — newest first; `?agent=`, `?kind=`.',
     handler: async (context) => {
       const kind = parseActivityKind(optionalString(context.query, 'kind'));
       // Deliberately not `requireAgent`: a deregistered or fully slashed agent
       // still has a history, and a messaging peer need not be registered at
       // all. The filter is an address, not a live registration check.
       const agent = optionalAddress(context, 'agent');
-      const page = context.store.listActivity({ ...context.page, sources: sourcesFor(kind), account: agent });
+      const page = context.store.listActivity({
+        ...context.page,
+        sources: sourcesFor(kind),
+        account: agent,
+      });
       return {
         ...paged({ total: page.total, items: page.items.map(activityItem) }, context.page),
         agent: agent ?? null,
@@ -592,7 +606,9 @@ function decodeSegment(segment: string, name: string): string {
  *
  * @throws {HttpError} 400 when a parameter segment is malformed percent-encoding.
  */
-export function matchRoute(pathname: string): { route: RouteDefinition; params: Record<string, string> } | null {
+export function matchRoute(
+  pathname: string,
+): { route: RouteDefinition; params: Record<string, string> } | null {
   const parts = pathname.split('/').filter((segment) => segment.length > 0);
   for (const route of COMPILED) {
     if (route.segments.length !== parts.length) continue;
@@ -647,7 +663,11 @@ export function createApiServer(dependencies: ApiDependencies): Server {
   });
 }
 
-async function handle(req: IncomingMessage, res: ServerResponse, dependencies: ApiDependencies): Promise<void> {
+async function handle(
+  req: IncomingMessage,
+  res: ServerResponse,
+  dependencies: ApiDependencies,
+): Promise<void> {
   if (req.method !== 'GET') {
     sendJson(res, 405, { error: `method ${req.method} not allowed; this API is read-only` });
     return;

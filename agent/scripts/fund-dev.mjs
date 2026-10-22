@@ -17,10 +17,13 @@ const alice = keyring.addFromUri('//Alice');
 for (const uri of process.argv.slice(2)) {
   const to = keyring.addFromUri(uri).address;
   await new Promise((resolve, reject) => {
-    api.tx.balances.transferKeepAlive(to, amount).signAndSend(alice, ({ status, dispatchError }) => {
-      if (dispatchError) reject(new Error(dispatchError.toString()));
-      else if (status.isInBlock) resolve();
-    }).catch(reject);
+    api.tx.balances
+      .transferKeepAlive(to, amount)
+      .signAndSend(alice, ({ status, dispatchError }) => {
+        if (dispatchError) reject(new Error(dispatchError.toString()));
+        else if (status.isInBlock) resolve();
+      })
+      .catch(reject);
   });
   console.log(`funded ${uri} -> ${to} (${amount} plancks)`);
 }

@@ -100,7 +100,11 @@ function tick(digits, from, to, motion) {
  * no glow. When nothing visible changed, only the provenance line is
  * refreshed, so a polite live region is not re-announced every poll.
  */
-export function showValue(target, record, { value, prefix = '', unit = '', sub = '', extra = '', motion = null, live = true }) {
+export function showValue(
+  target,
+  record,
+  { value, prefix = '', unit = '', sub = '', extra = '', motion = null, live = true },
+) {
   if (!target) return;
   const slot = target.querySelector('.reading-value');
   const shown = `${prefix}\u0000${value}\u0000${unit}\u0000${sub}`;

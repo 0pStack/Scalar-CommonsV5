@@ -23,18 +23,64 @@ import {
 
 await cryptoWaitReady();
 const kr = new Keyring({ type: 'sr25519', ss58Format: 42 });
-const accounts = { '//Alice': kr.addFromUri('//Alice'), '//Bob': kr.addFromUri('//Bob'), '//Charlie': kr.addFromUri('//Charlie') };
+const accounts = {
+  '//Alice': kr.addFromUri('//Alice'),
+  '//Bob': kr.addFromUri('//Bob'),
+  '//Charlie': kr.addFromUri('//Charlie'),
+};
 const genesisHash = u8aToHex(new Uint8Array(32).fill(0x11));
 
 const cases = [
-  { name: 'rust-reference-offer', from: '//Alice', to: '//Bob', kind: 'Offer', agreement: { account: '//Bob', seq: 3 }, nonce: 1n, expiresAtBlock: 1_200_000, plaintext: 'offer: 25 CMN for report #7, deliver by block 1200000', body: 'Plain' },
-  { name: 'accept-sealed', from: '//Bob', to: '//Alice', kind: 'Accept', agreement: { account: '//Alice', seq: 3 }, nonce: 1_700_000_000_000_000n, expiresAtBlock: 4_294_967_295, plaintext: '{"accept":true}', body: 'Sealed', boxNonce: 0x01 },
-  { name: 'delivery-notice-hash-only', from: '//Alice', to: '//Bob', kind: 'DeliveryNotice', agreement: { account: '//Alice', seq: 0 }, nonce: 2n, expiresAtBlock: 1_200, plaintext: '{"report":"0x11"}', body: 'None' },
-  { name: 'ping-empty', from: '//Charlie', to: '//Alice', kind: 'Ping', agreement: null, nonce: 18_446_744_073_709_551_615n, expiresAtBlock: 0, plaintext: '', body: 'Plain' },
+  {
+    name: 'rust-reference-offer',
+    from: '//Alice',
+    to: '//Bob',
+    kind: 'Offer',
+    agreement: { account: '//Bob', seq: 3 },
+    nonce: 1n,
+    expiresAtBlock: 1_200_000,
+    plaintext: 'offer: 25 CMN for report #7, deliver by block 1200000',
+    body: 'Plain',
+  },
+  {
+    name: 'accept-sealed',
+    from: '//Bob',
+    to: '//Alice',
+    kind: 'Accept',
+    agreement: { account: '//Alice', seq: 3 },
+    nonce: 1_700_000_000_000_000n,
+    expiresAtBlock: 4_294_967_295,
+    plaintext: '{"accept":true}',
+    body: 'Sealed',
+    boxNonce: 0x01,
+  },
+  {
+    name: 'delivery-notice-hash-only',
+    from: '//Alice',
+    to: '//Bob',
+    kind: 'DeliveryNotice',
+    agreement: { account: '//Alice', seq: 0 },
+    nonce: 2n,
+    expiresAtBlock: 1_200,
+    plaintext: '{"report":"0x11"}',
+    body: 'None',
+  },
+  {
+    name: 'ping-empty',
+    from: '//Charlie',
+    to: '//Alice',
+    kind: 'Ping',
+    agreement: null,
+    nonce: 18_446_744_073_709_551_615n,
+    expiresAtBlock: 0,
+    plaintext: '',
+    body: 'Plain',
+  },
 ];
 
 const vectors = {
-  description: 'Scalar Commons spec-308 signed message envelope v1 test vectors. See docs/reference/messaging.md.',
+  description:
+    'Scalar Commons spec-308 signed message envelope v1 test vectors. See docs/reference/messaging.md.',
   generator: 'sdk/scripts/gen-envelope-vectors.mjs',
   signingDomain: 'ScalarMsg/v1|',
   genesisHash,
@@ -44,10 +90,28 @@ const vectors = {
     const plaintext = stringToU8a(c.plaintext);
     const body =
       c.body === 'Sealed'
-        ? sealBody(plaintext, deriveMessagingKey(c.from), deriveMessagingKey(c.to).publicKey, new Uint8Array(24).fill(c.boxNonce))
-        : c.body === 'None' ? { type: 'None' } : undefined;
-    const agreement = c.agreement ? { account: accounts[c.agreement.account].address, seq: c.agreement.seq } : null;
-    const m = createMessage(signer, { to: accounts[c.to].address, kind: c.kind, plaintext, body, nonce: c.nonce, expiresAtBlock: c.expiresAtBlock, genesisHash, agreement });
+        ? sealBody(
+            plaintext,
+            deriveMessagingKey(c.from),
+            deriveMessagingKey(c.to).publicKey,
+            new Uint8Array(24).fill(c.boxNonce),
+          )
+        : c.body === 'None'
+          ? { type: 'None' }
+          : undefined;
+    const agreement = c.agreement
+      ? { account: accounts[c.agreement.account].address, seq: c.agreement.seq }
+      : null;
+    const m = createMessage(signer, {
+      to: accounts[c.to].address,
+      kind: c.kind,
+      plaintext,
+      body,
+      nonce: c.nonce,
+      expiresAtBlock: c.expiresAtBlock,
+      genesisHash,
+      agreement,
+    });
     return {
       name: c.name,
       input: {
@@ -76,7 +140,10 @@ const vectors = {
     { suri: '//Alice', rotation: 0 },
     { suri: '//Bob', rotation: 0 },
     { suri: '//Bob', rotation: 1 },
-  ].map((k) => ({ ...k, publicKey: u8aToHex(deriveMessagingKey(k.suri, { rotation: k.rotation }).publicKey) })),
+  ].map((k) => ({
+    ...k,
+    publicKey: u8aToHex(deriveMessagingKey(k.suri, { rotation: k.rotation }).publicKey),
+  })),
 };
 
 const path = new URL('../tests/vectors/envelope.json', import.meta.url);

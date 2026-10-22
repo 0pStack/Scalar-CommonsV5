@@ -10,11 +10,22 @@ import { signedCmn, plancksToCmn } from './units.mjs';
 
 export function renderTable(rows, { baselineKey = 'honest' } = {}) {
   const baseline = rows.find((r) => r.key === baselineKey);
-  const header = ['archetype', 'accounts', 'extrinsics', 'funded CMN', 'net CMN', 'vs honest', 'status'];
+  const header = [
+    'archetype',
+    'accounts',
+    'extrinsics',
+    'funded CMN',
+    'net CMN',
+    'vs honest',
+    'status',
+  ];
   const body = rows.map((r) => {
-    const vs = baseline && r.key !== baselineKey
-      ? signedCmn(r.netPlancks - baseline.netPlancks)
-      : (r.key === baselineKey ? '—' : 'n/a');
+    const vs =
+      baseline && r.key !== baselineKey
+        ? signedCmn(r.netPlancks - baseline.netPlancks)
+        : r.key === baselineKey
+          ? '—'
+          : 'n/a';
     return [
       r.title,
       String(r.accounts?.length ?? 0),
@@ -48,7 +59,9 @@ export function renderVerdict(rows, { baselineKey = 'honest' } = {}) {
     const profitable = r.netPlancks > 0n;
     const beatsHonest = baseline ? r.netPlancks > baseline.netPlancks : false;
     const verdict = profitable
-      ? (beatsHonest ? 'PROFITABLE AND BEATS HONEST WORK' : 'profitable')
+      ? beatsHonest
+        ? 'PROFITABLE AND BEATS HONEST WORK'
+        : 'profitable'
       : 'unprofitable';
     out.push(`  ${r.title.padEnd(20)} ${signedCmn(r.netPlancks).padStart(14)} CMN  ${verdict}`);
   }

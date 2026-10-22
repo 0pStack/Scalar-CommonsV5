@@ -19,7 +19,16 @@
  * restart, which would otherwise reset all budgets at once.
  */
 
-import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { dirname } from 'node:path';
 
 /** One budget: at most `maxRequests` grants per rolling `windowMs`. */
@@ -127,7 +136,9 @@ export class JsonFileStore implements RateLimitStore {
     }
     const entries = parseSnapshot(text);
     if (entries === undefined) {
-      throw new Error(`rate-limit state file ${this.path} is not a valid snapshot; delete it to reset the limits`);
+      throw new Error(
+        `rate-limit state file ${this.path} is not a valid snapshot; delete it to reset the limits`,
+      );
     }
     return entries;
   }
@@ -145,7 +156,10 @@ export class JsonFileStore implements RateLimitStore {
       const fd = openSync(temp, 'wx', 0o600);
       try {
         // writeFileSync loops until every byte is written; a single writeSync may not.
-        writeFileSync(fd, JSON.stringify({ version: SNAPSHOT_VERSION, entries: Object.fromEntries(log) }));
+        writeFileSync(
+          fd,
+          JSON.stringify({ version: SNAPSHOT_VERSION, entries: Object.fromEntries(log) }),
+        );
         fsyncSync(fd);
       } finally {
         closeSync(fd);
@@ -183,7 +197,12 @@ function parseSnapshot(text: string): Map<string, number[]> | undefined {
     return undefined;
   }
   const { version, entries } = data as { version?: unknown; entries?: unknown };
-  if (version !== SNAPSHOT_VERSION || typeof entries !== 'object' || entries === null || Array.isArray(entries)) {
+  if (
+    version !== SNAPSHOT_VERSION ||
+    typeof entries !== 'object' ||
+    entries === null ||
+    Array.isArray(entries)
+  ) {
     return undefined;
   }
   const log = new Map<string, number[]>();
@@ -236,7 +255,9 @@ export class SlidingWindowRateLimiter {
     assertRule('perAddress', options.perAddress);
     assertRule('perIp', options.perIp);
     const global = options.global ?? [];
-    global.forEach((rule, i) => assertRule(`global[${i}]`, rule));
+    global.forEach((rule, i) => {
+      assertRule(`global[${i}]`, rule);
+    });
     this.perAddress = options.perAddress;
     this.perIp = options.perIp;
     this.global = global;

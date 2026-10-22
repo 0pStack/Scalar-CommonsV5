@@ -24,7 +24,7 @@
     "@scalar-commons/sdk": "*",
     "@types/node": "^22.20.1",
     "typescript": "^5.6.0",
-    "vitest": "^3.2.7"
+    "vitest": "5.0.5"
   },
   "engines": {
     "node": ">=22"

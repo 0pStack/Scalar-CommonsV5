@@ -56,7 +56,10 @@ export function planStart(s: {
   need: bigint;
 }): { action: StartAction; message: string } {
   if (!isTestnet(s.chain)) {
-    return { action: 'refuse', message: `connected chain "${s.chain}" is not a testnet; this onboarding runs on the testnet only` };
+    return {
+      action: 'refuse',
+      message: `connected chain "${s.chain}" is not a testnet; this onboarding runs on the testnet only`,
+    };
   }
   if (s.approvedAddress.trim() === '') {
     return {
@@ -76,7 +79,10 @@ export function planStart(s: {
   }
   if (s.registered) return { action: 'run', message: 'agent is registered' };
   if (s.free >= s.need) {
-    return { action: 'run-and-register', message: `balance ${formatCmn(s.free)} CMN covers registration; the agent will register itself` };
+    return {
+      action: 'run-and-register',
+      message: `balance ${formatCmn(s.free)} CMN covers registration; the agent will register itself`,
+    };
   }
   return {
     action: 'faucet',
@@ -85,7 +91,10 @@ export function planStart(s: {
 }
 
 /** Newest line of the agent's JSONL log that carries a transaction hash (optionally at/after `sinceIso`). */
-export function latestTx(log: string, sinceIso?: string): { event: string; tx: string; ts: string } | null {
+export function latestTx(
+  log: string,
+  sinceIso?: string,
+): { event: string; tx: string; ts: string } | null {
   let found: { event: string; tx: string; ts: string } | null = null;
   for (const line of log.split('\n')) {
     let rec: { ts?: unknown; event?: unknown; tx?: unknown };
@@ -94,7 +103,8 @@ export function latestTx(log: string, sinceIso?: string): { event: string; tx: s
     } catch {
       continue;
     }
-    if (typeof rec.tx !== 'string' || typeof rec.event !== 'string' || typeof rec.ts !== 'string') continue;
+    if (typeof rec.tx !== 'string' || typeof rec.event !== 'string' || typeof rec.ts !== 'string')
+      continue;
     if (sinceIso !== undefined && rec.ts < sinceIso) continue;
     found = { event: rec.event, tx: rec.tx, ts: rec.ts };
   }

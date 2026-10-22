@@ -61,7 +61,11 @@ function boot() {
       tip.hidden = true;
       return;
     }
-    const parts = [nameOf(node.id), roleOf(node.id, links), `${formatInteger(node.completed ?? 0)} completed`];
+    const parts = [
+      nameOf(node.id),
+      roleOf(node.id, links),
+      `${formatInteger(node.completed ?? 0)} completed`,
+    ];
     if (node.disputed) parts.push('in dispute');
     tip.textContent = parts.join(' · ');
     tip.hidden = false;
@@ -76,7 +80,8 @@ function boot() {
     const address = node?.id ?? null;
     graph?.follow(address);
     lines.filter(address);
-    if (address) ctx.announce(`Following ${nameOf(address)}. Click the background to show every agent again.`);
+    if (address)
+      ctx.announce(`Following ${nameOf(address)}. Click the background to show every agent again.`);
   }
 
   // ── the feed's state, in the bar and the banner ──
@@ -86,7 +91,10 @@ function boot() {
       banner.textContent = text;
       banner.hidden = text === '';
     }
-    const word = { live: 'Live', stale: 'Unavailable', unavailable: 'Unavailable', connecting: 'Connecting' }[status.state] ?? 'Connecting';
+    const word =
+      { live: 'Live', stale: 'Unavailable', unavailable: 'Unavailable', connecting: 'Connecting' }[
+        status.state
+      ] ?? 'Connecting';
     if (barState) barState.textContent = word;
     bar?.setAttribute('data-state', status.state === 'live' ? 'network-normal' : status.state);
     if (text) ctx.announce(text);
@@ -151,7 +159,9 @@ function boot() {
     const head = feed.head();
     if (tickerSeeded || head === null) return;
     tickerSeeded = true;
-    const recent = events.filter(({ event }) => head - event.blockNumber <= LIVE_WINDOW_BLOCKS).slice(-TICKER_MAX);
+    const recent = events
+      .filter(({ event }) => head - event.blockNumber <= LIVE_WINDOW_BLOCKS)
+      .slice(-TICKER_MAX);
     for (const item of recent) lines.push(item);
   });
   feed.on('event', (live) => {
@@ -176,7 +186,8 @@ function boot() {
   ctx.motion.onChange((reduced) => graph?.setStatic(reduced));
 
   function toggleFullscreen() {
-    if (document.fullscreenElement) document.exitFullscreen?.().catch((error) => console.error(error));
+    if (document.fullscreenElement)
+      document.exitFullscreen?.().catch((error) => console.error(error));
     else document.documentElement.requestFullscreen?.().catch((error) => console.error(error));
   }
   document.addEventListener('fullscreenchange', () => {

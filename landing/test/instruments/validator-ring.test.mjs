@@ -33,7 +33,12 @@ import {
   ariaSummary,
   headKey,
 } from '../../src/observatory/instruments/validator-ring.js';
-import { decodeValidators, decodeQueuedKeys, decodeBabeAuthorities, bytesToHex } from '../../src/observatory/scale.js';
+import {
+  decodeValidators,
+  decodeQueuedKeys,
+  decodeBabeAuthorities,
+  bytesToHex,
+} from '../../src/observatory/scale.js';
 import { encodeSs58 } from '../../src/observatory/ss58.js';
 import { formatInteger } from '../../src/observatory/format.js';
 
@@ -59,7 +64,17 @@ const queued = decodeQueuedKeys(QUEUED_HEX);
 const babe = decodeBabeAuthorities(BABE_HEX);
 
 /** A grandpa_roundState-shaped sample; `weight` is the arrived weight of each stage. */
-const sample = (round, { setId = 76, threshold = 4, prevotes = [], precommits = [], prevoteWeight, precommitWeight } = {}) => ({
+const sample = (
+  round,
+  {
+    setId = 76,
+    threshold = 4,
+    prevotes = [],
+    precommits = [],
+    prevoteWeight,
+    precommitWeight,
+  } = {},
+) => ({
   setId,
   round,
   threshold,
@@ -114,7 +129,10 @@ test('labels anchor away from the ring: start on the right, end on the left, mid
   assert.equal(labelAnchor(0), 'start');
   assert.equal(labelAnchor(Math.PI), 'end');
   const five = ringPositions(5);
-  assert.deepEqual(five.map((p) => labelAnchor(p.angle)), ['middle', 'start', 'start', 'end', 'end']);
+  assert.deepEqual(
+    five.map((p) => labelAnchor(p.angle)),
+    ['middle', 'start', 'start', 'end', 'end'],
+  );
 });
 
 test('the label block, the hairline tick and the vote band never touch, for 3 to 12 validators, with and without addresses', () => {
@@ -124,15 +142,26 @@ test('the label block, the hairline tick and the vote band never touch, for 3 to
     for (let n = 3; n <= 12; n += 1) {
       for (const scale of [0.9, 1, 1.13]) {
         for (const p of ringPositions(n)) {
-          const { box, indexY, addrY, anchor } = labelPlacement(p.angle, { scale, showAddress, indexDigits: String(n).length });
+          const { box, indexY, addrY, anchor } = labelPlacement(p.angle, {
+            scale,
+            showAddress,
+            indexDigits: String(n).length,
+          });
           // Nearest point of the label box to the point centre, against the vote band.
           const nx = Math.max(box.x0, Math.min(p.x, box.x1));
           const ny = Math.max(box.y0, Math.min(p.y, box.y1));
           const distance = Math.hypot(nx - p.x, ny - p.y);
-          assert.ok(distance > VOTE_TICK_OUT + 1, `n=${n} k=${p.index} scale=${scale} addr=${showAddress}: label ${distance.toFixed(1)} from the point`);
+          assert.ok(
+            distance > VOTE_TICK_OUT + 1,
+            `n=${n} k=${p.index} scale=${scale} addr=${showAddress}: label ${distance.toFixed(1)} from the point`,
+          );
           // Nor may the label box cover the hairline tick's outer end.
           const tickEnd = pointAt(p.angle, TICK_FROM + 6);
-          const inside = tickEnd.x >= box.x0 && tickEnd.x <= box.x1 && tickEnd.y >= box.y0 && tickEnd.y <= box.y1;
+          const inside =
+            tickEnd.x >= box.x0 &&
+            tickEnd.x <= box.x1 &&
+            tickEnd.y >= box.y0 &&
+            tickEnd.y <= box.y1;
           assert.ok(!inside, `n=${n} k=${p.index}: label box covers the tick end`);
           // At the top the address sits above the index; elsewhere below it.
           if (Math.sin(p.angle) < -0.6) assert.ok(addrY < indexY);
@@ -169,16 +198,30 @@ test('ringLayout: addresses only when wide and every label fits inside the padde
   assert.equal(ringLayout(five, 320, true).compact, true);
   // Every label of a compact ring stays inside the plain viewBox.
   for (let n = 1; n <= 12; n += 1) {
-    const layout = ringLayout(Array.from({ length: n }, () => ({ indexDigits: String(n).length, addrChars: 9 })), 288, true);
+    const layout = ringLayout(
+      Array.from({ length: n }, () => ({ indexDigits: String(n).length, addrChars: 9 })),
+      288,
+      true,
+    );
     for (const p of ringPositions(n)) {
-      const { box } = labelPlacement(p.angle, { scale: layout.scale, showAddress: !layout.compact, indexDigits: String(n).length });
-      assert.ok(box.x0 >= layout.viewBox[0] && box.x1 <= layout.viewBox[0] + layout.viewBox[2], `n=${n} k=${p.index} leaves the plate`);
+      const { box } = labelPlacement(p.angle, {
+        scale: layout.scale,
+        showAddress: !layout.compact,
+        indexDigits: String(n).length,
+      });
+      assert.ok(
+        box.x0 >= layout.viewBox[0] && box.x1 <= layout.viewBox[0] + layout.viewBox[2],
+        `n=${n} k=${p.index} leaves the plate`,
+      );
       assert.ok(box.y0 >= 0 && box.y1 <= SIZE, `n=${n} k=${p.index} leaves the plate vertically`);
     }
   }
   // A queued label ('queued') is shorter than an address and never decides the fit.
   assert.ok(QUEUED_LABEL.length < 9);
-  assert.equal(ringLayout([...five, { indexDigits: 1, addrChars: QUEUED_LABEL.length }], 416, true).compact, false);
+  assert.equal(
+    ringLayout([...five, { indexDigits: 1, addrChars: QUEUED_LABEL.length }], 416, true).compact,
+    false,
+  );
   // Nothing to lay out: compact with a plain viewBox.
   assert.equal(ringLayout([], 416, true).compact, true);
   assert.equal(ringLayout(five, 0, true).compact, true);
@@ -189,11 +232,26 @@ test('vote ticks: one hairline per sampled round from the point’s twelve o’c
   assert.deepEqual(voteTicks([], 100, 100), []);
   const one = voteTicks([{ seen: true }], 100, 100);
   assert.equal(one.length, 1);
-  assert.deepEqual(one[0], { x1: 100, y1: 100 - VOTE_TICK_IN, x2: 100, y2: 100 - VOTE_TICK_OUT, seen: true });
-  const four = voteTicks([{ seen: true }, { seen: false }, { seen: true }, { seen: true }], 100, 100);
-  assert.deepEqual(four.map((t) => t.seen), [true, false, true, true]);
+  assert.deepEqual(one[0], {
+    x1: 100,
+    y1: 100 - VOTE_TICK_IN,
+    x2: 100,
+    y2: 100 - VOTE_TICK_OUT,
+    seen: true,
+  });
+  const four = voteTicks(
+    [{ seen: true }, { seen: false }, { seen: true }, { seen: true }],
+    100,
+    100,
+  );
+  assert.deepEqual(
+    four.map((t) => t.seen),
+    [true, false, true, true],
+  );
   // The fourth tick is a quarter turn round (three o'clock) — 30° per round.
-  assert.ok(Math.abs(four[3].x1 - (100 + VOTE_TICK_IN)) < 0.01 && Math.abs(four[3].y1 - 100) < 0.01);
+  assert.ok(
+    Math.abs(four[3].x1 - (100 + VOTE_TICK_IN)) < 0.01 && Math.abs(four[3].y1 - 100) < 0.01,
+  );
   // Every tick is radial: both ends on the same bearing from the point.
   for (const t of four) {
     const a = Math.atan2(t.y1 - 100, t.x1 - 100);
@@ -201,7 +259,11 @@ test('vote ticks: one hairline per sampled round from the point’s twelve o’c
     assert.ok(Math.abs(a - b) < 1e-6);
   }
   // Only the most recent VOTE_TICKS rounds are drawn.
-  const many = voteTicks(Array.from({ length: 20 }, (_, k) => ({ seen: k >= 8 })), 100, 100);
+  const many = voteTicks(
+    Array.from({ length: 20 }, (_, k) => ({ seen: k >= 8 })),
+    100,
+    100,
+  );
   assert.equal(many.length, VOTE_TICKS);
   assert.ok(many.every((t) => t.seen));
 });
@@ -220,12 +282,19 @@ test('buildSet decodes the live set: five active, none queued, keys mapped by st
       '5HpG9w8EBLe5XCrbczpwq5TSXvedjrBGCwqxK1iQ7qUsSWFc',
     ],
   );
-  assert.deepEqual(set.active.map((v) => v.index), [0, 1, 2, 3, 4]);
+  assert.deepEqual(
+    set.active.map((v) => v.index),
+    [0, 1, 2, 3, 4],
+  );
   // Every grandpa address the node names as missing belongs to one of the five.
   const grandpa = new Set(set.active.map((v) => v.grandpaAddress));
-  for (const id of MISSING_ALL) assert.ok(grandpa.has(id), `${id} is not a validator's grandpa key`);
+  for (const id of MISSING_ALL)
+    assert.ok(grandpa.has(id), `${id} is not a validator's grandpa key`);
   // The BABE authority list, in order, maps to the stashes in Session.Validators order today.
-  assert.deepEqual(set.authorities, set.active.map((v) => v.stashHex));
+  assert.deepEqual(
+    set.authorities,
+    set.active.map((v) => v.stashHex),
+  );
 });
 
 test('authority index → stash: through Babe.Authorities and the queued babe key', () => {
@@ -276,7 +345,11 @@ test('queued-vs-active: a stash in QueuedKeys but not in Session.Validators is d
   assert.equal(q.address, encodeSs58(joiner.stash, 42));
   assert.equal(q.grandpaAddress, encodeSs58(joiner.grandpa, 42));
   // Once it is in Session.Validators it is active, not queued.
-  const next = buildSet({ validators: [...validators, joiner.stash], queued: [...queued, joiner], babe });
+  const next = buildSet({
+    validators: [...validators, joiner.stash],
+    queued: [...queued, joiner],
+    babe,
+  });
   assert.equal(next.active.length, 6);
   assert.equal(next.queued.length, 0);
   // A validator that left the queue but is still active keeps its point, with no keys to attribute.
@@ -301,10 +374,16 @@ test('the vote sampler counts a round only once a stage reached the threshold, o
   assert.equal(s.roundsSampled(), 0);
   assert.deepEqual(s.countsFor(ids[0]), { seen: 0, sampled: 0 });
   // Two prevotes in (3 of 5 missing): below the threshold of 4, still not evidence.
-  assert.equal(s.add(sample(360, { prevotes: MISSING_ALL.slice(0, 3), precommits: MISSING_ALL }), ids), false);
+  assert.equal(
+    s.add(sample(360, { prevotes: MISSING_ALL.slice(0, 3), precommits: MISSING_ALL }), ids),
+    false,
+  );
   assert.equal(s.roundsSampled(), 0);
   // Four prevotes in: the stage reached the threshold, and the one still missing was absent from it.
-  assert.equal(s.add(sample(360, { prevotes: MISSING_ALL.slice(0, 1), precommits: MISSING_ALL }), ids), true);
+  assert.equal(
+    s.add(sample(360, { prevotes: MISSING_ALL.slice(0, 1), precommits: MISSING_ALL }), ids),
+    true,
+  );
   assert.equal(s.roundsSampled(), 1);
   const seen = ids.map((id) => s.countsFor(id).seen);
   assert.equal(seen.filter((n) => n === 1).length, 4);
@@ -318,7 +397,10 @@ test('the vote sampler counts a round only once a stage reached the threshold, o
   s.add(sample(360, { prevotes: MISSING_ALL.slice(0, 1), precommits: MISSING_ALL }), ids);
   assert.deepEqual(s.countsFor(MISSING_ALL[0]), { seen: 1, sampled: 1 });
   // A precommit stage at the threshold alone also counts (the live shape: prevotes 5 of 5, precommits 0 of 5 does too).
-  assert.equal(s.add(sample(361, { prevotes: MISSING_ALL, precommits: MISSING_ALL.slice(0, 1) }), ids), true);
+  assert.equal(
+    s.add(sample(361, { prevotes: MISSING_ALL, precommits: MISSING_ALL.slice(0, 1) }), ids),
+    true,
+  );
   assert.equal(s.add(sample(362, { prevotes: [], precommits: MISSING_ALL }), ids), true);
   assert.equal(s.roundsSampled(), 3);
   const present = ids.find((id) => id !== MISSING_ALL[0]);
@@ -336,14 +418,29 @@ test('the vote sampler counts a round only once a stage reached the threshold, o
   assert.equal(s.add(sample(365), [null, null]), false);
   assert.equal(s.roundsSampled(), 5);
   // The threshold is the round's own, not a constant.
-  assert.equal(s.add(sample(366, { threshold: 5, prevotes: MISSING_ALL.slice(0, 1), precommits: MISSING_ALL }), ids), false);
-  assert.equal(s.add(sample(366, { threshold: 5, prevotes: [], precommits: MISSING_ALL }), ids), true);
+  assert.equal(
+    s.add(
+      sample(366, { threshold: 5, prevotes: MISSING_ALL.slice(0, 1), precommits: MISSING_ALL }),
+      ids,
+    ),
+    false,
+  );
+  assert.equal(
+    s.add(sample(366, { threshold: 5, prevotes: [], precommits: MISSING_ALL }), ids),
+    true,
+  );
   // A malformed sample is refused rather than counted as a round.
   assert.throws(() => s.add(sample('367'), ids), /round/);
   assert.throws(() => s.add({ ...sample(367), setId: '76' }, ids), /setId/);
   assert.throws(() => s.add({ ...sample(367), threshold: 0 }, ids), /threshold/);
-  assert.throws(() => s.add({ ...sample(367), prevotes: { currentWeight: 5, missing: null } }, ids), /missing/);
-  assert.throws(() => s.add({ ...sample(367), precommits: { currentWeight: '5', missing: [] } }, ids), /currentWeight/);
+  assert.throws(
+    () => s.add({ ...sample(367), prevotes: { currentWeight: 5, missing: null } }, ids),
+    /missing/,
+  );
+  assert.throws(
+    () => s.add({ ...sample(367), precommits: { currentWeight: '5', missing: [] } }, ids),
+    /currentWeight/,
+  );
   assert.throws(() => s.add({ ...sample(367), precommits: undefined }, ids), /currentWeight/);
   assert.equal(s.roundsSampled(), 6);
   assert.equal(MIN_SAMPLES, 3);
@@ -354,13 +451,19 @@ test('the vote sampler keys rounds by voter-set id, so round numbers restarting 
   const ids = set.active.map((v) => v.grandpaAddress);
   const s = new VoteSampler();
   assert.equal(s.add(sample(5, { setId: 1 }), ids), true);
-  assert.equal(s.add(sample(5, { setId: 2, prevotes: MISSING_ALL.slice(4), precommits: MISSING_ALL }), ids), true);
+  assert.equal(
+    s.add(sample(5, { setId: 2, prevotes: MISSING_ALL.slice(4), precommits: MISSING_ALL }), ids),
+    true,
+  );
   assert.equal(s.roundsSampled(), 2);
   assert.deepEqual(s.countsFor(ids[0]), { seen: 2, sampled: 2 });
   // The one missing from set 2's round 5 is not seen there on the strength of set 1's round 5.
   assert.deepEqual(s.countsFor(MISSING_ALL[4]), { seen: 1, sampled: 2 });
   // recentFor lists the rounds oldest first, the last `limit` only, with the seen flag per round.
-  assert.deepEqual(s.recentFor(MISSING_ALL[4]), [{ key: '1:5', seen: true }, { key: '2:5', seen: false }]);
+  assert.deepEqual(s.recentFor(MISSING_ALL[4]), [
+    { key: '1:5', seen: true },
+    { key: '2:5', seen: false },
+  ]);
   assert.deepEqual(s.recentFor(MISSING_ALL[4], 1), [{ key: '2:5', seen: false }]);
   for (let round = 6; round < 30; round += 1) s.add(sample(round, { setId: 2 }), ids);
   assert.equal(s.recentFor(ids[0]).length, VOTE_TICKS);
@@ -375,10 +478,22 @@ test('the vote sampler keys rounds by voter-set id, so round numbers restarting 
 test('the phrases state floors and samples, never a percentage, and say "since you opened this page" once, in the heading', () => {
   assert.equal(sealedPhrase(undefined, formatInteger), 'not seen sealing a block');
   assert.equal(sealedPhrase({ count: 0, last: null }, formatInteger), 'not seen sealing a block');
-  assert.equal(sealedPhrase({ count: 1, last: 820715 }, formatInteger), 'seen sealing 1 block · last #820,715');
-  assert.equal(sealedPhrase({ count: 12, last: 820800 }, formatInteger), 'seen sealing 12 blocks · last #820,800');
-  assert.equal(votesPhrase({ seen: 0, sampled: 0 }, formatInteger), 'no finality round sampled yet');
-  assert.equal(votesPhrase({ seen: 1, sampled: 1 }, formatInteger), 'finality votes seen in 1 of 1 round sampled');
+  assert.equal(
+    sealedPhrase({ count: 1, last: 820715 }, formatInteger),
+    'seen sealing 1 block · last #820,715',
+  );
+  assert.equal(
+    sealedPhrase({ count: 12, last: 820800 }, formatInteger),
+    'seen sealing 12 blocks · last #820,800',
+  );
+  assert.equal(
+    votesPhrase({ seen: 0, sampled: 0 }, formatInteger),
+    'no finality round sampled yet',
+  );
+  assert.equal(
+    votesPhrase({ seen: 1, sampled: 1 }, formatInteger),
+    'finality votes seen in 1 of 1 round sampled',
+  );
   const phrase = votesPhrase({ seen: 4, sampled: 5 }, formatInteger);
   assert.equal(phrase, 'finality votes seen in 4 of 5 rounds sampled');
   assert.ok(!phrase.includes('%'));
@@ -389,7 +504,10 @@ test('the phrases state floors and samples, never a percentage, and say "since y
 });
 
 test('the aria summary names the set, the last author and anyone joining', () => {
-  assert.equal(ariaSummary({ active: 5, queued: 0, lastAuthor: null }), '5 validators in the active set');
+  assert.equal(
+    ariaSummary({ active: 5, queued: 0, lastAuthor: null }),
+    '5 validators in the active set',
+  );
   assert.equal(
     ariaSummary({ active: 5, queued: 0, lastAuthor: 3 }),
     '5 validators in the active set; validator 3 sealed the latest block',
@@ -398,7 +516,10 @@ test('the aria summary names the set, the last author and anyone joining', () =>
     ariaSummary({ active: 5, queued: 1, lastAuthor: 3 }),
     '5 validators in the active set; validator 3 sealed the latest block; 1 joining next session',
   );
-  assert.equal(ariaSummary({ active: 1, queued: 0, lastAuthor: null }), '1 validator in the active set');
+  assert.equal(
+    ariaSummary({ active: 1, queued: 0, lastAuthor: null }),
+    '1 validator in the active set',
+  );
 });
 
 test('a head is identified by height and state root, so a fork at one height is a new head', () => {

@@ -82,7 +82,11 @@ export function createExplorerServer(options: ExplorerServerOptions): Server {
       case 'activity': {
         const query = { agent: route.agent, offset: route.offset };
         const raw = await options.activity.activity({ ...query, limit: ACTIVITY_PAGE_SIZE });
-        const view = toActivityView(raw, (section, method) => chain.eventFieldTypes(section, method), query);
+        const view = toActivityView(
+          raw,
+          (section, method) => chain.eventFieldTypes(section, method),
+          query,
+        );
         send(response, 200, renderActivity(view, info));
         return;
       }
@@ -121,7 +125,11 @@ export function createExplorerServer(options: ExplorerServerOptions): Server {
       send(
         response,
         502,
-        renderError(502, `the node did not answer: ${error instanceof Error ? error.message : String(error)}`, info),
+        renderError(
+          502,
+          `the node did not answer: ${error instanceof Error ? error.message : String(error)}`,
+          info,
+        ),
       );
     });
   });

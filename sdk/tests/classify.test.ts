@@ -24,7 +24,9 @@ describe('isDeterministicFailure — #160 classification', () => {
   });
 
   it('treats transport and pool errors as retryable', () => {
-    expect(isDeterministicFailure(new Error('transaction not included: status=Dropped'))).toBe(false);
+    expect(isDeterministicFailure(new Error('transaction not included: status=Dropped'))).toBe(
+      false,
+    );
     expect(isDeterministicFailure(new Error('WebSocket is not connected'))).toBe(false);
     expect(isDeterministicFailure('boom')).toBe(false);
   });
@@ -41,7 +43,9 @@ describe('withRetry — deterministic dispatch errors are not retried (#160)', (
       const fn = vi.fn(async () => {
         throw err;
       });
-      await expect(withRetry(fn, 'tx', { logger: silent, maxRetries: 3, retryDelayMs: 0 })).rejects.toBe(err);
+      await expect(
+        withRetry(fn, 'tx', { logger: silent, maxRetries: 3, retryDelayMs: 0 }),
+      ).rejects.toBe(err);
       expect(fn).toHaveBeenCalledTimes(1);
     });
   }

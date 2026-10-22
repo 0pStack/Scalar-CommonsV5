@@ -35,7 +35,9 @@ export interface DemoResult {
   replayRejected: boolean;
 }
 
-export async function runMessagingDemo(log: (line: string) => void = console.log): Promise<DemoResult> {
+export async function runMessagingDemo(
+  log: (line: string) => void = console.log,
+): Promise<DemoResult> {
   await cryptoWaitReady();
   // Public dev derivations: this example never touches a real key.
   const buyer = new AgentMessenger('//Alice//demo-buyer', { genesisHash: DEMO_GENESIS });
@@ -47,9 +49,16 @@ export async function runMessagingDemo(log: (line: string) => void = console.log
   const steps: string[] = [];
 
   // 2. Offer, sealed to the provider.
-  const terms = { task: 'ECB EUR/USD reference rate for 2026-09-25', price: '10 CMN', deliverWithin: 600 };
+  const terms = {
+    task: 'ECB EUR/USD reference rate for 2026-09-25',
+    price: '10 CMN',
+    deliverWithin: 600,
+  };
   const offerFrame = encodeSignedMessage(
-    buyer.compose(provider.address, 'Offer', terms, { recipientKey: provider.messagingPublicKey, expiresAtBlock: best + 50 }),
+    buyer.compose(provider.address, 'Offer', terms, {
+      recipientKey: provider.messagingPublicKey,
+      expiresAtBlock: best + 50,
+    }),
   );
   log(`buyer → provider  Offer (${offerFrame.length}-byte SignedMessage, Sealed body)`);
   // On a live chain the provider reads the buyer's key from agents.messagingKey.
@@ -62,10 +71,15 @@ export async function runMessagingDemo(log: (line: string) => void = console.log
   const agreementTermsHash = offer.payloadHash;
   best += 1;
   const acceptFrame = encodeSignedMessage(
-    provider.compose(buyer.address, 'Accept', { offerPayloadHash: agreementTermsHash }, {
-      recipientKey: buyer.messagingPublicKey,
-      expiresAtBlock: best + 50,
-    }),
+    provider.compose(
+      buyer.address,
+      'Accept',
+      { offerPayloadHash: agreementTermsHash },
+      {
+        recipientKey: buyer.messagingPublicKey,
+        expiresAtBlock: best + 50,
+      },
+    ),
   );
   const accept = buyer.read(acceptFrame, best, { senderMessagingKey: provider.messagingPublicKey });
   steps.push(accept.kind);
@@ -75,15 +89,22 @@ export async function runMessagingDemo(log: (line: string) => void = console.log
   best += 20;
   const reportHash = u8aToHex(blake2AsU8a(new TextEncoder().encode('1.1167'), 256));
   const noticeFrame = encodeSignedMessage(
-    provider.compose(buyer.address, 'DeliveryNotice', { reportHash }, {
-      recipientKey: buyer.messagingPublicKey,
-      expiresAtBlock: best + 50,
-      agreement: { account: buyer.address, seq: 0 },
-    }),
+    provider.compose(
+      buyer.address,
+      'DeliveryNotice',
+      { reportHash },
+      {
+        recipientKey: buyer.messagingPublicKey,
+        expiresAtBlock: best + 50,
+        agreement: { account: buyer.address, seq: 0 },
+      },
+    ),
   );
   const notice = buyer.read(noticeFrame, best, { senderMessagingKey: provider.messagingPublicKey });
   steps.push(notice.kind);
-  log(`buyer verified DeliveryNotice for agreement seq ${notice.agreement?.seq}: ${JSON.stringify(notice.body)}`);
+  log(
+    `buyer verified DeliveryNotice for agreement seq ${notice.agreement?.seq}: ${JSON.stringify(notice.body)}`,
+  );
 
   // 5. Replay of the original Offer.
   let replayRejected = false;

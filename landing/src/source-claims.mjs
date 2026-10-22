@@ -19,7 +19,8 @@ export const sourceClaims = [
     snippet: 'let raw_vol = log2_scaled(vol_u128, unit_u128);',
   },
   {
-    claim: 'Volume is multiplied by a buyer-diversity score, so one repeat counterparty is worth less.',
+    claim:
+      'Volume is multiplied by a buyer-diversity score, so one repeat counterparty is worth less.',
     file: 'pallets/emissions/src/lib.rs',
     snippet: 'let diversity_bps = diversity_score_bps(unique_buyers);',
   },
@@ -44,7 +45,8 @@ export const sourceClaims = [
     snippet: 'if is_established && EraUniqueBuyers::<T>::get(agent) <= 1 {',
   },
   {
-    claim: 'Escrow between two accounts that traded in both directions in one era does not qualify.',
+    claim:
+      'Escrow between two accounts that traded in both directions in one era does not qualify.',
     file: 'pallets/agents/src/lib.rs',
     snippet: 'if rev_era == this_era && rev_vol > Zero::zero() {',
   },
@@ -64,7 +66,8 @@ export const sourceClaims = [
     snippet: 'let qualifies_for_floor = is_active && (min_qual == 0 || vol_u128 >= min_qual);',
   },
   {
-    claim: 'A reward claim mints at most the headroom left under the supply cap, then reports the cap is reached.',
+    claim:
+      'A reward claim mints at most the headroom left under the supply cap, then reports the cap is reached.',
     file: 'pallets/emissions/src/lib.rs',
     snippet: 'let mintable = supply_cap.saturating_sub(total_issued).min(pending_u128);',
   },
@@ -79,12 +82,14 @@ export const sourceClaims = [
     snippet: 'ensure!(orchestrator != sub_agent, Error::<T>::SelfLink);',
   },
   {
-    claim: 'The devnet faucet only moves funds that already exist — it transfers, and has no mint path.',
+    claim:
+      'The devnet faucet only moves funds that already exist — it transfers, and has no mint path.',
     file: 'faucet/src/chain.ts',
     snippet: 'transferKeepAlive(dest, amountPlancks)',
   },
   {
-    claim: 'The oracle-accuracy term exists in the formula, but this runtime wires no score provider into it.',
+    claim:
+      'The oracle-accuracy term exists in the formula, but this runtime wires no score provider into it.',
     file: 'runtime/src/lib.rs',
     snippet: 'type OracleScoreProvider = ();',
   },

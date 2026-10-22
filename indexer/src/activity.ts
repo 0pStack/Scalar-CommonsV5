@@ -126,7 +126,9 @@ export function parseActivityKind(raw: string | undefined): ActivityKind | undef
 
 /** The sources for one kind, or all of them. */
 export function sourcesFor(kind: ActivityKind | undefined): readonly ActivitySource[] {
-  return kind === undefined ? ACTIVITY_SOURCES : ACTIVITY_SOURCES.filter((source) => source.kind === kind);
+  return kind === undefined
+    ? ACTIVITY_SOURCES
+    : ACTIVITY_SOURCES.filter((source) => source.kind === kind);
 }
 
 /** One row of `/v1/activity`. */

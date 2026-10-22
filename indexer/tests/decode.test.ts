@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
-import { extrinsicId, eventId, accountsFromArgs, jsonSafe, type DecodedArg } from '../src/decode.ts';
+import {
+  extrinsicId,
+  eventId,
+  accountsFromArgs,
+  jsonSafe,
+  type DecodedArg,
+} from '../src/decode.ts';
 
 /**
  * These helpers sit between SCALE-decoded chain data and the REST surface.
@@ -122,6 +128,11 @@ describe('jsonSafe', () => {
   });
 
   it('leaves plain JSON values untouched', () => {
-    expect(jsonSafe({ a: 1, b: 'x', c: null, d: true })).toEqual({ a: 1, b: 'x', c: null, d: true });
+    expect(jsonSafe({ a: 1, b: 'x', c: null, d: true })).toEqual({
+      a: 1,
+      b: 'x',
+      c: null,
+      d: true,
+    });
   });
 });

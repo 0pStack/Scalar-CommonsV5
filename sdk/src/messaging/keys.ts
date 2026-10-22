@@ -77,7 +77,10 @@ function sr25519FromSuri(suri: string): { publicKey: Uint8Array; secretKey: Uint
 }
 
 /** Derive the agent's X25519 messaging keypair from its account secret. Deterministic. */
-export function deriveMessagingKey(suri: string, opts: { rotation?: number } = {}): MessagingKeypair {
+export function deriveMessagingKey(
+  suri: string,
+  opts: { rotation?: number } = {},
+): MessagingKeypair {
   const rotation = opts.rotation ?? 0;
   if (!Number.isInteger(rotation) || rotation < 0 || rotation > 0xffff_ffff) {
     throw new Error(`rotation must be a u32, got ${rotation}`);
@@ -93,13 +96,31 @@ const rotl = (v: number, c: number) => (v << c) | (v >>> (32 - c));
 
 /** HSalsa20 core: 32-byte key, 16-byte input → 32-byte output (NaCl `crypto_core_hsalsa20`). */
 export function hsalsa20(key: Uint8Array, input: Uint8Array): Uint8Array {
-  if (key.length !== 32 || input.length !== 16) throw new Error('hsalsa20 needs a 32-byte key and a 16-byte input');
+  if (key.length !== 32 || input.length !== 16)
+    throw new Error('hsalsa20 needs a 32-byte key and a 16-byte input');
   const kv = new DataView(key.buffer, key.byteOffset, 32);
   const iv = new DataView(input.buffer, input.byteOffset, 16);
   const k = (i: number) => kv.getUint32(i * 4, true);
   const n = (i: number) => iv.getUint32(i * 4, true);
   // "expand 32-byte k"
-  const x = [0x61707865, k(0), k(1), k(2), k(3), 0x3320646e, n(0), n(1), n(2), n(3), 0x79622d32, k(4), k(5), k(6), k(7), 0x6b206574];
+  const x = [
+    0x61707865,
+    k(0),
+    k(1),
+    k(2),
+    k(3),
+    0x3320646e,
+    n(0),
+    n(1),
+    n(2),
+    n(3),
+    0x79622d32,
+    k(4),
+    k(5),
+    k(6),
+    k(7),
+    0x6b206574,
+  ];
   const qr = (a: number, b: number, c: number, d: number) => {
     x[b]! ^= rotl((x[a]! + x[d]!) | 0, 7);
     x[c]! ^= rotl((x[b]! + x[a]!) | 0, 9);
@@ -107,12 +128,20 @@ export function hsalsa20(key: Uint8Array, input: Uint8Array): Uint8Array {
     x[a]! ^= rotl((x[d]! + x[c]!) | 0, 18);
   };
   for (let i = 0; i < 10; i++) {
-    qr(0, 4, 8, 12); qr(5, 9, 13, 1); qr(10, 14, 2, 6); qr(15, 3, 7, 11); // columns
-    qr(0, 1, 2, 3); qr(5, 6, 7, 4); qr(10, 11, 8, 9); qr(15, 12, 13, 14); // rows
+    qr(0, 4, 8, 12);
+    qr(5, 9, 13, 1);
+    qr(10, 14, 2, 6);
+    qr(15, 3, 7, 11); // columns
+    qr(0, 1, 2, 3);
+    qr(5, 6, 7, 4);
+    qr(10, 11, 8, 9);
+    qr(15, 12, 13, 14); // rows
   }
   const out = new Uint8Array(32);
   const ov = new DataView(out.buffer);
-  [0, 5, 10, 15, 6, 7, 8, 9].forEach((w, i) => ov.setUint32(i * 4, x[w]! >>> 0, true));
+  [0, 5, 10, 15, 6, 7, 8, 9].forEach((w, i) => {
+    ov.setUint32(i * 4, x[w]! >>> 0, true);
+  });
   return out;
 }
 
@@ -137,7 +166,11 @@ export function sealBody(
   nonce: Uint8Array = randomAsU8a(24),
 ): Extract<Body, { type: 'Sealed' }> {
   if (nonce.length !== 24) throw new Error('box nonce must be 24 bytes');
-  const { encrypted } = naclEncrypt(plaintext, boxBeforenm(recipientPublicKey, sender.secretKey), nonce);
+  const { encrypted } = naclEncrypt(
+    plaintext,
+    boxBeforenm(recipientPublicKey, sender.secretKey),
+    nonce,
+  );
   return { type: 'Sealed', senderKey: sender.publicKey, nonce, ciphertext: encrypted };
 }
 
@@ -148,10 +181,15 @@ export function openBody(
 ): Uint8Array {
   let plaintext: Uint8Array | null;
   try {
-    plaintext = naclDecrypt(body.ciphertext, body.nonce, boxBeforenm(body.senderKey, recipient.secretKey));
+    plaintext = naclDecrypt(
+      body.ciphertext,
+      body.nonce,
+      boxBeforenm(body.senderKey, recipient.secretKey),
+    );
   } catch (err) {
     throw new MessageRejected('decrypt-failed', err instanceof Error ? err.message : String(err));
   }
-  if (plaintext === null) throw new MessageRejected('decrypt-failed', 'authentication tag mismatch');
+  if (plaintext === null)
+    throw new MessageRejected('decrypt-failed', 'authentication tag mismatch');
   return plaintext;
 }

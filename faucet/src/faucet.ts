@@ -167,7 +167,9 @@ export class FaucetService {
       // The limits cannot be recorded (full disk, unwritable state file). A drip
       // that is not on disk would be forgotten by a restart, so refuse — and keep
       // the errno text and path for the journal, not for anonymous callers.
-      this.logger.error(`[faucet] cannot record rate limits, refusing drips: ${describeError(error)}`);
+      this.logger.error(
+        `[faucet] cannot record rate limits, refusing drips: ${describeError(error)}`,
+      );
       return {
         ok: false,
         code: 'LIMITS_UNAVAILABLE',
@@ -266,8 +268,12 @@ export class FaucetService {
       return;
     }
     this.alerted = true;
-    const detail = spent.map((window) => `${window.used}/${window.maxRequests} per ${describeWindow(window.windowMs)}`);
-    this.logger.warn(`[faucet] ALERT total drip budget spent (${detail.join(', ')}); drips are paused until it frees up`);
+    const detail = spent.map(
+      (window) => `${window.used}/${window.maxRequests} per ${describeWindow(window.windowMs)}`,
+    );
+    this.logger.warn(
+      `[faucet] ALERT total drip budget spent (${detail.join(', ')}); drips are paused until it frees up`,
+    );
   }
 }
 

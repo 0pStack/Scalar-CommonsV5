@@ -3,7 +3,12 @@ import type { AddressInfo } from 'node:net';
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
-import { ACTIVITY_PAGE_SIZE, IndexerResponseError, createIndexerClient, toActivityView } from '../src/activity.js';
+import {
+  ACTIVITY_PAGE_SIZE,
+  IndexerResponseError,
+  createIndexerClient,
+  toActivityView,
+} from '../src/activity.js';
 import type { ExplorerChain } from '../src/chain.js';
 import { renderActivity } from '../src/render.js';
 import { activityPath, parseRoute } from '../src/routes.js';
@@ -37,7 +42,12 @@ const CHAIN: ChainInfo = {
 
 /** Field types as the runtime metadata names them, for the events these tests use. */
 const FIELD_TYPES: Record<string, Record<string, string>> = {
-  'escrow.AgreementCreated': { buyer: 'T::AccountId', provider: 'T::AccountId', seq: 'u32', amount: 'BalanceOf<T>' },
+  'escrow.AgreementCreated': {
+    buyer: 'T::AccountId',
+    provider: 'T::AccountId',
+    seq: 'u32',
+    amount: 'BalanceOf<T>',
+  },
   'agents.HeartbeatSent': { who: 'T::AccountId' },
 };
 const fieldTypes = (section: string, method: string) => {
@@ -83,11 +93,23 @@ const FEED = {
 describe('activity routes', () => {
   it('routes the feed, with and without an agent filter', () => {
     expect(parseRoute('/activity')).toEqual({ kind: 'activity', agent: null, offset: 0 });
-    expect(parseRoute(`/activity?agent=${ALICE}`)).toEqual({ kind: 'activity', agent: ALICE, offset: 0 });
-    expect(parseRoute(`/activity?agent=${ALICE}&offset=50`)).toEqual({ kind: 'activity', agent: ALICE, offset: 50 });
+    expect(parseRoute(`/activity?agent=${ALICE}`)).toEqual({
+      kind: 'activity',
+      agent: ALICE,
+      offset: 0,
+    });
+    expect(parseRoute(`/activity?agent=${ALICE}&offset=50`)).toEqual({
+      kind: 'activity',
+      agent: ALICE,
+      offset: 50,
+    });
     // The filter form submits an empty field when cleared; that means "everyone".
     expect(parseRoute('/activity?agent=')).toEqual({ kind: 'activity', agent: null, offset: 0 });
-    expect(parseRoute('/activity?agent=%20' + ALICE + '%20')).toEqual({ kind: 'activity', agent: ALICE, offset: 0 });
+    expect(parseRoute('/activity?agent=%20' + ALICE + '%20')).toEqual({
+      kind: 'activity',
+      agent: ALICE,
+      offset: 0,
+    });
   });
 
   it('refuses a filter that is not an address, rather than showing an empty feed', () => {
@@ -101,7 +123,11 @@ describe('activity routes', () => {
 
   it('round-trips through the path builder', () => {
     expect(parseRoute(activityPath())).toEqual({ kind: 'activity', agent: null, offset: 0 });
-    expect(parseRoute(activityPath(ALICE, 25))).toEqual({ kind: 'activity', agent: ALICE, offset: 25 });
+    expect(parseRoute(activityPath(ALICE, 25))).toEqual({
+      kind: 'activity',
+      agent: ALICE,
+      offset: 25,
+    });
   });
 });
 
@@ -123,7 +149,18 @@ describe('toActivityView', () => {
 
   it('falls back to plain text for an event the runtime metadata does not describe', () => {
     const view = toActivityView(
-      { ...FEED, items: [{ ...FEED.items[0]!, section: 'messaging', method: 'MessageSent', kind: 'message', data: { note: 'hi' } }] },
+      {
+        ...FEED,
+        items: [
+          {
+            ...FEED.items[0]!,
+            section: 'messaging',
+            method: 'MessageSent',
+            kind: 'message',
+            data: { note: 'hi' },
+          },
+        ],
+      },
       fieldTypes,
       { agent: null, offset: 0 },
     );
@@ -131,9 +168,14 @@ describe('toActivityView', () => {
   });
 
   it('refuses an answer that is not the activity feed', () => {
-    expect(() => toActivityView({ error: 'nope' }, fieldTypes, { agent: null, offset: 0 })).toThrow(IndexerResponseError);
+    expect(() => toActivityView({ error: 'nope' }, fieldTypes, { agent: null, offset: 0 })).toThrow(
+      IndexerResponseError,
+    );
     expect(() =>
-      toActivityView({ ...FEED, items: [{ ...FEED.items[0]!, blockNumber: 'x' }] }, fieldTypes, { agent: null, offset: 0 }),
+      toActivityView({ ...FEED, items: [{ ...FEED.items[0]!, blockNumber: 'x' }] }, fieldTypes, {
+        agent: null,
+        offset: 0,
+      }),
     ).toThrow(IndexerResponseError);
   });
 });
@@ -217,7 +259,11 @@ describe('the /activity page over HTTP', () => {
     await new Promise<void>((resolve) => indexer.listen(0, '127.0.0.1', resolve));
     const indexerUrl = `http://127.0.0.1:${(indexer.address() as AddressInfo).port}`;
 
-    explorer = createExplorerServer({ chain, activity: createIndexerClient({ baseUrl: indexerUrl }), onError: () => {} });
+    explorer = createExplorerServer({
+      chain,
+      activity: createIndexerClient({ baseUrl: indexerUrl }),
+      onError: () => {},
+    });
     await new Promise<void>((resolve) => explorer.listen(0, '127.0.0.1', resolve));
     base = `http://127.0.0.1:${(explorer.address() as AddressInfo).port}`;
   });
@@ -237,12 +283,16 @@ describe('the /activity page over HTTP', () => {
   it('reports an indexer failure as 502, not as an empty feed', async () => {
     const failing = createExplorerServer({
       chain,
-      activity: createIndexerClient({ baseUrl: `http://127.0.0.1:${(indexer.address() as AddressInfo).port}/fail` }),
+      activity: createIndexerClient({
+        baseUrl: `http://127.0.0.1:${(indexer.address() as AddressInfo).port}/fail`,
+      }),
       onError: () => {},
     });
     await new Promise<void>((resolve) => failing.listen(0, '127.0.0.1', resolve));
     try {
-      const response = await fetch(`http://127.0.0.1:${(failing.address() as AddressInfo).port}/activity`);
+      const response = await fetch(
+        `http://127.0.0.1:${(failing.address() as AddressInfo).port}/activity`,
+      );
       expect(response.status).toBe(502);
       expect(await response.text()).toContain('node unreachable');
     } finally {
@@ -258,7 +308,9 @@ describe('the /activity page over HTTP', () => {
     });
     await new Promise<void>((resolve) => orphan.listen(0, '127.0.0.1', resolve));
     try {
-      const response = await fetch(`http://127.0.0.1:${(orphan.address() as AddressInfo).port}/activity`);
+      const response = await fetch(
+        `http://127.0.0.1:${(orphan.address() as AddressInfo).port}/activity`,
+      );
       expect(response.status).toBe(502);
       expect(await response.text()).toContain('indexer');
     } finally {
@@ -276,7 +328,10 @@ describe('the /activity page over HTTP', () => {
 
 describe('renderActivity provenance', () => {
   it('names the indexer as its source, not the node alone', () => {
-    const html = renderActivity(toActivityView(FEED, fieldTypes, { agent: null, offset: 0 }), CHAIN);
+    const html = renderActivity(
+      toActivityView(FEED, fieldTypes, { agent: null, offset: 0 }),
+      CHAIN,
+    );
     expect(html).toContain('Activity read from the indexer');
     expect(html).not.toContain('Read directly from the node');
   });
