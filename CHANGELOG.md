@@ -18,6 +18,8 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.6.0] - 2026-10-22
+
 ### Security
 
 - rank-2 agents can no longer act as Root; agents who leave lose their rank ([#109](https://github.com/0pStack/Scalar-CommonsV5/pull/109), closes [#18](https://github.com/0pStack/Scalar-CommonsV5/issues/18))
@@ -33,10 +35,15 @@ chain. That still takes `system.setCode` from root.
 - release the dispute bounty in escrow so it is reserved only once ([#119](https://github.com/0pStack/Scalar-CommonsV5/pull/119), closes [#16](https://github.com/0pStack/Scalar-CommonsV5/issues/16))
 - reject unsafe-integer offset and filters with 400 ([#120](https://github.com/0pStack/Scalar-CommonsV5/pull/120), closes [#28](https://github.com/0pStack/Scalar-CommonsV5/issues/28))
 - agent rejects dropped, invalid and silent submits instead of hanging ([#122](https://github.com/0pStack/Scalar-CommonsV5/pull/122), closes [#57](https://github.com/0pStack/Scalar-CommonsV5/issues/57))
+- oracle: consume live auto-param quorum ([#130](https://github.com/0pStack/Scalar-CommonsV5/pull/130), closes [#21](https://github.com/0pStack/Scalar-CommonsV5/issues/21))
 
 ### Changed
 
 - chore: store and check out every text file with LF ([#112](https://github.com/0pStack/Scalar-CommonsV5/pull/112))
+
+### Maintenance
+
+- ci: automate CHANGELOG.md and node releases from merged PRs ([#129](https://github.com/0pStack/Scalar-CommonsV5/pull/129), closes [#128](https://github.com/0pStack/Scalar-CommonsV5/issues/128))
 
 ## [v0.5.0] - 2026-10-20
 
