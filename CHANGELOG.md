@@ -23,6 +23,7 @@ chain. That still takes `system.setCode` from root.
 - chore: run every Claude agent and workflow on Claude Opus 5.5 ([#149](https://github.com/0pStack/Scalar-CommonsV5/pull/149), closes [#148](https://github.com/0pStack/Scalar-CommonsV5/issues/148))
 - chore(deps-dev): bump typescript from 5.9.3 to 7.0.2 ([#153](https://github.com/0pStack/Scalar-CommonsV5/pull/153))
 - ci(deps): stop Dependabot proposing npm majors ([#159](https://github.com/0pStack/Scalar-CommonsV5/pull/159))
+- ci(deps): bump the actions group across 1 directory with 5 updates ([#151](https://github.com/0pStack/Scalar-CommonsV5/pull/151))
 
 ## [v0.7.2] - 2026-10-22
 
