@@ -128,8 +128,9 @@ pub fn run() -> Result<()> {
                         let partial = new_partial(&config)?;
                         let db = partial.backend.expose_db();
                         let storage = partial.backend.expose_storage();
+                        let shared_cache = partial.backend.expose_shared_trie_cache();
 
-                        cmd.run(config, partial.client, db, storage)
+                        cmd.run(config, partial.client, db, storage, shared_cache)
                     }
                     // The reference's Overhead and Extrinsic arms are driven by a
                     // `benchmarking.rs` module of extrinsic builders — a
