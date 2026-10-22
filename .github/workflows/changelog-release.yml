@@ -1,0 +1,126 @@
+# changelog-release — keep CHANGELOG.md current and cut node releases on their own.
+#
+# WHY THIS EXISTS: releases used to be a hand-pushed tag, so nothing recorded
+# what changed between them and nothing said when one was due. v0.5.0 (spec 309)
+# went stale the moment spec 313 merged, and validators had no binary for it.
+#
+# ON EVERY MERGE TO main:
+#   1. each merged PR gets a CHANGELOG.md entry under Unreleased, sectioned by
+#      the labels on the PR and on the issues it closes (scripts/release/);
+#   2. a release is cut when the shipped node differs from the last tag:
+#      minor if the runtime spec_version changed, patch if node/ changed;
+#   3. the changelog commit and tag are pushed with GITHUB_TOKEN. That push
+#      starts no workflow (no loop), which is also why release.yml is called
+#      here instead of being left to its tag trigger.
+#
+# workflow_dispatch cuts a release by hand: `auto` applies the same rule,
+# `minor`/`patch` force that bump.
+name: changelog-release
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/release/**'
+      - '.github/workflows/changelog-release.yml'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Release to cut
+        type: choice
+        options: [auto, minor, patch]
+        default: auto
+
+# Runs edit CHANGELOG.md on main one at a time, in merge order.
+concurrency:
+  group: changelog-release-${{ github.event_name == 'pull_request' && github.ref || 'main' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node --test scripts/release/*.test.mjs
+
+  changelog:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: read
+      issues: read
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      notes: ${{ steps.release.outputs.notes }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Add entries for the merged PRs
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          # A push with no usable "before" (new branch, rewritten history) only
+          # covers its own commit.
+          if ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then BEFORE="${AFTER}~1"; fi
+          node scripts/release/run.mjs entries "$BEFORE" "$AFTER"
+
+      - name: Decide on a release
+        id: release
+        env:
+          BUMP: ${{ github.event_name == 'workflow_dispatch' && inputs.bump != 'auto' && inputs.bump || '' }}
+        run: node scripts/release/run.mjs release $BUMP
+
+      - name: Commit, tag and push
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if git diff --quiet -- CHANGELOG.md; then
+            echo "CHANGELOG.md unchanged"
+          else
+            git commit -m "docs: update CHANGELOG.md${TAG:+ for $TAG}" -- CHANGELOG.md
+            # A human merge may land between checkout and push; replay on top.
+            for attempt in 1 2 3; do
+              git push origin HEAD:main && break
+              [ "$attempt" = 3 ] && exit 1
+              git pull --rebase origin main
+            done
+          fi
+          if [ -n "$TAG" ]; then
+            git tag -a "$TAG" -m "$TAG"
+            git push origin "$TAG"
+          fi
+
+  release:
+    needs: changelog
+    if: needs.changelog.outputs.tag != ''
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.changelog.outputs.tag }}
+      notes: ${{ needs.changelog.outputs.notes }}

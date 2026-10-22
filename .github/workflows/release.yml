@@ -23,12 +23,25 @@ name: release
 on:
   push:
     tags: ['v*']
+  # changelog-release.yml cuts tags with GITHUB_TOKEN, and such a push starts no
+  # workflow, so it calls this one directly. Inside a called workflow
+  # github.ref and github.sha are the caller's (main), hence the explicit tag.
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+      notes:
+        description: The CHANGELOG.md section for this release
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -42,6 +55,8 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: "0"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
 
       # A release is built clean, never from a cache.
       - uses: ./.github/actions/setup-rust
@@ -72,13 +87,18 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+          CHANGES: ${{ inputs.notes }}
           CHANNEL: ${{ steps.toolchain.outputs.channel }}
         run: |
           VERSION="$(./target/release/scalar-node --version)"
           {
+            if [ -n "$CHANGES" ]; then
+              echo "$CHANGES"
+              echo
+            fi
             echo "Prebuilt \`scalar-node\` for Linux x86_64 (glibc >= 2.35), built by"
-            echo "\`.github/workflows/release.yml\` from \`${GITHUB_SHA}\` on the pinned"
+            echo "\`.github/workflows/release.yml\` from \`$(git rev-parse HEAD)\` on the pinned"
             echo "toolchain (rust ${CHANNEL}, polkadot-stable2606-3)."
             echo
             echo "\`${VERSION}\`"

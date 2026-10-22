@@ -57,6 +57,15 @@ Toolchain: Polkadot SDK `polkadot-stable2606-3` (sp-core 43.x, frame-system 48.x
 5. Commits are small and scoped to one pallet or one concern. Reference the pallet in the message (e.g. `emissions: add EraNotDue guard`).
 6. Never `git push --force` on main. Never commit `Cargo.lock` conflicts unresolved.
 
+## Releases and the changelog
+
+Automated by `.github/workflows/changelog-release.yml`; do not edit `CHANGELOG.md` or push `v*` tags by hand.
+
+- **Every merged PR is a changelog entry.** Its section comes from the labels on the PR and the issues it closes (`security`, `bug`, `documentation`, `tidy`/`qa`, else Changed). Label PRs and issues accurately, and link issues with `Closes #N`. `skip-changelog` leaves a PR out.
+- **Minor release when `spec_version` changes, patch release when `node/` changes, nothing else cuts a release.** A runtime behaviour change must already bump `spec_version` (hard rule above), so it always produces a new `scalar-node` download for validators.
+- **A release is not an enactment.** The tag ships a binary; the chain only moves to that `spec_version` through `system.setCode`. Validators upgrade to the release *before* the runtime is enacted.
+- To force a release: run the `changelog-release` workflow by hand with `minor` or `patch`.
+
 ## Style
 
 - Rust doc comments (`//!`, `///`) on every pallet, extrinsic, and storage item, in the existing voice: explain the economic *why*, not just the mechanical *what*.

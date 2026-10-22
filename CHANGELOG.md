@@ -1,0 +1,45 @@
+# Changelog
+
+Every PR merged to `main` gets an entry under **Unreleased**, written by
+`.github/workflows/changelog-release.yml`. The section comes from the labels on
+the PR and on the issues it closes: `security` → Security, `bug` → Fixed,
+`documentation` → Documentation, `tidy`/`qa` → Maintenance, anything else →
+Changed. Label a PR `skip-changelog` to leave it out.
+
+A release (a `vX.Y.Z` tag plus a prebuilt `scalar-node`) is cut automatically
+when the merge leaves the shipped node different from the last tag:
+
+- **minor**: the runtime `spec_version` differs from the last tag's
+- **patch**: `node/` changed since the last tag
+- otherwise no release; entries wait under Unreleased for the next one
+
+`spec_version` is the on-chain version; a release does not enact it on any
+chain. That still takes `system.setCode` from root.
+
+## Unreleased
+
+### Security
+
+- rank-2 agents can no longer act as Root; agents who leave lose their rank ([#109](https://github.com/0pStack/Scalar-CommonsV5/pull/109), closes [#18](https://github.com/0pStack/Scalar-CommonsV5/issues/18))
+- fix: cap the faucet's total losses and keep its limits across restarts ([#110](https://github.com/0pStack/Scalar-CommonsV5/pull/110), closes [#20](https://github.com/0pStack/Scalar-CommonsV5/issues/20))
+- fix: stop add_stake re-locking stake the account already has locked ([#113](https://github.com/0pStack/Scalar-CommonsV5/pull/113), closes [#58](https://github.com/0pStack/Scalar-CommonsV5/issues/58))
+- runtime: shut down unsafe ranked referendum route ([#111](https://github.com/0pStack/Scalar-CommonsV5/pull/111), closes [#59](https://github.com/0pStack/Scalar-CommonsV5/issues/59))
+- runtime: enforce emergency filters without halting recovery ([#115](https://github.com/0pStack/Scalar-CommonsV5/pull/115), closes [#60](https://github.com/0pStack/Scalar-CommonsV5/issues/60))
+- escrow: make oracle dispute settlement atomic ([#116](https://github.com/0pStack/Scalar-CommonsV5/pull/116), closes [#61](https://github.com/0pStack/Scalar-CommonsV5/issues/61))
+- Upgrade Polkadot SDK to stable2606-3, spec_version 313 ([#124](https://github.com/0pStack/Scalar-CommonsV5/pull/124), closes [#30](https://github.com/0pStack/Scalar-CommonsV5/issues/30))
+
+### Fixed
+
+- release the dispute bounty in escrow so it is reserved only once ([#119](https://github.com/0pStack/Scalar-CommonsV5/pull/119), closes [#16](https://github.com/0pStack/Scalar-CommonsV5/issues/16))
+- reject unsafe-integer offset and filters with 400 ([#120](https://github.com/0pStack/Scalar-CommonsV5/pull/120), closes [#28](https://github.com/0pStack/Scalar-CommonsV5/issues/28))
+- agent rejects dropped, invalid and silent submits instead of hanging ([#122](https://github.com/0pStack/Scalar-CommonsV5/pull/122), closes [#57](https://github.com/0pStack/Scalar-CommonsV5/issues/57))
+
+### Changed
+
+- chore: store and check out every text file with LF ([#112](https://github.com/0pStack/Scalar-CommonsV5/pull/112))
+
+## [v0.5.0] - 2026-10-20
+
+First tagged release: a prebuilt `scalar-node` for outside validators, runtime
+spec 309 on `polkadot-stable2503`, matching the live testnet. Changes before
+this tag are not itemised here; see `git log v0.5.0`.
