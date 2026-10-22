@@ -689,7 +689,8 @@ function fakeBar() {
   const ctx = {
     bus: {
       on: (name, fn) => {
-        (handlers[name] ||= []).push(fn);
+        handlers[name] ||= [];
+        handlers[name].push(fn);
       },
     },
     motion: { reduced: () => true },
@@ -833,7 +834,11 @@ function statusBarHarness() {
   const listeners = new Map();
   const bus = {
     on: (name, fn) => listeners.set(name, [...(listeners.get(name) ?? []), fn]),
-    emit: (name, payload) => (listeners.get(name) ?? []).forEach((fn) => fn(payload)),
+    emit: (name, payload) => {
+      (listeners.get(name) ?? []).forEach((fn) => {
+        fn(payload);
+      });
+    },
   };
   const calls = { shown: [], errors: [] };
   const watches = new Map();

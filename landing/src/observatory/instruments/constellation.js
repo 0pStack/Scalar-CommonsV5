@@ -338,7 +338,11 @@ export function clusters(ids, edges) {
     .sort((a, b) => b.length - a.length || (a[0] < b[0] ? -1 : 1));
   const alone = [...groups.values()].filter((g) => g.length === 1).flat();
   const index = new Map();
-  linked.forEach((group, i) => group.forEach((id) => index.set(id, i)));
+  linked.forEach((group, i) => {
+    group.forEach((id) => {
+      index.set(id, i);
+    });
+  });
   for (const id of alone) index.set(id, linked.length);
   return { index, count: linked.length + (alone.length ? 1 : 0), alone: alone.length > 0 };
 }
@@ -862,9 +866,9 @@ export function init(root, ctx) {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = colour('text-dim');
-    lines.forEach((line, i) =>
-      g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 16),
-    );
+    lines.forEach((line, i) => {
+      g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 16);
+    });
   }
 
   /** Every point except `except`: does the rectangle sit on one of them? */

@@ -417,9 +417,9 @@ export function init(root, ctx) {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = colour('text-dim');
-    lines.forEach((line, i) =>
-      g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 18),
-    );
+    lines.forEach((line, i) => {
+      g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 18);
+    });
   }
 
   function draw() {

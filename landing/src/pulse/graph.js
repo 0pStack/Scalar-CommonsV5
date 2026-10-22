@@ -512,7 +512,8 @@ export function createGraph(host, { ctx, onHover = () => {}, onSelect = () => {}
           // The library's data update drops every single-hop particle; a
           // message still crossing is put back where it was.
           if (effect.kind === 'message') {
-            const photons = effect.link.__photons ?? (effect.link.__photons = []);
+            effect.link.__photons ??= [];
+            const photons = effect.link.__photons;
             if (!photons.includes(effect.photon)) photons.push(effect.photon);
           }
         }

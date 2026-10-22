@@ -93,7 +93,9 @@ export function proseOf(content) {
       return;
     }
     if (Array.isArray(node)) {
-      node.forEach((item, i) => walk(item, `${path}[${i}]`));
+      node.forEach((item, i) => {
+        walk(item, `${path}[${i}]`);
+      });
       return;
     }
     if (node && typeof node === 'object') {

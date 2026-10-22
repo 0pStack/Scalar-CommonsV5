@@ -255,7 +255,9 @@ export class SlidingWindowRateLimiter {
     assertRule('perAddress', options.perAddress);
     assertRule('perIp', options.perIp);
     const global = options.global ?? [];
-    global.forEach((rule, i) => assertRule(`global[${i}]`, rule));
+    global.forEach((rule, i) => {
+      assertRule(`global[${i}]`, rule);
+    });
     this.perAddress = options.perAddress;
     this.perIp = options.perIp;
     this.global = global;

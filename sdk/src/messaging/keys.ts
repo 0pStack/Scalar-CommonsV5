@@ -139,7 +139,9 @@ export function hsalsa20(key: Uint8Array, input: Uint8Array): Uint8Array {
   }
   const out = new Uint8Array(32);
   const ov = new DataView(out.buffer);
-  [0, 5, 10, 15, 6, 7, 8, 9].forEach((w, i) => ov.setUint32(i * 4, x[w]! >>> 0, true));
+  [0, 5, 10, 15, 6, 7, 8, 9].forEach((w, i) => {
+    ov.setUint32(i * 4, x[w]! >>> 0, true);
+  });
   return out;
 }
 

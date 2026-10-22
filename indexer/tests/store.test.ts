@@ -188,7 +188,7 @@ describe('IndexerStore', () => {
     const extrinsic = store.getExtrinsic('100-0');
     expect(extrinsic?.tipPlancks).toBe(huge);
     expect(BigInt(extrinsic!.tipPlancks!)).toBe(100_000_000_000n * 10n ** 12n);
-    expect((store.getEvent('100-0')?.data as { amount: string }).amount).toBe(huge);
+    expect(store.getEvent('100-0')?.data).toMatchObject({ amount: huge });
   });
 
   it('reports gaps so the indexer knows what still needs backfilling', () => {

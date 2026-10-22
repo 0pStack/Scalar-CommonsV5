@@ -19,10 +19,11 @@ const out = fileURLToPath(new URL('../chain-events.json', import.meta.url));
 
 let id = 0;
 async function rpc(method, params = []) {
+  id += 1;
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id: (id += 1), jsonrpc: '2.0', method, params }),
+    body: JSON.stringify({ id, jsonrpc: '2.0', method, params }),
   });
   if (!response.ok) throw new Error(`${method}: HTTP ${response.status}`);
   const body = await response.json();

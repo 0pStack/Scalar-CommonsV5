@@ -17,7 +17,7 @@
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm test --workspaces --if-present",
-    "lint": "biome lint .",
+    "lint": "biome lint --diagnostic-level=error .",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "coverage": "npm run build -w sdk && npm run coverage --workspaces --if-present",
