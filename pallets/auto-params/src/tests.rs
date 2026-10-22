@@ -76,7 +76,6 @@ parameter_types! {
 }
 
 impl crate::pallet::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type GovernanceOrigin = frame_system::EnsureRoot<u64>;
     type InitialCompletionFeeBps = InitFeeBps;
     type InitialAlpha = InitAlpha;

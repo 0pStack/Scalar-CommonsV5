@@ -87,7 +87,6 @@ parameter_types! {
 }
 
 impl pallet_agents::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinStake = MinStakeX;
     type FullFloorStake = FFStakeX;
@@ -182,7 +181,6 @@ impl crate::DisputeOracle<u64, u64, u64> for MockDisputeOracle {
 }
 
 impl super::Config for Test {
-    type RuntimeEvent = RuntimeEvent;
     // No `Currency` here: escrow::Config does not declare one — it spends through
     // pallet_agents::Config::Currency, which this mock already sets to Balances.
     type MaxAgreementsPerPair = MaxAgreements;

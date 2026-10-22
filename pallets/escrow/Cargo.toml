@@ -6,12 +6,12 @@ edition = "2021"
 [dependencies]
 parity-scale-codec = { version = "3.6.12", default-features = false, features = ["derive"] }
 scale-info = { version = "2.11", default-features = false, features = ["derive"] }
-frame-support = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
-frame-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
-sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
-sp-std = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false }
+frame-support = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
+frame-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
+sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
+sp-std = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
 pallet-agents = { path = "../agents", default-features = false }
-frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503", default-features = false, optional = true }
+frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false, optional = true }
 
 # Crates the test mock in src/tests.rs needs but the pallet itself does not.
 # std is on here (no `default-features = false`) because test runtimes execute
@@ -19,11 +19,11 @@ frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag =
 # above and reach the mock with std via this crate's default `std` feature.
 [dev-dependencies]
 # sp_core::H256 — frame_system::Config::Hash in the mock (tests.rs:7).
-sp-core = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503" }
+sp-core = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3" }
 # sp_io::TestExternalities — new_test_ext() return type.
-sp-io = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503" }
+sp-io = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3" }
 # pallet_balances — the mock's Currency and AccountData.
-pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2503" }
+pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3" }
 
 [features]
 default = ["std"]

@@ -60,14 +60,19 @@ echo | openssl s_client -connect rpc.<DOMAIN>:443 -servername rpc.<DOMAIN> 2>/de
 
 ---
 
-## (b) `author_rotateKeys` and `author_insertKey` are REFUSED
+## (b) `author_rotateKeys`, `author_rotateKeysWithOwner` and `author_insertKey` are REFUSED
 
-**This is the check that matters.** Both must be refused *through the proxy*,
+**This is the check that matters.** All three must be refused *through the proxy*,
 over wss — the path a real attacker uses.
 
 ```bash
 wscat -c wss://rpc.<DOMAIN> \
   -x '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeys","params":[]}'
+```
+
+```bash
+wscat -c wss://rpc.<DOMAIN> \
+  -x '{"jsonrpc":"2.0","id":1,"method":"author_rotateKeysWithOwner","params":["0x0000000000000000000000000000000000000000000000000000000000000000"]}'
 ```
 
 ```bash
@@ -81,6 +86,11 @@ wscat -c wss://rpc.<DOMAIN> \
 {"jsonrpc":"2.0","id":1,"error":{"code":-32601,"message":"RPC call is unsafe to be called externally"}}
 ```
 
+That capture predates `author_rotateKeysWithOwner`; a node built from
+polkadot-stable2606 refuses it through the same unsafe-method check, so it must
+return the same shape. A node built before stable2606 lacks the method and
+answers `-32601` `Method not found`, which also meets the pass condition below.
+
 Pass condition, stated precisely:
 
 - the response has an **`error`** member, and
@@ -88,9 +98,9 @@ Pass condition, stated precisely:
 - `error.code` is **`-32601`**.
 
 **Fail — treat as an incident, revoke exposure immediately:** any response
-carrying a `result`. For `author_rotateKeys` a `result` is a freshly generated
-session key, which means the endpoint is minting session keys for anonymous
-callers.
+carrying a `result`. For `author_rotateKeys` or `author_rotateKeysWithOwner` a
+`result` is a freshly generated session key, which means the endpoint is minting
+session keys for anonymous callers.
 
 ### Where the refusal comes from
 

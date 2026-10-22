@@ -13,8 +13,8 @@
 # RPC is loopback-only because --rpc-external / --unsafe-rpc-external are never
 # passed: the node binds 127.0.0.1:${RPC_PORT} and nothing else. Only p2p
 # (${P2P_PORT}) should be reachable from outside. RPC_METHODS is `safe` in normal
-# operation; the guide flips it to `unsafe` for the one-off author_rotateKeys and
-# back again.
+# operation; the guide flips it to `unsafe` for the one-off author_rotateKeysWithOwner
+# and back again.
 
 [Unit]
 Description=Scalar Commons validator (%u)

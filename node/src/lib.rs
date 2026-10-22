@@ -7,6 +7,10 @@
 //! `--chain` id — stays a callable public API rather than dead code.
 
 #![warn(missing_docs)]
+// The service and command functions return `sc_service::Error`, the SDK's own
+// error type (176 bytes at stable2606). Boxing it here would only diverge from the
+// reference node for no gain on cold startup paths.
+#![allow(clippy::result_large_err)]
 
 pub mod chain_spec;
 mod cli;

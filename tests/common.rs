@@ -128,7 +128,6 @@ impl pallet_balances::Config for TestRuntime {
 // ── Agents Config ─────────────────────────────────────────────────────────────
 
 impl pallet_agents::Config for TestRuntime {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type MinStake = ConstU64<{ 1_000 * CMN }>;
     type FullFloorStake = ConstU64<{ 10_000 * CMN }>;
@@ -226,7 +225,6 @@ impl pallet_agents::pallet::OrchestratorLookup<u64, u64> for TestOrchestratorBri
 // ── Escrow Config ─────────────────────────────────────────────────────────────
 
 impl pallet_escrow::Config for TestRuntime {
-    type RuntimeEvent = RuntimeEvent;
     type MaxAgreementsPerPair = ConstU32<25>;
     type MaxAgreementSpan = ConstU64<10_000>;
     type MinAgreementAmount = ConstU64<CMN>;
@@ -246,7 +244,6 @@ impl pallet_escrow::Config for TestRuntime {
 // ── Oracle Config ─────────────────────────────────────────────────────────────
 
 impl pallet_oracle::Config for TestRuntime {
-    type RuntimeEvent = RuntimeEvent;
     type MinOracleBounty = ConstU64<CMN>;
     type MaxOpenRequests = ConstU32<1000>;
     type MinConsensusThreshold = ConstU8<50>;
@@ -315,7 +312,6 @@ parameter_types! {
 }
 
 impl pallet_emissions::Config for TestRuntime {
-    type RuntimeEvent = RuntimeEvent;
     type Currency = Balances;
     type SupplyCap = SupplyCapIntTest;
     type EraDuration = ConstU64<100>;
@@ -357,7 +353,6 @@ parameter_types! {
 }
 
 impl pallet_auto_params::Config for TestRuntime {
-    type RuntimeEvent = RuntimeEvent;
     type GovernanceOrigin = frame_system::EnsureRoot<u64>;
     type InitialCompletionFeeBps = InitFeeBps;
     type InitialAlpha = InitAlpha;
@@ -377,7 +372,6 @@ impl pallet_auto_params::Config for TestRuntime {
 // ── Orchestrator Config ───────────────────────────────────────────────────────
 
 impl pallet_orchestrator::Config for TestRuntime {
-    type RuntimeEvent = RuntimeEvent;
     type MaxSubAgentsPerOrchestrator = ConstU32<10>;
     type MaxOrchestratorFeeBps = ConstU32<500>;
     type LinkApprovalWindow = ConstU64<100>;
@@ -392,7 +386,6 @@ pub const MESSAGE_BASE_FEE: u64 = CMN / 50;
 pub const MESSAGE_PER_BYTE_FEE: u64 = CMN / 10_000;
 
 impl pallet_messages::Config for TestRuntime {
-    type RuntimeEvent = RuntimeEvent;
     type BaseFee = ConstU64<MESSAGE_BASE_FEE>;
     type PerByteFee = ConstU64<MESSAGE_PER_BYTE_FEE>;
     type MaxPerBlock = ConstU32<4>;

@@ -1,8 +1,17 @@
-import type { AddressOrPair } from '@polkadot/api/types';
+import type { AddressOrPair, SubmittableExtrinsic } from '@polkadot/api/types';
 import type { Codec } from '@polkadot/types/types';
 import { hexToU8a, u8aToHex } from '@polkadot/util';
-import { ScalarCommonsClient } from '@scalar-commons/sdk';
+import { ScalarCommonsClient, submitAndWatch } from '@scalar-commons/sdk';
 import type { AgreementView, Chain } from './types.js';
+
+/**
+ * How long a direct write waits for InBlock before giving up (#57).
+ *
+ * The SDK's submit has no deadline yet (#74), so a subscription that goes
+ * silent would stall the agent forever. 60 s is ten 6 s blocks against a normal
+ * one or two, and matches onboard's deadline for its slow HTTP call.
+ */
+export const SUBMIT_TIMEOUT_MS = 60_000;
 
 /** Read a codec's numeric value as bigint (missing → 0). */
 function big(c: Codec | undefined | null): bigint {
@@ -107,14 +116,7 @@ export class SdkChain implements Chain {
     // Name the instance so ambient activity is attributable to its operator.
     const meta = this.api.tx.agents?.updateMetadata;
     if (typeof meta !== 'function') return null;
-    return new Promise<string>((resolve, reject) => {
-      meta('', name)
-        .signAndSend(this.signer, ({ status, dispatchError, txHash }) => {
-          if (dispatchError) reject(new Error(dispatchError.toString()));
-          else if (status.isInBlock) resolve(txHash.toHex());
-        })
-        .catch(reject);
-    });
+    return this.send(meta('', name), 'updateMetadata');
   }
 
   async heartbeat(): Promise<string> {
@@ -124,14 +126,32 @@ export class SdkChain implements Chain {
   async acceptAgreement(buyer: string, seq: number): Promise<string> {
     const call = this.api.tx.escrow?.acceptAgreement;
     if (typeof call !== 'function') throw new Error('runtime does not expose escrow.acceptAgreement');
-    return new Promise<string>((resolve, reject) => {
-      call(buyer, seq)
-        .signAndSend(this.signer, ({ status, dispatchError, txHash }) => {
-          if (dispatchError) reject(new Error(dispatchError.toString()));
-          else if (status.isInBlock) resolve(txHash.toHex());
-        })
-        .catch(reject);
+    return this.send(call(buyer, seq), 'acceptAgreement');
+  }
+
+  /**
+   * Submit a call the SDK client has no wrapper for. `submitAndWatch` rejects on
+   * Dropped/Invalid/Usurped; the timer covers a subscription that never fires.
+   * `maxRetries: 0` keeps these writes single-shot, as they were (#76 owns retries).
+   * On timeout the SDK's subscription is not cancelled: it has no handle for that (#74).
+   */
+  private async send(tx: SubmittableExtrinsic<'promise'>, label: string): Promise<string> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`submit(${label}) timed out after ${SUBMIT_TIMEOUT_MS / 1000} s without InBlock`)),
+        SUBMIT_TIMEOUT_MS,
+      );
     });
+    try {
+      const { txHash } = await Promise.race([
+        submitAndWatch(this.api, tx, this.signer, label, { maxRetries: 0 }),
+        deadline,
+      ]);
+      return txHash;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   async recordDelivery(buyer: string, seq: number, deliveryHash: string): Promise<string> {
