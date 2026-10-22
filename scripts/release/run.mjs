@@ -2,7 +2,8 @@
 // CLI for the changelog-release workflow. Logic lives in changelog.mjs; this
 // file only reads git and GitHub and writes CHANGELOG.md.
 //
-//   node scripts/release/run.mjs entries <from> <to>   add an entry per PR merged in from..to
+//   node scripts/release/run.mjs entries [from] [to]   add an entry per PR merged in from..to
+//                                                      (default: last v* tag..HEAD)
 //   node scripts/release/run.mjs release [minor|patch] cut a release if one is due (or forced)
 //
 // `release` writes `tag` and `notes` to $GITHUB_OUTPUT; `tag` is empty when
@@ -33,10 +34,22 @@ const PR_QUERY = `query($owner: String!, $name: String!, $n: Int!) {
   }
 }`;
 
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+// GitHub indexes a merge commit's PR shortly after the push, so an empty
+// answer right away is retried before the commit is treated as a direct push.
 function mergedPrFor(slug, sha) {
-  const prs = JSON.parse(gh('api', `repos/${slug}/commits/${sha}/pulls`));
-  return prs.find((pr) => pr.merged_at && pr.base.ref === 'main') ?? null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const prs = JSON.parse(gh('api', `repos/${slug}/commits/${sha}/pulls`));
+    const pr = prs.find((p) => p.merged_at && p.base.ref === 'main');
+    if (pr) return pr;
+    if (attempt < 3) sleep(5000);
+  }
+  console.warn(`::warning::${sha.slice(0, 7)} has no merged PR; no changelog entry`);
+  return null;
 }
+
+const lastTag = () => git('describe', '--tags', '--abbrev=0', '--match', 'v*');
 
 function prDetails(slug, number) {
   const [owner, name] = slug.split('/');
@@ -55,7 +68,13 @@ function prDetails(slug, number) {
 function entries(from, to) {
   const slug = repoSlug();
   const repo = `https://github.com/${slug}`;
-  const shas = git('rev-list', '--first-parent', '--reverse', `${from}..${to}`).split('\n').filter(Boolean);
+  // The bot's own CHANGELOG.md commits have no PR; skip them rather than warn.
+  const shas = git('log', '--first-parent', '--reverse', '--format=%H %ae', `${from}..${to}`)
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => line.split(' '))
+    .filter(([, email]) => !email.includes('github-actions[bot]'))
+    .map(([sha]) => sha);
   const seen = new Set();
   let changelog = readFileSync(CHANGELOG, 'utf8');
   for (const sha of shas) {
@@ -75,12 +94,12 @@ function entries(from, to) {
 }
 
 function release(force) {
-  const lastTag = git('describe', '--tags', '--abbrev=0', '--match', 'v*');
+  const last = lastTag();
   const specAt = (ref) => parseSpecVersion(git('show', `${ref}:${RUNTIME}`));
-  const specChanged = specAt(lastTag) !== specAt('HEAD');
-  const nodeChanged = git('diff', '--name-only', lastTag, 'HEAD', '--', NODE_DIR) !== '';
-  const version = nextVersion(lastTag, { specChanged, nodeChanged, force });
-  console.log(`last ${lastTag}; spec changed: ${specChanged}; node changed: ${nodeChanged}; next: ${version ?? 'none'}`);
+  const specChanged = specAt(last) !== specAt('HEAD');
+  const nodeChanged = git('diff', '--name-only', last, 'HEAD', '--', NODE_DIR) !== '';
+  const version = nextVersion(last, { specChanged, nodeChanged, force });
+  console.log(`last ${last}; spec changed: ${specChanged}; node changed: ${nodeChanged}; next: ${version ?? 'none'}`);
 
   let notes = '';
   if (version) {
@@ -98,11 +117,11 @@ function release(force) {
 }
 
 const [command, ...args] = process.argv.slice(2);
-if (command === 'entries' && args.length === 2) {
-  entries(args[0], args[1]);
+if (command === 'entries' && args.length <= 2) {
+  entries(args[0] ?? lastTag(), args[1] ?? 'HEAD');
 } else if (command === 'release' && args.length <= 1) {
   release(args[0] || undefined);
 } else {
-  console.error('usage: run.mjs entries <from> <to> | run.mjs release [minor|patch]');
+  console.error('usage: run.mjs entries [from] [to] | run.mjs release [minor|patch]');
   process.exit(2);
 }

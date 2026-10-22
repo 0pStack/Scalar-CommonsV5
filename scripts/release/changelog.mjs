@@ -31,19 +31,22 @@ export function entryLine({ repo, number, title, closes }) {
   return `- ${bare} (${issues ? `${pr}, closes ${issues}` : pr})`;
 }
 
-function splitUnreleased(changelog) {
-  const start = changelog.indexOf(UNRELEASED);
-  if (start === -1) throw new Error(`CHANGELOG.md has no "${UNRELEASED}" heading`);
-  const bodyStart = start + UNRELEASED.length;
+function splitUnreleased(raw) {
+  const changelog = raw.replace(/\r\n/g, '\n');
+  const match = /^## Unreleased$/m.exec(changelog);
+  if (!match) throw new Error(`CHANGELOG.md has no "${UNRELEASED}" heading`);
+  const bodyStart = match.index + UNRELEASED.length;
   const next = changelog.indexOf('\n## ', bodyStart);
   const end = next === -1 ? changelog.length : next + 1;
   return {
-    head: changelog.slice(0, start),
+    head: changelog.slice(0, match.index),
     body: changelog.slice(bodyStart, end),
     tail: changelog.slice(end),
   };
 }
 
+// Unreleased is rewritten on every edit, so anything this parser does not
+// understand would be silently lost. Refuse it instead.
 function parseSections(body) {
   const sections = new Map();
   let current = null;
@@ -54,6 +57,10 @@ function parseSections(body) {
       sections.set(current, sections.get(current) ?? []);
     } else if (current && line.startsWith('- ')) {
       sections.set(current, [...sections.get(current), line]);
+    } else if (line.trim() !== '') {
+      throw new Error(
+        `CHANGELOG.md: line under ${UNRELEASED} is not a "### Section" heading or a one-line "- " entry: "${line}"`,
+      );
     }
   }
   return sections;

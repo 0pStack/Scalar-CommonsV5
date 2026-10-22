@@ -60,6 +60,26 @@ test('entries never leak into an already released section', () => {
   );
 });
 
+test('content under Unreleased that would be lost on a rewrite is refused, not dropped', () => {
+  const prose = '# Changelog\n\n## Unreleased\n\nA hand-written note.\n';
+  assert.throws(() => addEntry(prose, 'Fixed', '- b ([#2](x/pull/2))'), /Unreleased.*A hand-written note/s);
+  const wrapped = '# Changelog\n\n## Unreleased\n\n### Fixed\n\n- a\n  continued\n';
+  assert.throws(() => cutRelease(wrapped, 'v0.6.0', '2026-10-22'), /continued/);
+});
+
+test('CRLF files and look-alike headings are handled', () => {
+  const crlf = '# Changelog\r\n\r\n## Unreleased\r\n\r\n### Fixed\r\n\r\n- a ([#1](x/pull/1))\r\n';
+  assert.equal(
+    addEntry(crlf, 'Fixed', '- b ([#2](x/pull/2))'),
+    '# Changelog\n\n## Unreleased\n\n### Fixed\n\n- a ([#1](x/pull/1))\n- b ([#2](x/pull/2))\n',
+  );
+  const intro = '# Changelog\n\nNew entries go under ## Unreleased below.\n\n## Unreleased\n';
+  assert.equal(
+    addEntry(intro, 'Fixed', '- b ([#2](x/pull/2))'),
+    '# Changelog\n\nNew entries go under ## Unreleased below.\n\n## Unreleased\n\n### Fixed\n\n- b ([#2](x/pull/2))\n',
+  );
+});
+
 test('a spec_version change is a minor release, a node change a patch, anything else none', () => {
   assert.equal(nextVersion('v0.5.0', { specChanged: true, nodeChanged: true }), 'v0.6.0');
   assert.equal(nextVersion('v0.5.3', { specChanged: true, nodeChanged: false }), 'v0.6.0');

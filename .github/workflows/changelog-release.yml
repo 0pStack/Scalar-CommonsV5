@@ -76,16 +76,11 @@ jobs:
         with:
           node-version: 22
 
+      # Scans everything since the last tag, not just this push: GitHub keeps
+      # one pending run per concurrency group and cancels older pending ones,
+      # so a per-push range would lose PRs. Already-listed PRs are skipped.
       - name: Add entries for the merged PRs
-        if: github.event_name == 'push'
-        env:
-          BEFORE: ${{ github.event.before }}
-          AFTER: ${{ github.sha }}
-        run: |
-          # A push with no usable "before" (new branch, rewritten history) only
-          # covers its own commit.
-          if ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then BEFORE="${AFTER}~1"; fi
-          node scripts/release/run.mjs entries "$BEFORE" "$AFTER"
+        run: node scripts/release/run.mjs entries
 
       - name: Decide on a release
         id: release
@@ -101,19 +96,22 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           if git diff --quiet -- CHANGELOG.md; then
             echo "CHANGELOG.md unchanged"
-          else
-            git commit -m "docs: update CHANGELOG.md${TAG:+ for $TAG}" -- CHANGELOG.md
-            # A human merge may land between checkout and push; replay on top.
-            for attempt in 1 2 3; do
-              git push origin HEAD:main && break
-              [ "$attempt" = 3 ] && exit 1
-              git pull --rebase origin main
-            done
+            exit 0
           fi
-          if [ -n "$TAG" ]; then
-            git tag -a "$TAG" -m "$TAG"
-            git push origin "$TAG"
-          fi
+          git commit -m "docs: update CHANGELOG.md${TAG:+ for $TAG}" -- CHANGELOG.md
+          # A human merge may land between checkout and push; replay on top and
+          # re-tag. Commit and tag go in one atomic push, so main can never hold
+          # a release section without its tag.
+          for attempt in 1 2 3; do
+            refs=(HEAD:main)
+            if [ -n "$TAG" ]; then
+              git tag -fa "$TAG" -m "$TAG"
+              refs+=("refs/tags/$TAG")
+            fi
+            git push --atomic origin "${refs[@]}" && break
+            [ "$attempt" = 3 ] && exit 1
+            git pull --rebase origin main
+          done
 
   release:
     needs: changelog
