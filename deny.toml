@@ -1,0 +1,66 @@
+# cargo-deny policy, run by ci-fast on every PR and nightly (`cargo deny --locked check`).
+#
+# The Polkadot SDK is pinned by git tag (Cargo.toml) and brings most of the
+# dependency tree with it. Anything below that cannot be fixed without moving
+# that tag is listed with the reason, and is re-checked on every SDK upgrade.
+
+[graph]
+all-features = false
+
+[advisories]
+# Unmaintained and unsound notices fail only for crates we depend on directly.
+# The SDK's own transitive ones (derivative, paste, lru, memmap2, ...) are its
+# maintainers' to move.
+unmaintained = "workspace"
+unsound = "workspace"
+yanked = "deny"
+# Every id here must also be in .cargo/audit.toml (ci-fast checks). cargo-deny only
+# sees crates the workspace builds; audit.toml also covers ones that are merely locked.
+ignore = [
+  # Built: reached through libp2p in sc-network (polkadot-sdk).
+  { id = "RUSTSEC-2026-0119", reason = "hickory-proto 0.24 via libp2p-dns in sc-network; fixed upstream only by an SDK upgrade" },
+  { id = "RUSTSEC-2026-0381", reason = "webpki-roots 0.25 via libp2p-websocket in sc-network; fixed upstream only by an SDK upgrade" },
+  # Built: polkadot-sdk pins tracing-subscriber = "=0.3.19".
+  { id = "RUSTSEC-2025-0055", reason = "tracing-subscriber pinned =0.3.19 by polkadot-sdk (sc-tracing, sp-tracing); our logs are operator-side" },
+]
+
+[licenses]
+# A snapshot of the licences in the tree today, not a legal approval (see #93
+# for the project's own licence). A new licence fails CI so a person looks at it.
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-1-Clause",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "CC0-1.0",
+  "GPL-2.0-only",
+  "GPL-3.0",
+  "GPL-3.0-only",
+  "GPL-3.0-or-later WITH Classpath-exception-2.0",
+  "ISC",
+  "LGPL-2.1-or-later",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+confidence-threshold = 0.93
+
+[licenses.private]
+# Our own crates are publish = false and carry no licence field until #93 lands.
+ignore = true
+
+[bans]
+# The SDK tree carries many duplicate versions; only wildcards are banned.
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-git = ["https://github.com/paritytech/polkadot-sdk"]

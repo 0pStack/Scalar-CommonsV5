@@ -1,0 +1,21 @@
+# cargo-audit config, run by ci-fast on every PR and nightly.
+#
+# cargo-audit reads Cargo.lock, so it also flags crates that are locked but never
+# built. Every id in deny.toml must appear here too (ci-fast checks); the extra
+# ones below are lock-only, which deny.toml does not need.
+[advisories]
+ignore = [
+  # Built, explained in deny.toml.
+  "RUSTSEC-2025-0055", # tracing-subscriber pinned =0.3.19 by polkadot-sdk
+  "RUSTSEC-2026-0119", # hickory-proto 0.24 via libp2p in sc-network
+  "RUSTSEC-2026-0381", # webpki-roots 0.25 via libp2p in sc-network
+  # Locked but not built: `cargo tree -i <crate>@<version>` finds no path from the
+  # workspace on any target. Re-check on every Polkadot SDK upgrade.
+  "RUSTSEC-2025-0009", # ring 0.16.20
+  "RUSTSEC-2026-0098", # rustls-webpki 0.101.7
+  "RUSTSEC-2026-0099", # rustls-webpki 0.101.7
+  "RUSTSEC-2026-0104", # rustls-webpki 0.101.7
+  "RUSTSEC-2026-0258", # h2 0.3.27
+  "RUSTSEC-2026-0344", # ruzstd 0.8.3
+  "RUSTSEC-2026-0382", # rustls-webpki 0.101.7
+]
