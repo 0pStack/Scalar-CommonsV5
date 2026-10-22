@@ -543,20 +543,29 @@ pub fn new_full_base<N: NetworkBackend<Block, <Block as BlockT>::Hash>>(
     })
 }
 
+/// The node runs litep2p only. The libp2p backend pulls in yamux 0.12,
+/// hickory 0.24 and lru 0.12 with open advisories that polkadot-stable2606-3
+/// cannot move, so `--network-backend libp2p` is refused rather than started.
+fn ensure_supported_backend(
+    backend: &sc_network::config::NetworkBackendType,
+) -> Result<(), ServiceError> {
+    match backend {
+        sc_network::config::NetworkBackendType::Litep2p => Ok(()),
+        sc_network::config::NetworkBackendType::Libp2p => Err(ServiceError::Other(
+            "the libp2p network backend is disabled on this node (known advisories in its \
+             dependencies); run with --network-backend litep2p, the default"
+                .into(),
+        )),
+    }
+}
+
 /// Builds a new service for a full client.
 pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceError> {
     let database_path = config.database.path().map(Path::to_path_buf);
 
-    let task_manager = match config.network.network_backend {
-        sc_network::config::NetworkBackendType::Libp2p => {
-            new_full_base::<sc_network::NetworkWorker<_, _>>(config, |_, _| ())
-                .map(|NewFullBase { task_manager, .. }| task_manager)?
-        }
-        sc_network::config::NetworkBackendType::Litep2p => {
-            new_full_base::<sc_network::Litep2pNetworkBackend>(config, |_, _| ())
-                .map(|NewFullBase { task_manager, .. }| task_manager)?
-        }
-    };
+    ensure_supported_backend(&config.network.network_backend)?;
+    let task_manager = new_full_base::<sc_network::Litep2pNetworkBackend>(config, |_, _| ())
+        .map(|NewFullBase { task_manager, .. }| task_manager)?;
 
     if let Some(database_path) = database_path {
         sc_storage_monitor::StorageMonitorService::try_spawn(
@@ -568,4 +577,21 @@ pub fn new_full(config: Configuration, cli: Cli) -> Result<TaskManager, ServiceE
     }
 
     Ok(task_manager)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sc_network::config::NetworkBackendType;
+
+    #[test]
+    fn litep2p_is_the_only_accepted_backend() {
+        assert!(ensure_supported_backend(&NetworkBackendType::Litep2p).is_ok());
+        let err = ensure_supported_backend(&NetworkBackendType::Libp2p)
+            .expect_err("libp2p must be refused");
+        assert!(
+            err.to_string().contains("--network-backend litep2p"),
+            "{err}"
+        );
+    }
 }
