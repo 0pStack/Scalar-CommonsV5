@@ -20,9 +20,11 @@ import {
   cutRelease,
   parseSpecVersion,
   prNumberFromSubject,
+  setReleaseBadge,
 } from './changelog.mjs';
 
 const CHANGELOG = 'CHANGELOG.md';
+const README = 'README.md';
 const RUNTIME = 'runtime/src/lib.rs';
 const NODE_DIR = 'node/';
 
@@ -149,6 +151,9 @@ function release(force) {
     const cut = cutRelease(readFileSync(CHANGELOG, 'utf8'), version, date);
     writeFileSync(CHANGELOG, cut.changelog);
     notes = cut.notes;
+    const readme = setReleaseBadge(readFileSync(README, 'utf8'), version);
+    if (readme === null) console.warn(`::warning::${README} has no release badge to update`);
+    else writeFileSync(README, readme);
   }
   if (process.env.GITHUB_OUTPUT) {
     // The build runs in another job on another runner, so the notes travel as

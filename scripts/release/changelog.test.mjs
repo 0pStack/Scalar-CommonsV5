@@ -8,6 +8,7 @@ import {
   cutRelease,
   parseSpecVersion,
   prNumberFromSubject,
+  setReleaseBadge,
 } from './changelog.mjs';
 
 const REPO = 'https://github.com/0pStack/Scalar-CommonsV5';
@@ -142,4 +143,15 @@ test('a merge or squash subject names its PR; anything else names none', () => {
   assert.equal(prNumberFromSubject('runtime: ship quick-fix bundle (#19) (#121)'), 121);
   assert.equal(prNumberFromSubject('docs: update CHANGELOG.md'), null);
   assert.equal(prNumberFromSubject('fix: see #12 for context'), null);
+});
+
+test('the README release badge moves to the new version and nothing else changes', () => {
+  const badge = (v) =>
+    `[![release](https://img.shields.io/badge/release-${v}-blue)](${REPO}/releases/latest)`;
+  const readme = `# Scalar\n\n${badge('v0.7.1')}\n\nrelease-v0.7.1 in prose stays\n`;
+  assert.equal(
+    setReleaseBadge(readme, 'v0.8.0'),
+    `# Scalar\n\n${badge('v0.8.0')}\n\nrelease-v0.7.1 in prose stays\n`,
+  );
+  assert.equal(setReleaseBadge('# no badge here\n', 'v0.8.0'), null);
 });
