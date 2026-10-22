@@ -26,6 +26,7 @@ chain. That still takes `system.setCode` from root.
 
 - ci: run e2e's offline archetype tests in the e2e job ([#133](https://github.com/0pStack/Scalar-CommonsV5/pull/133), closes [#56](https://github.com/0pStack/Scalar-CommonsV5/issues/56))
 - Tooling: unify JS quality, coverage, and CI gates ([#134](https://github.com/0pStack/Scalar-CommonsV5/pull/134), closes [#94](https://github.com/0pStack/Scalar-CommonsV5/issues/94))
+- docs: agree repository structure migration plan ([#135](https://github.com/0pStack/Scalar-CommonsV5/pull/135), closes [#95](https://github.com/0pStack/Scalar-CommonsV5/issues/95))
 
 ## [v0.7.0] - 2026-10-22
 
