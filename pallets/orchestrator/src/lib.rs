@@ -15,6 +15,7 @@ pub mod pallet {
     use pallet_agents::pallet as agents_pallet;
     use pallet_agents::AgentCollective;
     use sp_runtime::traits::{Saturating, UniqueSaturatedInto, Zero};
+    use sp_std::vec::Vec;
 
     pub type BalanceOf<T> = <<T as agents_pallet::Config>::Currency as Currency<
         <T as frame_system::Config>::AccountId,
@@ -705,17 +706,22 @@ pub mod pallet {
             let mut total_weight: u128 = 0;
             let mut count: u32 = 0;
 
-            // Zero ALL orchestrator snapshots before computing new values.
+            // Clear last era's snapshots (bounded) before writing this era's.
             // The MasterChef pattern: pending = (acc_delta) × latest_snapshot.
             // If an orchestrator had high volume last era and zero this era,
             // their snapshot from last era persists. When OrchestratorGlobalAcc
             // grows this era (from other orchestrators), claim_orchestrator
             // multiplies that delta by the stale high snapshot = overclaim.
             // Zeroing before rewriting ensures only active eras contribute weight.
-            let reg_count = OrchestratorRegistration::<T>::iter().count() as u32;
-            let clear_bound = reg_count.saturating_add(reg_count / 5).max(10);
-            let _ = OrchestratorWeightSnapshot::<T>::clear(clear_bound, None);
-
+            //
+            // Zeroing alone is not enough (#23): a claim made while the snapshot is zero
+            // pays nothing and leaves the debt where it was, so an orchestrator back from
+            // an idle era would be paid every step since its last claim at this era's
+            // weight — including the idle era's step, already shared out among the others.
+            // Whether a snapshot existed has to be read before the clear erases it, so
+            // this era's weights are computed first and written after.
+            let acc = OrchestratorGlobalAcc::<T>::get();
+            let mut weights: Vec<(T::AccountId, u128, bool)> = Vec::new();
             for (orch, vol) in EraOrchestratorVolume::<T>::iter() {
                 if vol.is_zero() {
                     continue;
@@ -727,10 +733,24 @@ pub mod pallet {
                     .checked_div(10_000)
                     .unwrap_or(0);
                 if orch_weight > 0 {
-                    OrchestratorWeightSnapshot::<T>::insert(&orch, orch_weight);
-                    total_weight = total_weight.saturating_add(orch_weight);
-                    count = count.saturating_add(1);
+                    let had_no_snapshot = OrchestratorWeightSnapshot::<T>::get(&orch) == 0;
+                    weights.push((orch, orch_weight, had_no_snapshot));
                 }
+            }
+
+            let reg_count = OrchestratorRegistration::<T>::iter().count() as u32;
+            let clear_bound = reg_count.saturating_add(reg_count / 5).max(10);
+            let _ = OrchestratorWeightSnapshot::<T>::clear(clear_bound, None);
+
+            for (orch, orch_weight, had_no_snapshot) in weights {
+                // A snapshot starting this era earns from this era's accumulator step
+                // onward: `acc` is read before `settle_orchestrator_era` adds it.
+                if had_no_snapshot {
+                    OrchestratorRewardDebt::<T>::insert(&orch, acc);
+                }
+                OrchestratorWeightSnapshot::<T>::insert(&orch, orch_weight);
+                total_weight = total_weight.saturating_add(orch_weight);
+                count = count.saturating_add(1);
             }
             (total_weight, count)
         }

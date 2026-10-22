@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Fixed
+
+- emissions + orchestrator: don't pay skipped eras at the current weight ([#132](https://github.com/0pStack/Scalar-CommonsV5/pull/132), closes [#23](https://github.com/0pStack/Scalar-CommonsV5/issues/23))
+
 ## [v0.7.0] - 2026-10-22
 
 ### Security
