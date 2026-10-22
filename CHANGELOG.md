@@ -22,6 +22,10 @@ chain. That still takes `system.setCode` from root.
 
 - emissions + orchestrator: don't pay skipped eras at the current weight ([#132](https://github.com/0pStack/Scalar-CommonsV5/pull/132), closes [#23](https://github.com/0pStack/Scalar-CommonsV5/issues/23))
 
+### Maintenance
+
+- ci: run e2e's offline archetype tests in the e2e job ([#133](https://github.com/0pStack/Scalar-CommonsV5/pull/133), closes [#56](https://github.com/0pStack/Scalar-CommonsV5/issues/56))
+
 ## [v0.7.0] - 2026-10-22
 
 ### Security
