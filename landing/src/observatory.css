@@ -115,8 +115,7 @@
 :root {
   --font-serif: "Source Serif 4", "Source Serif 4 Fallback", Georgia, serif;
   --font-sans: "Inter", "Inter Fallback", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono:
-    "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, Menlo, Consolas, monospace;
+  --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, Menlo, Consolas, monospace;
   /* The type scale, in rem at a 16 px root: size, then line height. */
   --t-display: 4.5rem;
   --lh-display: 1;
@@ -1927,9 +1926,7 @@ html.reveal-ready [data-reveal]:not(.is-in) {
 }
 
 [data-reveal] {
-  transition:
-    opacity 400ms ease-out,
-    transform 400ms ease-out;
+  transition: opacity 400ms ease-out, transform 400ms ease-out;
 }
 
 /* ── presenter mode ───────────────────────────────────────────────────────
@@ -1972,9 +1969,7 @@ html[data-present] [data-present-screen] {
   opacity: 0;
   visibility: hidden;
   transform: none;
-  transition:
-    opacity 300ms ease-out,
-    visibility 0s linear 300ms;
+  transition: opacity 300ms ease-out, visibility 0s linear 300ms;
 }
 
 html[data-present] [data-present-screen][data-present-active] {

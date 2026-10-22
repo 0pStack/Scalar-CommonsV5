@@ -8,7 +8,7 @@
   "files": {
     "ignoreUnknown": true,
     "includes": [
-      "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx,css}",
+      "**/*.{js,mjs,cjs,jsx,ts,mts,cts,tsx}",
       "**/package.json",
       "**/tsconfig*.json",
       "biome.json",
