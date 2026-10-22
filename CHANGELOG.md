@@ -18,6 +18,12 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.7.0] - 2026-10-22
+
+### Security
+
+- runtime: ship quick-fix security bundle ([#121](https://github.com/0pStack/Scalar-CommonsV5/pull/121), closes [#19](https://github.com/0pStack/Scalar-CommonsV5/issues/19))
+
 ## [v0.6.0] - 2026-10-22
 
 ### Security
