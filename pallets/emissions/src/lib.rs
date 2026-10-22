@@ -607,7 +607,7 @@ pub mod pallet {
         BalanceOf<T>: From<u32>,
         u128: TryInto<BalanceOf<T>>,
     {
-        /// Zero the weight snapshot before stake increases and on rank 2→3 promotion.
+        /// Zero the weight snapshot before stake increases and on rank 1→2 and 2→3 promotion.
         /// Prevents MasterChef overclaim: pending = delta × latest_weight applies the
         /// new (higher) weight retroactively to prior-era deltas.
         /// After zeroing, do_claim returns 0 until the next settle_era writes a
