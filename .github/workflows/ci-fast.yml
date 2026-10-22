@@ -3,6 +3,11 @@
 #   secrets    every PR, seconds: gitleaks over full history
 #   chainspec  every PR, seconds: published chain spec matches the operator spec
 #   rust       only when the PR touches Rust: fmt, clippy, workspace tests
+#   deps       when the PR touches Rust dependencies or their policy, and nightly:
+#              cargo deny (deny.toml) and cargo audit (.cargo/audit.toml)
+#
+# The nightly run is deps only: advisories are published without any change
+# here, and the other jobs would spend Actions minutes re-proving the same tree.
 #
 # The Rust release build is not repeated here; ci-full runs it once the change
 # reaches main. JS packages are gated by ci-node.
@@ -11,6 +16,8 @@ name: ci-fast
 on:
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
 
 concurrency:
   group: ci-fast-${{ github.ref }}
@@ -33,6 +40,7 @@ jobs:
   # detects secrets rather than having been quietly neutered into a rubber
   # stamp. The scratch file is removed before the real scan runs.
   secrets:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -100,6 +108,7 @@ jobs:
   # learns the bootnode peer ids, and a stale genesis here means a tester syncs
   # a different chain and gets no error pointing at the cause.
   chainspec:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -110,12 +119,15 @@ jobs:
       - name: Published chain spec matches the operator spec
         run: node scripts/check-published-chainspec.mjs
 
-  # Same path list as ci-full's push filter. A manual dispatch runs everything.
+  # rust: same path list as ci-full's push filter. deps: the manifests, the
+  # lockfile and the two policy files. A manual dispatch runs everything; the
+  # nightly schedule runs deps only.
   changes:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       rust: ${{ steps.filter.outputs.rust }}
+      deps: ${{ steps.filter.outputs.deps }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -126,13 +138,24 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           set -euo pipefail
+          if [ "$EVENT" = "schedule" ]; then
+            echo "rust=false" >> "$GITHUB_OUTPUT"
+            echo "deps=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$EVENT" != "pull_request" ]; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
+            echo "deps=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git fetch --no-tags origin "$BASE_REF"
-          if git diff --name-only "origin/$BASE_REF...HEAD" \
-              | grep -qE '^(Cargo\.(toml|lock)|rust-toolchain\.toml|rustfmt\.toml|(node|runtime|pallets|tests)/|\.github/workflows/ci-(fast|full)\.yml|\.github/actions/setup-rust/)'; then
+          changed="$(git diff --name-only "origin/$BASE_REF...HEAD")"
+          if grep -qE '^(Cargo\.lock|(.*/)?Cargo\.toml|deny\.toml|\.cargo/audit\.toml|\.github/workflows/ci-fast\.yml)$' <<<"$changed"; then
+            echo "deps=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deps=false" >> "$GITHUB_OUTPUT"
+          fi
+          if grep -qE '^(Cargo\.(toml|lock)|rust-toolchain\.toml|rustfmt\.toml|(node|runtime|pallets|tests)/|\.github/workflows/ci-(fast|full)\.yml|\.github/actions/setup-rust/)' <<<"$changed"; then
             echo "rust=true" >> "$GITHUB_OUTPUT"
           else
             echo "rust=false" >> "$GITHUB_OUTPUT"
@@ -155,3 +178,59 @@ jobs:
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo test --workspace
+
+  # Dependency policy. cargo deny checks what the workspace builds: RustSec
+  # advisories, licences, wildcard versions and git sources (deny.toml).
+  # cargo audit reads the whole Cargo.lock, so it also catches crates that are
+  # locked but never built (.cargo/audit.toml). Every advisory ignored in
+  # deny.toml must also be ignored in audit.toml, so the two cannot drift.
+  #
+  # No setup-rust here: its cache is the multi-GB build cache, and a scheduled
+  # run on main could save a near-empty one over it. cargo deny only needs
+  # `cargo metadata`, which fetches the git-pinned Polkadot SDK by itself.
+  # Both tools are pinned release binaries, checked by SHA-256.
+  deps:
+    needs: changes
+    if: needs.changes.outputs.deps == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_DENY_VERSION: 0.20.2
+      CARGO_DENY_SHA256: 9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f
+      CARGO_AUDIT_VERSION: 0.22.2
+      CARGO_AUDIT_SHA256: 7fb9497f8594b389e5fce5ef9b92db08432996895b2e0c5a0167a69ed445c428
+      CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cargo-deny and cargo-audit (pinned, checksummed)
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          deny="cargo-deny-${CARGO_DENY_VERSION}-x86_64-unknown-linux-musl"
+          curl -sSfLO "https://github.com/EmbarkStudios/cargo-deny/releases/download/${CARGO_DENY_VERSION}/${deny}.tar.gz"
+          echo "${CARGO_DENY_SHA256}  ${deny}.tar.gz" | sha256sum -c -
+          tar -xzf "${deny}.tar.gz"
+          audit="cargo-audit-x86_64-unknown-linux-musl-v${CARGO_AUDIT_VERSION}"
+          curl -sSfLO "https://github.com/rustsec/rustsec/releases/download/cargo-audit/v${CARGO_AUDIT_VERSION}/${audit}.tgz"
+          echo "${CARGO_AUDIT_SHA256}  ${audit}.tgz" | sha256sum -c -
+          tar -xzf "${audit}.tgz"
+          sudo install -m 0755 "${deny}/cargo-deny" "${audit}/cargo-audit" /usr/local/bin/
+          cargo-deny --version
+          cargo-audit --version
+
+      - name: Every advisory ignored in deny.toml is ignored in .cargo/audit.toml
+        run: |
+          set -euo pipefail
+          ids() { grep -oE 'RUSTSEC-[0-9]{4}-[0-9]{4}' "$1" | sort -u; }
+          missing="$(comm -23 <(ids deny.toml) <(ids .cargo/audit.toml))"
+          if [ -n "$missing" ]; then
+            echo "::error::ignored in deny.toml but not in .cargo/audit.toml: $missing"
+            exit 1
+          fi
+
+      - name: cargo deny
+        run: cargo deny --locked check
+
+      - name: cargo audit
+        run: cargo audit

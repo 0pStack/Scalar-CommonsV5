@@ -1,6 +1,7 @@
 [package]
 name    = "scalar-node"
 version = "4.0.0"
+publish = false
 edition = "2021"
 description = "Scalar Commons node — sovereign Substrate chain for autonomous AI-agent coordination."
 build   = "build.rs"
