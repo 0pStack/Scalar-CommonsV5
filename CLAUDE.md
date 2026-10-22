@@ -1,72 +1,161 @@
-# CLAUDE.md — Scalar Commons
+# CLAUDE.md - Scalar Commons
 
 ## What this is
 
-Sovereign Substrate / Polkadot SDK chain for autonomous AI-agent coordination.
-Native token: **CMN** (1 CMN = 10^12 plancks). **100B hard supply cap, 18B genesis mint.**
-Custom pallets: `agents`, `escrow`, `oracle`, `emissions`, `auto-params`, `orchestrator`, `constitution`, `messages`.
-Node.js event indexer (`indexer/`) exposes a 25-endpoint REST API over chain events.
-Toolchain: Polkadot SDK `polkadot-stable2606-3` (sp-core 43.x, frame-system 48.x, sp-runtime 48.x per `Cargo.lock`), Rust 1.93.0 (`rust-toolchain.toml`).
+Scalar Commons is a sovereign Polkadot SDK chain for autonomous AI-agent coordination.
+The native token is CMN, and emissions reward verifiable work.
 
-## First principles — never violate
+Do not copy version numbers, economic values, formulas, pallet counts, or API counts into this
+file. Use the repository sources that are checked with the code:
 
-1. **The supply cap is absolute.** No code path may mint beyond the cap. All minting flows through the emissions pallet only.
-2. **Emissions reward verifiable work, not raw stake.** Weight = stake × rank × oracle accuracy × governance participation × velocity bonus. Any change to weighting must preserve this thesis. Note: the runtime wires `type OracleScoreProvider = ();` (`runtime/src/lib.rs`), whose score is always 0, so the oracle-accuracy bonus is currently inert until a real provider is wired.
-3. **No root-gated liveness.** No economically essential function (era settlement, reward claims) may depend on a privileged caller. `settle_era` is permissionless by design — keep it that way.
-4. **Every economic parameter is a gaming surface.** Any new extrinsic or parameter change requires a written gaming-vector analysis before merge (use the tokenomics-security-reviewer subagent).
-5. **The chain is coordination infrastructure.** Design decisions favor agent coordination guarantees over speculative token mechanics.
+- [`Cargo.toml`](Cargo.toml), [`Cargo.lock`](Cargo.lock), and
+  [`rust-toolchain.toml`](rust-toolchain.toml) define the SDK and Rust toolchain.
+- [`docs/reference/token-model.md`](docs/reference/token-model.md) contains token constants and the
+  reward formula checked against [`docs/.chain/snapshot.json`](docs/.chain/snapshot.json).
+- [`docs/reference/rpc.md`](docs/reference/rpc.md) documents the runtime and RPC surface.
+- [`package.json`](package.json) defines the npm workspaces and root scripts.
+- [`deploy/nodes.env`](deploy/nodes.env) defines the persistent devnet topology.
 
-## Repo map
+## First principles - never violate
 
-- `runtime/src/lib.rs` — runtime + `construct_runtime`; `runtime/src/governance/` — OpenGov config
-- `pallets/<name>/src/lib.rs` — pallet logic; `pallets/<name>/src/tests.rs` — unit tests + mock runtime
-- `tests/common.rs` — shared integration-test mock runtime
-- `node/src/chain_spec.rs` — genesis configs (4 configurations)
-- `indexer/` — Node.js event indexer + REST API (JS test suite lives here)
+1. **The supply cap is absolute.** No code path may mint beyond the runtime-defined cap. Trace the
+   runtime constant and every issuance path before changing minting.
+2. **Emissions reward verifiable work, not raw stake.** Treat the formula in the generated token
+   model as canonical. Any weighting change requires tests and a gaming-vector analysis.
+3. **No root-gated liveness.** Economically essential functions such as era settlement and reward
+   claims must not depend on a privileged caller.
+4. **Every economic parameter is a gaming surface.** Any extrinsic or parameter change requires a
+   written gaming-vector analysis before merge using the tokenomics security reviewer.
+5. **The chain is coordination infrastructure.** Prefer agent coordination guarantees over
+   speculative token mechanics.
 
-## Commands
+## Repository map
 
-**Pre-mainnet (now):** builds and tests may also run locally in WSL2, set up per the team setup guide. Prefer package-scoped runs while iterating (e.g. `cargo test -p scalar-commons-runtime`); CI on GitHub Actions still runs the full `cargo test --workspace` on every PR and remains the gate for merging.
+- `node/` - service, CLI, and chain presets
+- `runtime/` - runtime assembly, APIs, governance configuration, and version
+- `pallets/<name>/` - custom pallet logic, mocks, and unit tests
+- `tests/` - Rust integration tests and shared mock runtime
+- `sdk/`, `agent/`, `faucet/`, `indexer/`, `explorer/`, `landing/`, `docs/`, `e2e/` - npm
+  workspaces listed in the root `package.json`
+- `e2e/` - live-chain suites plus offline archetype-runner unit tests
+- `deploy/` - chain spec, persistent devnet, service units, and operator scripts
 
-**From mainnet onward:** all builds/tests run in **GitHub Codespaces or GitHub Actions — never assume a local machine.** Release runtimes come only from CI.
+## Development environment
 
-- Build: `cargo build --release` (WASM runtime builds as part of workspace)
-- Rust tests: `cargo test --workspace`
-- Lint gate: `cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings`
-- Indexer tests: `cd indexer && npm test`
-- Local 3-validator devnet: see `node/src/chain_spec.rs` configs
-  <!-- TODO(Keith): paste the exact testnet launch command you use -->
+Local work is supported in WSL2 using the team setup guide. Use package-scoped commands while
+iterating, then run the complete affected gate. GitHub Actions is the merge gate. Release runtimes
+and release node binaries come from CI.
 
-## Hard rules (encode past bugs — do not regress)
+Run Rust and npm commands from the repository root.
 
-- **Pallet indices in `construct_runtime` are append-only and unique.** Never renumber or reuse an index. (Past bug: SafeMode/TxPause/Constitution duplicated indices 34–36 with Staking/Babe/Grandpa and broke the runtime build.)
-- **Every new `Config` type must be added to every test mock** — all `pallets/*/src/tests.rs` AND `tests/common.rs`. Missing mock fields are a hard compile error found late. `BlockNumber`-typed constants use `ConstU64`, not `ConstU32`.
-- **Balance arithmetic uses `saturating_*` / `checked_*` only.** No bare `+ - *` on Balance. Basis-point math (`BPS = 10_000`) must be commented with the intended percentage.
-- **Guards fire before funds move.** All `ensure!` checks precede any `reserve()`, `transfer`, or `mint` (pattern: oracle `DuplicateRequest` guard sits before `reserve()`).
-- **`settle_era` protections stay:** `ensure_signed` (permissionless), `EraNotDue` guard, `EraStartBlock` tracking, and the double-settlement guard (F-04).
-- **Gaming-vector guards are load-bearing — never remove:** orchestrator self-link guard (`orchestrator != sub_agent`), `GovVoteVerifier` wired to `pallet_conviction_voting::VotingFor`, `MinQualifyingVol` floor gate (≥50 CMN era volume), `VelocityBonusBps` cap (+30% max).
-- **Storage layout changes require a migration and a `spec_version` bump.** Never mutate storage layout silently.
-- **Indexer API is versioned.** Changing chain events means checking all 25 indexer endpoints for breakage; update the JS tests in the same PR.
+### Rust
+
+```sh
+cargo build --release
+cargo test -p pallet-<name>             # while changing one pallet
+cargo test -p scalar-commons-runtime    # while changing runtime-only behavior
+cargo test --workspace                  # complete Rust test gate
+cargo fmt --all -- --check
+cargo clippy --workspace --all-targets -- -D warnings
+```
+
+### JavaScript and TypeScript
+
+```sh
+npm ci
+npm run build
+npm run typecheck
+npm test                                # offline; no running chain
+npm run test:tooling
+npm run format:check
+npm run lint
+npm run coverage
+```
+
+Address a workspace by its package name. For example:
+
+```sh
+npm run typecheck -w @scalar-commons/indexer
+npm test -w @scalar-commons/indexer
+npm run lint -w @scalar-commons/docs
+npm run build -w @scalar-commons/docs
+npm run build -w @scalar-commons/sdk
+npm run typecheck -w @scalar-commons/e2e
+npm test -w @scalar-commons/e2e         # offline archetype-runner unit tests
+```
+
+Live-chain suites are deliberate devnet runs, not part of the root offline test command:
+
+```sh
+npm run test:live -w @scalar-commons/e2e
+```
+
+See [`e2e/README.md`](e2e/README.md) for individual live suites and required services.
+
+### Persistent local devnet
+
+The persistent systemd devnet uses the `local` chain preset. Its topology comes from
+`deploy/nodes.env`; do not duplicate the validator count here.
+
+```sh
+cargo build --release -p scalar-node
+./deploy/build-spec.sh
+./deploy/install.sh
+systemctl --user start scalar-devnet.target
+./deploy/finality-check.sh
+```
+
+Use `systemctl --user stop scalar-devnet.target` when the network is not needed. The `dev` and
+`local` presets have different authority sets; do not substitute one for the other. Follow
+[`deploy/README.md`](deploy/README.md) for installation, reset, status, and recovery procedures.
+
+## Hard rules - encoded from past bugs
+
+- **Pallet indices in `construct_runtime` are append-only and unique.** Never renumber or reuse an
+  index.
+- **Every new `Config` type must be added to every affected test mock**, including the shared
+  integration-test mock. Match the runtime's block-number type.
+- **Balance arithmetic uses `saturating_*` or `checked_*`.** Do not use bare arithmetic on balance
+  values. Cite the runtime constant used as the denominator in basis-point calculations.
+- **Guards fire before funds move.** All fallible validation precedes reserve, transfer, mint, and
+  storage mutation.
+- **Era-settlement protections stay intact:** permissionless signed origin, due-era validation,
+  start-block tracking, and double-settlement prevention.
+- **Gaming-vector guards are load-bearing.** Preserve the orchestrator self-link guard, the real
+  governance vote verifier, the qualifying-volume floor, and the velocity-bonus cap. Read their
+  current values from runtime configuration and the generated token model.
+- **Storage layout changes require a migration and a `spec_version` bump.**
+- **Chain event changes require consumer checks.** Run the affected indexer, explorer, SDK, agent,
+  landing, and e2e gates; use the generated RPC reference instead of a copied endpoint count.
 
 ## Workflow
 
-1. Anything touching `emissions`, `escrow`, or `runtime/` starts in **plan mode**. Present the plan before editing.
-2. **TDD:** write the failing test first, show it fail, then implement.
-3. After every change: run fmt, clippy, and the relevant test suite. **Show the actual output** — never assert success without evidence.
-4. Before committing economic changes: invoke the `tokenomics-security-reviewer` subagent. After any code change: invoke `test-runner`.
-5. Commits are small and scoped to one pallet or one concern. Reference the pallet in the message (e.g. `emissions: add EraNotDue guard`).
-6. Never `git push --force` on main. Never commit `Cargo.lock` conflicts unresolved.
+1. Changes to emissions, escrow, oracle, orchestrator, agents, or runtime economics begin with a
+   written plan and failing tests.
+2. Use test-driven development for behavior changes: reproduce the failure, implement the fix, and
+   preserve the regression test.
+3. Run the smallest relevant checks while editing, then the complete affected gate before push.
+   Report actual command output.
+4. Run the tokenomics security reviewer after economic changes and the test runner after code
+   changes.
+5. Keep commits small and scoped to one concern. Use Conventional Commits, for example
+   `fix(emissions): reject settlement before the era is due` or
+   `docs: correct the local devnet instructions`.
+6. Never force-push `main`, and never commit unresolved lockfile conflicts.
 
-## Releases and the changelog
+## Releases and changelog
 
-Automated by `.github/workflows/changelog-release.yml`; do not edit `CHANGELOG.md` or push `v*` tags by hand.
+`.github/workflows/changelog-release.yml` owns release notes and tags. Do not edit `CHANGELOG.md`
+or push release tags by hand.
 
-- **Every merged PR is a changelog entry.** Its section comes from the labels on the PR and the issues it closes (`security`, `bug`, `documentation`, `tidy`/`qa`, else Changed). Label PRs and issues accurately, and link issues with `Closes #N`. `skip-changelog` leaves a PR out.
-- **Minor release when `spec_version` changes, patch release when `node/` changes, nothing else cuts a release.** A runtime behaviour change must already bump `spec_version` (hard rule above), so it always produces a new `scalar-node` download for validators.
-- **A release is not an enactment.** The tag ships a binary; the chain only moves to that `spec_version` through `system.setCode`. Validators upgrade to the release *before* the runtime is enacted.
-- To force a release: run the `changelog-release` workflow by hand with `minor` or `patch`.
+- Every merged PR becomes a changelog entry unless it carries `skip-changelog`.
+- Label PRs and issues accurately and use `Closes #N`.
+- Runtime and node release rules live in the workflow and release documentation.
+- A release publishes artifacts; enactment still requires an explicit runtime upgrade.
+- Use the workflow's manual dispatch when an authorized release must be forced.
 
 ## Style
 
-- Rust doc comments (`//!`, `///`) on every pallet, extrinsic, and storage item, in the existing voice: explain the economic *why*, not just the mechanical *what*.
-- Prefer extending an existing pallet over adding a new one; new pallets require a written justification.
+- Document the economic reason for pallet, extrinsic, and storage behavior.
+- Prefer extending an existing pallet over adding a new one. New pallets need a written
+  justification.
