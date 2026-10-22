@@ -311,6 +311,10 @@ pub mod pallet {
             let current_era = agents_pallet::EraNumber::<T>::get();
             let _ = current_era; // retained for potential future era-aware logic
 
+            // The accumulator as it stands before this era's step is added below. An agent
+            // that starts holding a snapshot this era has its debt moved here (#23), so the
+            // first step it is paid for is the one its new snapshot was counted in.
+            let acc_at_settle = AccRewardPerStake::<T>::get();
             let mut total_weight: u128 = 0;
             let mut top_weight_sum: u128 = 0;
             let mut all_weights: Vec<u128> = sp_std::vec![];
@@ -349,7 +353,20 @@ pub mod pallet {
                     cached_velocity_bps,
                 );
                 if w > 0 {
-                    AgentWeightSnapshot::<T>::insert(&agent, w);
+                    // #23: `do_claim` pays `(acc - debt) x weight_snapshot`, and a claim made
+                    // while the snapshot is zero pays nothing and leaves the debt where it
+                    // was. So an agent coming back from an idle era, a slash or a stake
+                    // change would otherwise be paid every accumulator step since its last
+                    // claim at this era's weight — including the steps it held no weight
+                    // in, which were already shared out among everyone else. Moving the
+                    // debt to the pre-step accumulator when a snapshot starts means the
+                    // first step it earns from is this era's.
+                    AgentWeightSnapshot::<T>::mutate(&agent, |snapshot| {
+                        if *snapshot == 0 {
+                            AgentRewardDebt::<T>::insert(&agent, acc_at_settle);
+                        }
+                        *snapshot = w;
+                    });
                     total_weight = total_weight.saturating_add(w);
                     all_weights.push(w);
                 } else {
@@ -369,7 +386,10 @@ pub mod pallet {
                     // made on slash (`on_slashed`) and on stake increase
                     // (`on_stake_changed`), and for the same reason: a snapshot that no
                     // longer describes the agent must not be used to pay it.
-                    AgentWeightSnapshot::<T>::remove(&agent);
+                    //
+                    // The forfeit is made real by moving the debt along with the removal.
+                    // Before #23 the forfeit held only while the snapshot stayed zero.
+                    Self::clear_weight_snapshot(&agent);
                 }
             }
 
@@ -575,9 +595,10 @@ pub mod pallet {
     {
         /// Zero the weight snapshot so do_claim() cannot overclaim using
         /// a pre-slash weight. The snapshot will be recalculated correctly
-        /// in the next settle_era with the reduced stake.
+        /// in the next settle_era with the reduced stake. Unclaimed reward from
+        /// before the slash is forfeited; claim first to keep it.
         fn on_slashed(who: &T::AccountId) {
-            AgentWeightSnapshot::<T>::remove(who);
+            Self::clear_weight_snapshot(who);
         }
     }
 
@@ -586,14 +607,15 @@ pub mod pallet {
         BalanceOf<T>: From<u32>,
         u128: TryInto<BalanceOf<T>>,
     {
-        /// Zero the weight snapshot before stake increases.
+        /// Zero the weight snapshot before stake increases and on rank 2→3 promotion.
         /// Prevents MasterChef overclaim: pending = delta × latest_weight applies the
         /// new (higher) weight retroactively to prior-era deltas.
         /// After zeroing, do_claim returns 0 until the next settle_era writes a
-        /// fresh snapshot reflecting the new stake. The agent forfeits unclaimed
-        /// rewards from the last era — a conservative trade-off for correctness.
+        /// fresh snapshot reflecting the new stake. The agent forfeits everything
+        /// unclaimed since its last claim — a conservative trade-off for correctness.
+        /// Claiming first keeps it.
         fn on_stake_changed(who: &T::AccountId) {
-            AgentWeightSnapshot::<T>::remove(who);
+            Self::clear_weight_snapshot(who);
         }
     }
 
@@ -602,6 +624,19 @@ pub mod pallet {
         BalanceOf<T>: From<u32>,
         u128: TryInto<BalanceOf<T>>,
     {
+        /// Drop `who`'s weight snapshot and move its reward debt to the current
+        /// accumulator, so whatever the old snapshot had not yet been claimed for is
+        /// forfeited rather than paid later at some other weight (#23).
+        ///
+        /// Only an existing snapshot moves the debt: an agent already at zero has
+        /// nothing to forfeit, and the next snapshot write in `settle_era` moves the
+        /// debt anyway. That keeps an idle agent from costing a write every era.
+        fn clear_weight_snapshot(who: &T::AccountId) {
+            if AgentWeightSnapshot::<T>::take(who) > 0 {
+                AgentRewardDebt::<T>::insert(who, AccRewardPerStake::<T>::get());
+            }
+        }
+
         fn do_claim(who: &T::AccountId) -> Result<BalanceOf<T>, DispatchError> {
             ensure!(
                 agents_pallet::AgentStake::<T>::contains_key(who),
