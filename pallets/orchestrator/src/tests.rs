@@ -1202,3 +1202,61 @@ fn queued_offers_cannot_overshoot_max_sub_agents_on_accept() {
         );
     });
 }
+
+// ─── #23: orchestrator reward debt across an idle era ─────────────────────────
+
+/// One orchestrator era as `settle_era` drives it: snapshot weights from this era's
+/// volume, then advance `OrchestratorGlobalAcc` by `emission` over their total.
+fn orchestrator_era(emission: u64) {
+    // Multiplier 10_000 makes weight = sqrt(volume), so 10_000 volume -> weight 100.
+    let (total_weight, _) = Orchestrator::compute_era_orchestrator_weights(10_000);
+    Orchestrator::settle_orchestrator_era(emission, total_weight);
+}
+
+/// An orchestrator with no volume for an era is paid, once it has volume again, for the
+/// era it worked and not for the one it skipped. The skipped era's accumulator step was
+/// sized by the other orchestrators' weight alone, so paying it again at the returning
+/// orchestrator's weight mints past that era's orchestrator share.
+#[test]
+fn idle_orchestrator_era_is_not_paid_on_reactivation() {
+    new_test_ext().execute_with(|| {
+        for who in [ALICE, CAROL] {
+            seed_agent(who);
+            orchestrator(who);
+        }
+        assert_eq!(OrchestratorRewardDebt::<Test>::get(ALICE), 0);
+
+        // Era 1: only CAROL has volume. ALICE holds no snapshot; the accumulator moves.
+        Orchestrator::add_orchestrator_volume(&CAROL, 10_000);
+        orchestrator_era(100_000);
+        assert_eq!(OrchestratorWeightSnapshot::<Test>::get(ALICE), 0);
+        let debt = OrchestratorRewardDebt::<Test>::get(ALICE);
+        assert!(OrchestratorGlobalAcc::<Test>::get() > debt);
+
+        // Era 2: both have volume.
+        Orchestrator::add_orchestrator_volume(&ALICE, 10_000);
+        Orchestrator::add_orchestrator_volume(&CAROL, 10_000);
+        let acc_before_era_2 = OrchestratorGlobalAcc::<Test>::get();
+        orchestrator_era(100_000);
+        let acc_after_era_2 = OrchestratorGlobalAcc::<Test>::get();
+        let w = OrchestratorWeightSnapshot::<Test>::get(ALICE);
+        assert!(w > 0);
+
+        let owed = ((acc_after_era_2 - acc_before_era_2) * w / ACC_SCALE) as u64;
+        let stale_debt_payout = ((acc_after_era_2 - debt) * w / ACC_SCALE) as u64;
+        assert!(
+            stale_debt_payout > owed,
+            "precondition: the idle era is worth something at ALICE's weight"
+        );
+
+        let balance_before = Balances::free_balance(ALICE);
+        assert_ok!(Orchestrator::claim_orchestrator(RuntimeOrigin::signed(
+            ALICE
+        )));
+        assert_eq!(
+            Balances::free_balance(ALICE) - balance_before,
+            owed,
+            "claim must pay era 2 only, not the idle era 1 at era 2's weight"
+        );
+    });
+}

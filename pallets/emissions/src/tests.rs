@@ -789,6 +789,141 @@ fn claim_by_an_unregistered_account_is_rejected() {
     });
 }
 
+/// #23: an agent that sat out an era is paid, on reactivation, for the eras it worked and
+/// not for the one it skipped. The skipped era's accumulator step was sized by everyone
+/// else's weight, so paying it again at the returning agent's weight mints past that era's
+/// emission — the per-era bound D7 exists to hold.
+#[test]
+fn idle_era_is_not_paid_on_reactivation() {
+    new_test_ext().execute_with(|| {
+        chain_with_alice(10_000);
+        register(BOB, 4_000);
+        AgentRewardDebt::<Test>::insert(BOB, 0u128);
+
+        // Era 0: both work; ALICE claims, so her debt is the accumulator.
+        do_era_work(ALICE);
+        do_era_work(BOB);
+        settle(ALICE);
+        assert_ok!(Emissions::claim(RuntimeOrigin::signed(ALICE)));
+        let debt_after_era_0 = AgentRewardDebt::<Test>::get(ALICE);
+        assert_eq!(debt_after_era_0, AccRewardPerStake::<Test>::get());
+
+        // Era 1: only BOB works. ALICE loses her snapshot; the accumulator still moves.
+        do_era_work(BOB);
+        settle(BOB);
+        assert!(!AgentWeightSnapshot::<Test>::contains_key(ALICE));
+        assert!(AccRewardPerStake::<Test>::get() > debt_after_era_0);
+
+        // Era 2: ALICE works again.
+        do_era_work(ALICE);
+        let acc_before_era_2 = AccRewardPerStake::<Test>::get();
+        settle(ALICE);
+        let acc_after_era_2 = AccRewardPerStake::<Test>::get();
+        let w = AgentWeightSnapshot::<Test>::get(ALICE);
+        assert!(w > 0);
+
+        let owed = ((acc_after_era_2 - acc_before_era_2) * w / ACC_SCALE) as u64;
+        let stale_debt_payout = ((acc_after_era_2 - debt_after_era_0) * w / ACC_SCALE) as u64;
+        assert!(
+            stale_debt_payout > owed,
+            "precondition: the idle era is worth something at ALICE's weight"
+        );
+
+        let balance_before = Balances::free_balance(ALICE);
+        assert_ok!(Emissions::claim(RuntimeOrigin::signed(ALICE)));
+        assert_eq!(
+            Balances::free_balance(ALICE) - balance_before,
+            owed,
+            "claim must pay era 2 only, not the idle era 1 at era 2's weight"
+        );
+    });
+}
+
+/// #23, stake-change path: `add_stake` clears the snapshot so prior eras cannot be repriced
+/// at the new, higher weight. The unclaimed era-0 reward is forfeited (the trade-off the
+/// `on_stake_changed` comment documents); era 1 is paid at the new weight, and only era 1.
+#[test]
+fn stake_change_does_not_reprice_unclaimed_eras() {
+    new_test_ext().execute_with(|| {
+        chain_with_alice(10_000);
+
+        // Era 0: ALICE works and does not claim.
+        do_era_work(ALICE);
+        settle(ALICE);
+        let debt_after_era_0 = AgentRewardDebt::<Test>::get(ALICE);
+        assert!(AccRewardPerStake::<Test>::get() > debt_after_era_0);
+
+        // Stake goes up between eras; the snapshot describing the old stake goes.
+        assert_ok!(Agents::add_stake(RuntimeOrigin::signed(ALICE), 40_000));
+        assert!(!AgentWeightSnapshot::<Test>::contains_key(ALICE));
+
+        // Era 1: ALICE works at the new stake.
+        do_era_work(ALICE);
+        let acc_before_era_1 = AccRewardPerStake::<Test>::get();
+        settle(ALICE);
+        let acc_after_era_1 = AccRewardPerStake::<Test>::get();
+        let w = AgentWeightSnapshot::<Test>::get(ALICE);
+        assert!(w > 0);
+
+        let owed = ((acc_after_era_1 - acc_before_era_1) * w / ACC_SCALE) as u64;
+        let repriced_payout = ((acc_after_era_1 - debt_after_era_0) * w / ACC_SCALE) as u64;
+        assert!(
+            repriced_payout > owed,
+            "precondition: era 0 is worth something at the new weight"
+        );
+
+        let balance_before = Balances::free_balance(ALICE);
+        assert_ok!(Emissions::claim(RuntimeOrigin::signed(ALICE)));
+        assert_eq!(
+            Balances::free_balance(ALICE) - balance_before,
+            owed,
+            "claim must pay era 1 only, not era 0 repriced at the post-stake weight"
+        );
+    });
+}
+
+/// #23, slash path: `execute_slash` clears the snapshot through `on_slashed`. The unclaimed
+/// era-0 reward is forfeited; era 1 is paid at the post-slash weight, and only era 1.
+#[test]
+fn slash_does_not_reprice_unclaimed_eras() {
+    new_test_ext().execute_with(|| {
+        chain_with_alice(10_000);
+
+        // Era 0: ALICE works and does not claim.
+        do_era_work(ALICE);
+        settle(ALICE);
+        let debt_after_era_0 = AgentRewardDebt::<Test>::get(ALICE);
+        assert!(AccRewardPerStake::<Test>::get() > debt_after_era_0);
+
+        // Governance slashes half her stake (5_000 bps = 50%); she stays above MinStake.
+        assert_ok!(Agents::execute_slash(RuntimeOrigin::root(), ALICE, 5_000));
+        assert!(!AgentWeightSnapshot::<Test>::contains_key(ALICE));
+
+        // Era 1: ALICE works at the reduced stake.
+        do_era_work(ALICE);
+        let acc_before_era_1 = AccRewardPerStake::<Test>::get();
+        settle(ALICE);
+        let acc_after_era_1 = AccRewardPerStake::<Test>::get();
+        let w = AgentWeightSnapshot::<Test>::get(ALICE);
+        assert!(w > 0);
+
+        let owed = ((acc_after_era_1 - acc_before_era_1) * w / ACC_SCALE) as u64;
+        let repriced_payout = ((acc_after_era_1 - debt_after_era_0) * w / ACC_SCALE) as u64;
+        assert!(
+            repriced_payout > owed,
+            "precondition: era 0 is worth something at the post-slash weight"
+        );
+
+        let balance_before = Balances::free_balance(ALICE);
+        assert_ok!(Emissions::claim(RuntimeOrigin::signed(ALICE)));
+        assert_eq!(
+            Balances::free_balance(ALICE) - balance_before,
+            owed,
+            "claim must pay era 1 only, not era 0 repriced at the post-slash weight"
+        );
+    });
+}
+
 // ── zero work = zero weight ──────────────────────────────────────────────────
 
 /// A staked agent that did no escrow work gets no weight, no accumulator movement, no
