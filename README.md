@@ -7,18 +7,22 @@ Emissions pay for verifiable work, not for holding tokens.
 
 [![ci-full](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-full.yml/badge.svg?branch=main)](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-full.yml)
 [![ci-node](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-node.yml/badge.svg?branch=main)](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-node.yml)
+[![changelog-release](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/changelog-release.yml/badge.svg?branch=main)](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/changelog-release.yml)
+[![release](https://img.shields.io/badge/release-v0.7.1-blue)](https://github.com/0pStack/Scalar-CommonsV5/releases/latest)
+[![changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-E05735)](CHANGELOG.md)
 ![status](https://img.shields.io/badge/status-pre--mainnet-orange)
 
-![Rust](https://img.shields.io/badge/Rust-1.85.0-000000?logo=rust&logoColor=white)
-![Polkadot SDK](https://img.shields.io/badge/Polkadot_SDK-stable2503-E6007A?logo=polkadot&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-1.93.0-000000?logo=rust&logoColor=white)
+![Polkadot SDK](https://img.shields.io/badge/Polkadot_SDK-stable2606--3-E6007A?logo=polkadot&logoColor=white)
 ![Substrate](https://img.shields.io/badge/Substrate-FRAME-282828?logo=substrate&logoColor=white)
 ![WASM](https://img.shields.io/badge/target-wasm32v1--none-654FF0?logo=webassembly&logoColor=white)
 ![Node.js](https://img.shields.io/badge/Node.js-22-339933?logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![polkadot-js](https://img.shields.io/badge/%40polkadot%2Fapi-16.5.6-E6007A)
 ![Vitest](https://img.shields.io/badge/tested_with-Vitest-6E9F18?logo=vitest&logoColor=white)
+![Biome](https://img.shields.io/badge/lint_%26_format-Biome-60A5FA?logo=biome&logoColor=white)
 
-[Docs](docs/index.md) · [Run a node](docs/guide/run-a-node.md) · [SDK](docs/guide/sdk.md) · [Token model](docs/reference/token-model.md) · [Issues](https://github.com/0pStack/Scalar-CommonsV5/issues)
+[Docs](docs/index.md) · [Run a node](docs/guide/run-a-node.md) · [SDK](docs/guide/sdk.md) · [Token model](docs/reference/token-model.md) · [Changelog](CHANGELOG.md) · [Releases](https://github.com/0pStack/Scalar-CommonsV5/releases) · [Issues](https://github.com/0pStack/Scalar-CommonsV5/issues)
 
 </div>
 
@@ -100,7 +104,7 @@ agent harness), `scripts/` (upgrade and keeper tooling), `tests/` (Rust integrat
 
 ### Prerequisites
 
-- **Rust**: the toolchain is pinned in [`rust-toolchain.toml`](rust-toolchain.toml) (1.85.0 + `wasm32v1-none`), and `rustup` picks it up automatically. Don't bump it without moving the SDK tag.
+- **Rust**: the toolchain is pinned in [`rust-toolchain.toml`](rust-toolchain.toml) (1.93.0 + `wasm32v1-none`), and `rustup` picks it up automatically. Don't bump it without moving the SDK tag.
 - **Node.js 22+** and npm
 
 ### Chain
@@ -121,6 +125,9 @@ npm ci
 npm run build
 npm run typecheck
 npm test                           # offline: never needs a chain
+npm run lint                       # Biome
+npm run format:check               # Biome
+npm run coverage
 npm run test:live -w e2e           # against a running node
 ```
 
@@ -129,9 +136,25 @@ npm run test:live -w e2e           # against a running node
 | Workflow | Runs on | Does |
 |---|---|---|
 | `ci-fast` | Pull requests | Secret scan, chainspec check, Rust fmt/clippy/test only when Rust changed |
-| `ci-node` | Pushes and PRs to `main` | Build and test each changed TypeScript package |
-| `ci-full` | Pushes to `main` touching Rust paths | Full build and test of the node and runtime |
-| `release` | `v*` tags | Release artifacts |
+| `ci-node` | Pushes and PRs to `main` | Tooling gates (Biome, coverage, ShellCheck, actionlint), then build and test each changed TypeScript package |
+| `ci-full` | Pushes to `main` touching Rust paths | Full build and test of the node and runtime, including the `runtime-benchmarks` feature |
+| `changelog-release` | Pushes to `main` | Adds a changelog entry per merged PR and cuts a release when one is due |
+| `release` | Called by `changelog-release`, or a `v*` tag | Builds the `scalar-node` binary and publishes the GitHub release |
+| `pages` | Manual | Publishes the docs site |
+| `claude-swarm` | `@claude` in a PR review, from collaborators | Runs the Claude agent on the PR |
+
+## Releases
+
+Every PR merged to `main` gets an entry in [`CHANGELOG.md`](CHANGELOG.md). The entry's section
+comes from the labels on the PR and on the issues it closes. A release is cut automatically:
+
+- **minor** when the runtime `spec_version` changes
+- **patch** when `node/` changes
+- otherwise entries wait under Unreleased
+
+Each release is a `vX.Y.Z` tag with a prebuilt `scalar-node` binary and checksum on the
+[releases page](https://github.com/0pStack/Scalar-CommonsV5/releases). A release does not upgrade
+any chain; enacting a runtime still takes `system.setCode` from root.
 
 ## Contributing
 

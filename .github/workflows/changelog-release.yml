@@ -94,11 +94,12 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          if git diff --quiet -- CHANGELOG.md; then
+          if git diff --quiet -- CHANGELOG.md README.md; then
             echo "CHANGELOG.md unchanged"
             exit 0
           fi
-          git commit -m "docs: update CHANGELOG.md${TAG:+ for $TAG}" -- CHANGELOG.md
+          # README.md changes only on a release, when its release badge moves.
+          git commit -m "docs: update CHANGELOG.md${TAG:+ for $TAG}" -- CHANGELOG.md README.md
           # A human merge may land between checkout and push; replay on top and
           # re-tag. Commit and tag go in one atomic push, so main can never hold
           # a release section without its tag.

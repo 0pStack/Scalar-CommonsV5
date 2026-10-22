@@ -133,3 +133,15 @@ export function prNumberFromSubject(subject) {
   const m = subject.match(/^Merge pull request #(\d+) from /) ?? subject.match(/\(#(\d+)\)$/);
   return m ? Number(m[1]) : null;
 }
+
+const RELEASE_BADGE = /(img\.shields\.io\/badge\/release-)v\d+\.\d+\.\d+(-)/;
+
+/**
+ * Point the README's release badge at a new version. The repo is private, so
+ * shields.io cannot read its releases and the badge has to be static. Returns
+ * null when the README has no release badge.
+ */
+export function setReleaseBadge(readme, version) {
+  if (!RELEASE_BADGE.test(readme)) return null;
+  return readme.replace(RELEASE_BADGE, `$1${version}$2`);
+}
