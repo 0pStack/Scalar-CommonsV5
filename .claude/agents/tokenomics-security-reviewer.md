@@ -2,7 +2,7 @@
 name: tokenomics-security-reviewer
 description: Use PROACTIVELY after changes to emissions, escrow, oracle, orchestrator, agents, or economic constants. Reviews supply-cap violations, arithmetic exploits, and gaming vectors. Returns severity-ranked findings with file:line references. Read-only.
 tools: Read, Grep, Glob
-model: inherit
+model: claude-opus-5-5
 ---
 
 # Tokenomics security reviewer
