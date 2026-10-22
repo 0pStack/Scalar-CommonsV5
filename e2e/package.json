@@ -23,7 +23,7 @@
     "@polkadot/util-crypto": "^14.0.0",
     "@scalar-commons/sdk": "*",
     "@types/node": "^22.20.1",
-    "typescript": "^5.6.0",
+    "typescript": "^7.0.2",
     "vitest": "5.0.5"
   },
   "engines": {
