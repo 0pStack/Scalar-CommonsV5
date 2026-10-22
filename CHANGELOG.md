@@ -26,6 +26,7 @@ chain. That still takes `system.setCode` from root.
 
 - docs: guides describe provider consent as required since spec 309 ([#138](https://github.com/0pStack/Scalar-CommonsV5/pull/138), closes [#44](https://github.com/0pStack/Scalar-CommonsV5/issues/44))
 - docs: align contributor and agent instructions ([#139](https://github.com/0pStack/Scalar-CommonsV5/pull/139), closes [#99](https://github.com/0pStack/Scalar-CommonsV5/issues/99))
+- docs: refresh README and keep its release badge current ([#147](https://github.com/0pStack/Scalar-CommonsV5/pull/147), closes [#146](https://github.com/0pStack/Scalar-CommonsV5/issues/146))
 
 ## [v0.7.1] - 2026-10-22
 
