@@ -18,6 +18,12 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.7.2] - 2026-10-22
+
+### Security
+
+- ci: Dependabot, cargo-deny and cargo-audit for every dependency ([#150](https://github.com/0pStack/Scalar-CommonsV5/pull/150), closes [#37](https://github.com/0pStack/Scalar-CommonsV5/issues/37))
+
 ### Fixed
 
 - fix(release): survive a failing commit-to-PR lookup ([#141](https://github.com/0pStack/Scalar-CommonsV5/pull/141), closes [#140](https://github.com/0pStack/Scalar-CommonsV5/issues/140))
