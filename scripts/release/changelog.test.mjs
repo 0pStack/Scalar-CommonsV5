@@ -7,6 +7,7 @@ import {
   nextVersion,
   cutRelease,
   parseSpecVersion,
+  prNumberFromSubject,
 } from './changelog.mjs';
 
 const REPO = 'https://github.com/0pStack/Scalar-CommonsV5';
@@ -133,4 +134,12 @@ test('spec_version is read from the RuntimeVersion literal, not from comments or
   ].join('\n');
   assert.equal(parseSpecVersion(src), 313);
   assert.throws(() => parseSpecVersion('no version here'), /spec_version/);
+});
+
+test('a merge or squash subject names its PR; anything else names none', () => {
+  assert.equal(prNumberFromSubject('Merge pull request #139 from 0pStack/Freddy-issue-99'), 139);
+  assert.equal(prNumberFromSubject('docs: align contributor and agent instructions (#140)'), 140);
+  assert.equal(prNumberFromSubject('runtime: ship quick-fix bundle (#19) (#121)'), 121);
+  assert.equal(prNumberFromSubject('docs: update CHANGELOG.md'), null);
+  assert.equal(prNumberFromSubject('fix: see #12 for context'), null);
 });

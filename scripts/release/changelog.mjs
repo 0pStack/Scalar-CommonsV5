@@ -124,3 +124,12 @@ export function parseSpecVersion(libRs) {
   if (!m) throw new Error('no `spec_version: N,` field found in runtime/src/lib.rs');
   return Number(m[1]);
 }
+
+/**
+ * The PR a first-parent commit on main came from, read from its subject: a merge
+ * commit's "Merge pull request #N from …" or a squash commit's trailing "(#N)".
+ */
+export function prNumberFromSubject(subject) {
+  const m = subject.match(/^Merge pull request #(\d+) from /) ?? subject.match(/\(#(\d+)\)$/);
+  return m ? Number(m[1]) : null;
+}

@@ -19,6 +19,7 @@ import {
   nextVersion,
   cutRelease,
   parseSpecVersion,
+  prNumberFromSubject,
 } from './changelog.mjs';
 
 const CHANGELOG = 'CHANGELOG.md';
@@ -48,12 +49,30 @@ const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 
 
 // GitHub indexes a merge commit's PR shortly after the push, so an empty
 // answer right away is retried before the commit is treated as a direct push.
+// The endpoint also fails outright at times (a 500, or a 200 with an empty
+// body); if it never answers, the PR number comes from the commit subject.
 function mergedPrFor(slug, sha) {
+  let answered = false;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const prs = JSON.parse(gh('api', `repos/${slug}/commits/${sha}/pulls`));
-    const pr = prs.find((p) => p.merged_at && p.base.ref === 'main');
-    if (pr) return pr;
+    try {
+      const prs = JSON.parse(gh('api', `repos/${slug}/commits/${sha}/pulls`));
+      answered = true;
+      const pr = prs.find((p) => p.merged_at && p.base.ref === 'main');
+      if (pr) return pr;
+    } catch (err) {
+      console.warn(`${sha.slice(0, 7)}: PR lookup failed (attempt ${attempt}): ${err.message}`);
+    }
     if (attempt < 3) sleep(5000);
+  }
+  if (!answered) {
+    const number = prNumberFromSubject(git('log', '-1', '--format=%s', sha));
+    if (number) {
+      console.warn(
+        `::warning::${sha.slice(0, 7)}: PR lookup unavailable; #${number} taken from the subject`,
+      );
+      return { number };
+    }
+    throw new Error(`${sha.slice(0, 7)}: PR lookup unavailable and the subject names no PR`);
   }
   console.warn(`::warning::${sha.slice(0, 7)} has no merged PR; no changelog entry`);
   return null;
