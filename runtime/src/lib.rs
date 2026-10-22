@@ -29,12 +29,14 @@ use frame_support::{
     dispatch::DispatchClass,
     parameter_types,
     traits::tokens::imbalance::ResolveTo,
-    traits::{ConstU32, ConstU64, EqualPrivilegeOnly, WithdrawReasons},
+    traits::{ConstU32, ConstU64, EqualPrivilegeOnly, InstanceFilter, WithdrawReasons},
     weights::{constants::WEIGHT_REF_TIME_PER_SECOND, IdentityFee, Weight},
     PalletId,
 };
 use frame_system::{EnsureRoot, EnsureRootWithSuccess};
 use pallet_grandpa::AuthorityId as GrandpaId;
+use parity_scale_codec::{Decode, DecodeWithMemTracking, Encode, MaxEncodedLen};
+use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_consensus_babe::AuthorityId as BabeId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata};
@@ -74,6 +76,24 @@ pub type SignedExtra = (
 pub type UncheckedExtrinsic =
     generic::UncheckedExtrinsic<Address, RuntimeCall, Signature, SignedExtra>;
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
+
+impl<LocalCall> frame_system::offchain::CreateTransactionBase<LocalCall> for Runtime
+where
+    RuntimeCall: From<LocalCall>,
+{
+    type Extrinsic = UncheckedExtrinsic;
+    type RuntimeCall = RuntimeCall;
+}
+
+impl<LocalCall> frame_system::offchain::CreateBare<LocalCall> for Runtime
+where
+    RuntimeCall: From<LocalCall>,
+{
+    fn create_bare(call: RuntimeCall) -> UncheckedExtrinsic {
+        generic::UncheckedExtrinsic::new_bare(call)
+    }
+}
+
 pub type Executive = frame_executive::Executive<
     Runtime,
     Block,
@@ -218,12 +238,16 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // 311 -> 312: atomic escrow/oracle settlement and checked reserve operations (#61).
     // No storage migration; existing call and event encodings are preserved.
     // 312 -> 313: Polkadot SDK polkadot-stable2503 -> polkadot-stable2606-3 (#30).
-    // No storage migration: every pallet's storage version matches the live chain
-    // (spec 309). session.set_keys now verifies an ownership proof, so validators
-    // rotate keys with author_rotateKeysWithOwner. transaction_version unchanged.
+    // session.set_keys now verifies an ownership proof, so validators rotate keys
+    // with author_rotateKeysWithOwner.
     // 313 -> 314: F14 wires auto-params MinScoreEligibleResponses into the quorum
     // for newly-created dispute questions. No storage or call encoding changes.
-    spec_version: 314,
+    // 314 -> 315 ships the #19 quick-fix bundle:
+    // pallet-proxy appended at index 43, BABE/GRANDPA equivocation reports enabled,
+    // sudo_as filtered, automatic rank-3 promotion paused, and a single-block
+    // migration that removes ranked-collective members with no agent stake.
+    // Existing pallet and call indices are unchanged, so transaction_version stays 1.
+    spec_version: 315,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -267,6 +291,9 @@ pub struct ConstitutionalFilter;
 impl frame_support::traits::Contains<RuntimeCall> for ConstitutionalFilter {
     fn contains(call: &RuntimeCall) -> bool {
         match call {
+            // Keep sudo for root recovery while preventing the sudo key from
+            // impersonating arbitrary signed accounts.
+            RuntimeCall::Sudo(pallet_sudo::Call::sudo_as { .. }) => false,
             RuntimeCall::Staking(
                 pallet_staking::Call::payout_stakers { era, .. }
                 | pallet_staking::Call::payout_stakers_by_page { era, .. },
@@ -281,6 +308,31 @@ impl frame_support::traits::Contains<RuntimeCall> for ConstitutionalFilter {
             }
             _ => true,
         }
+    }
+}
+
+/// Remove collective members whose agent stake disappeared before the collective
+/// bridge learned to clean up unstaked and fully slashed agents.
+pub struct RemoveOrphanedRankedMembers;
+impl frame_support::traits::OnRuntimeUpgrade for RemoveOrphanedRankedMembers {
+    fn on_runtime_upgrade() -> Weight {
+        use frame_support::traits::RankedMembers;
+
+        let db = frame_support::weights::constants::RocksDbWeight::get();
+        let mut weight = Weight::zero();
+        for who in pallet_ranked_collective::Members::<Runtime>::iter_keys() {
+            // One iterator read plus AgentStake::contains_key.
+            weight = weight.saturating_add(db.reads(2));
+            if !pallet_agents::AgentStake::<Runtime>::contains_key(&who) {
+                if let Some(rank) = <RankedCollective as RankedMembers>::rank_of(&who) {
+                    // Charge the bridge's documented worst case (rank 3): the
+                    // rank lookup plus four collective levels unwound.
+                    weight = weight.saturating_add(db.reads_writes(13, 20));
+                    let _ = RankedCollective::do_remove_member_from_rank(&who, rank);
+                }
+            }
+        }
+        weight
     }
 }
 
@@ -313,7 +365,7 @@ impl frame_system::Config for Runtime {
     type OnSetCode = ();
     type MaxConsumers = ConstU32<16>;
     type ExtensionsWeightInfo = ();
-    type SingleBlockMigrations = ();
+    type SingleBlockMigrations = RemoveOrphanedRankedMembers;
     type MultiBlockMigrator = ();
     type PreInherents = ();
     type PostInherents = ();
@@ -335,7 +387,9 @@ impl pallet_timestamp::Config for Runtime {
 parameter_types! {
     pub const EpochDuration: u64 = ERA_BLOCKS as u64 / 2;
     pub const ExpectedBlockTime: u64 = MILLISECS_PER_BLOCK;
-    pub const ReportLongevity: u64 = 168;
+    pub ReportLongevity: u64 = BondingDuration::get() as u64
+        * SessionsPerEra::get() as u64
+        * EpochDuration::get();
 }
 impl pallet_babe::Config for Runtime {
     type EpochDuration = EpochDuration;
@@ -346,7 +400,8 @@ impl pallet_babe::Config for Runtime {
     type MaxAuthorities = ConstU32<100>;
     type MaxNominators = ConstU32<512>;
     type KeyOwnerProof = sp_session::MembershipProof;
-    type EquivocationReportSystem = (); // M1: no equivocation slashing
+    type EquivocationReportSystem =
+        pallet_babe::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 // ─── pallet-grandpa ───────────────────────────────────────────────────────────
@@ -357,7 +412,8 @@ impl pallet_grandpa::Config for Runtime {
     type MaxNominators = ConstU32<512>;
     type MaxSetIdSessionEntries = ConstU64<168>;
     type KeyOwnerProof = sp_session::MembershipProof;
-    type EquivocationReportSystem = (); // M1: no equivocation slashing
+    type EquivocationReportSystem =
+        pallet_grandpa::EquivocationReportSystem<Self, Offences, Historical, ReportLongevity>;
 }
 
 // ─── pallet-balances ──────────────────────────────────────────────────────────
@@ -425,6 +481,94 @@ impl pallet_multisig::Config for Runtime {
     type DepositFactor = DepositFactor;
     type MaxSignatories = ConstU32<20>;
     type WeightInfo = pallet_multisig::weights::SubstrateWeight<Runtime>;
+    type BlockNumberProvider = System;
+}
+
+// ─── pallet-proxy ────────────────────────────────────────────────────────────
+parameter_types! {
+    pub const ProxyDepositBase: Balance = CMN;
+    pub const ProxyDepositFactor: Balance = CMN / 10;
+    pub const AnnouncementDepositBase: Balance = CMN;
+    pub const AnnouncementDepositFactor: Balance = CMN / 10;
+}
+
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Ord,
+    PartialOrd,
+    Encode,
+    Decode,
+    DecodeWithMemTracking,
+    Debug,
+    Default,
+    MaxEncodedLen,
+    TypeInfo,
+)]
+pub enum ProxyType {
+    #[default]
+    Any,
+    NonTransfer,
+    Governance,
+}
+impl InstanceFilter<RuntimeCall> for ProxyType {
+    fn filter(&self, call: &RuntimeCall) -> bool {
+        // Proxy creates a fresh signed origin, so preserve this constitutional
+        // invariant inside the proxy filter as well as BaseCallFilter.
+        if matches!(call, RuntimeCall::Sudo(pallet_sudo::Call::sudo_as { .. })) {
+            return false;
+        }
+        match self {
+            Self::Any => true,
+            Self::NonTransfer => matches!(
+                call,
+                RuntimeCall::System(..)
+                    | RuntimeCall::Staking(..)
+                    | RuntimeCall::Session(..)
+                    | RuntimeCall::Preimage(..)
+                    | RuntimeCall::Referenda(..)
+                    | RuntimeCall::ConvictionVoting(..)
+                    | RuntimeCall::RankedCollective(..)
+                    | RuntimeCall::RankedPolls(..)
+                    | RuntimeCall::Identity(..)
+            ),
+            Self::Governance => matches!(
+                call,
+                RuntimeCall::Sudo(..)
+                    | RuntimeCall::Treasury(..)
+                    | RuntimeCall::Scheduler(..)
+                    | RuntimeCall::Preimage(..)
+                    | RuntimeCall::Referenda(..)
+                    | RuntimeCall::ConvictionVoting(..)
+                    | RuntimeCall::RankedCollective(..)
+                    | RuntimeCall::RankedPolls(..)
+                    | RuntimeCall::Whitelist(..)
+                    | RuntimeCall::SafeMode(..)
+                    | RuntimeCall::TxPause(..)
+            ),
+        }
+    }
+
+    fn is_superset(&self, other: &Self) -> bool {
+        matches!((self, other), (Self::Any, _)) || self == other
+    }
+}
+
+impl pallet_proxy::Config for Runtime {
+    type RuntimeEvent = RuntimeEvent;
+    type RuntimeCall = RuntimeCall;
+    type Currency = Balances;
+    type ProxyType = ProxyType;
+    type ProxyDepositBase = ProxyDepositBase;
+    type ProxyDepositFactor = ProxyDepositFactor;
+    type MaxProxies = ConstU32<32>;
+    type WeightInfo = pallet_proxy::weights::SubstrateWeight<Runtime>;
+    type MaxPending = ConstU32<32>;
+    type CallHasher = BlakeTwo256;
+    type AnnouncementDepositBase = AnnouncementDepositBase;
+    type AnnouncementDepositFactor = AnnouncementDepositFactor;
     type BlockNumberProvider = System;
 }
 
@@ -1327,7 +1471,9 @@ parameter_types! {
     pub const AgentsMaxRegistrationsPerBlock: u32 = 10;
     pub const AgentsMaxAgents:            u32 = 10_000_000;
     pub const AgentsRank3MinCompletions:  u32 = 50;
-    pub const AgentsMinRank3OracleScore:  u32 = 1_000;
+    // Oracle scores are capped at 10_000, so this pauses automatic rank-3
+    // promotion until F03 is fixed.
+    pub const AgentsMinRank3OracleScore:  u32 = u32::MAX;
     pub const AgentsRank3SpanGate:        BlockNumber = 30 * DAYS;
     pub const AgentsMaxVolToStakeRatio:   u32 = 10;
     pub const AgentsHeartbeatGrace:       BlockNumber = HOURS * 18;   // V4: 3 eras grace (was 6h = 1 era — zero margin)
@@ -1659,6 +1805,9 @@ mod runtime {
     // nothing above moves.
     #[runtime::pallet_index(42)]
     pub type Messages = pallet_messages;
+    // Issue #19: append-only index for delayed root-account proxies.
+    #[runtime::pallet_index(43)]
+    pub type Proxy = pallet_proxy;
 }
 
 // ─── Runtime API implementations ─────────────────────────────────────────────
@@ -1771,16 +1920,25 @@ impl_runtime_apis! {
             Grandpa::current_set_id()
         }
         fn submit_report_equivocation_unsigned_extrinsic(
-            _: sp_consensus_grandpa::EquivocationProof<
+            equivocation_proof: sp_consensus_grandpa::EquivocationProof<
                 <Block as BlockT>::Hash,
                 NumberFor<Block>,
             >,
-            _: sp_consensus_grandpa::OpaqueKeyOwnershipProof,
-        ) -> Option<()> { None }
+            key_owner_proof: sp_consensus_grandpa::OpaqueKeyOwnershipProof,
+        ) -> Option<()> {
+            let key_owner_proof = key_owner_proof.decode()?;
+            Grandpa::submit_unsigned_equivocation_report(equivocation_proof, key_owner_proof)
+        }
         fn generate_key_ownership_proof(
-            _: sp_consensus_grandpa::SetId,
-            _: GrandpaId,
-        ) -> Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof> { None }
+            _set_id: sp_consensus_grandpa::SetId,
+            authority_id: GrandpaId,
+        ) -> Option<sp_consensus_grandpa::OpaqueKeyOwnershipProof> {
+            use frame_support::traits::KeyOwnerProofSystem;
+
+            Historical::prove((sp_consensus_grandpa::KEY_TYPE, authority_id))
+                .map(|p: sp_session::MembershipProof| p.encode())
+                .map(sp_consensus_grandpa::OpaqueKeyOwnershipProof::new)
+        }
     }
 
     /// ROUND5: the API `sc-authority-discovery` calls to learn the current and
@@ -2049,19 +2207,60 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
-    /// 313 moves the Polkadot SDK from stable2503 to stable2606-3 (#30).
+    /// 315 ships the quick-fix runtime bundle with its ranked-member repair (#19).
+    /// 314 wires the live auto-param quorum into new dispute questions (#21).
+    /// 313 moves the Polkadot SDK to stable2606-3 (#30).
     /// 312 makes escrow/oracle settlement atomic and checks reserve operations (#61).
     /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
     /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_314() {
-        assert_eq!(VERSION.spec_version, 314);
+    fn spec_version_is_315() {
+        assert_eq!(VERSION.spec_version, 315);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
     #[test]
     fn transaction_version_is_unchanged() {
         assert_eq!(VERSION.transaction_version, 1);
+    }
+
+    #[test]
+    fn proxy_pallet_is_appended_at_index_43() {
+        use frame_support::traits::PalletInfo as PalletInfoT;
+
+        assert_eq!(
+            <PalletInfo as PalletInfoT>::index::<pallet_proxy::Pallet<Runtime>>(),
+            Some(43)
+        );
+        assert_eq!(<Messages as PalletInfoAccess>::index(), 42);
+    }
+
+    #[test]
+    fn equivocation_reporting_is_wired_to_offences_and_historical_proofs() {
+        use core::any::TypeId;
+
+        assert_eq!(
+            TypeId::of::<<Runtime as pallet_babe::Config>::EquivocationReportSystem>(),
+            TypeId::of::<
+                pallet_babe::EquivocationReportSystem<
+                    Runtime,
+                    Offences,
+                    Historical,
+                    ReportLongevity,
+                >,
+            >()
+        );
+        assert_eq!(
+            TypeId::of::<<Runtime as pallet_grandpa::Config>::EquivocationReportSystem>(),
+            TypeId::of::<
+                pallet_grandpa::EquivocationReportSystem<
+                    Runtime,
+                    Offences,
+                    Historical,
+                    ReportLongevity,
+                >,
+            >()
+        );
     }
 
     // ── spec 308: pallet-messages + messaging key (D14–D17) ──────────────────
@@ -2235,6 +2434,11 @@ mod tests {
         }
         .assimilate_storage(&mut storage)
         .unwrap();
+        pallet_sudo::GenesisConfig::<Runtime> {
+            key: Some(account(1)),
+        }
+        .assimilate_storage(&mut storage)
+        .unwrap();
         let mut ext: sp_io::TestExternalities = storage.into();
         ext.execute_with(|| System::set_block_number(1));
         ext
@@ -2257,6 +2461,67 @@ mod tests {
         RuntimeCall::System(frame_system::Call::set_storage {
             items: vec![(N2_KEY.to_vec(), b"yes".to_vec())],
         })
+    }
+
+    #[test]
+    fn delayed_governance_proxy_can_protect_the_sudo_account() {
+        gov_ext().execute_with(|| {
+            let real = account(1);
+            let delegate = account(2);
+            let delay = 2;
+
+            assert_ok!(Proxy::add_proxy(
+                RuntimeOrigin::signed(real.clone()),
+                Address::Id(delegate.clone()),
+                ProxyType::Governance,
+                delay,
+            ));
+
+            let call = RuntimeCall::Sudo(pallet_sudo::Call::sudo {
+                call: Box::new(root_only_call()),
+            });
+            let call_hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
+
+            assert_noop!(
+                Proxy::proxy(
+                    RuntimeOrigin::signed(delegate.clone()),
+                    Address::Id(real.clone()),
+                    Some(ProxyType::Governance),
+                    Box::new(call.clone()),
+                ),
+                pallet_proxy::Error::<Runtime>::Unannounced
+            );
+            assert_ok!(Proxy::announce(
+                RuntimeOrigin::signed(delegate.clone()),
+                Address::Id(real.clone()),
+                call_hash,
+            ));
+
+            System::set_block_number(2);
+            assert_noop!(
+                Proxy::proxy_announced(
+                    RuntimeOrigin::signed(delegate.clone()),
+                    Address::Id(delegate.clone()),
+                    Address::Id(real.clone()),
+                    Some(ProxyType::Governance),
+                    Box::new(call.clone()),
+                ),
+                pallet_proxy::Error::<Runtime>::Unannounced
+            );
+
+            System::set_block_number(3);
+            assert_ok!(Proxy::proxy_announced(
+                RuntimeOrigin::signed(delegate.clone()),
+                Address::Id(delegate),
+                Address::Id(real),
+                Some(ProxyType::Governance),
+                Box::new(call),
+            ));
+            assert_eq!(
+                sp_io::storage::get(N2_KEY).map(|value| value.to_vec()),
+                Some(b"yes".to_vec())
+            );
+        });
     }
 
     /// N2: one rank-2 account, acting alone, must not be able to whitelist a call
@@ -2421,6 +2686,86 @@ mod tests {
 
             let index = submit_root_referendum();
             assert!(pallet_referenda::ReferendumInfoFor::<Runtime>::contains_key(index));
+        });
+    }
+
+    #[test]
+    fn automatic_rank_three_promotion_is_paused() {
+        gov_ext().execute_with(|| {
+            let provider = account(1);
+            let buyer = account(2);
+            assert_ok!(Agents::register(
+                RuntimeOrigin::signed(provider.clone()),
+                AgentsFullFloorStake::get(),
+            ));
+            assert_ok!(RankedCollective::do_promote_member(
+                provider.clone(),
+                None,
+                true,
+            ));
+            assert_ok!(RankedCollective::do_promote_member(
+                provider.clone(),
+                None,
+                true,
+            ));
+            pallet_agents::CompletedAgreements::<Runtime>::insert(
+                &provider,
+                AgentsRank3MinCompletions::get().saturating_sub(1),
+            );
+            pallet_oracle::OracleScore::<Runtime>::insert(&provider, 0, 10_000);
+            System::set_block_number(AgentsRank3SpanGate::get().saturating_add(1));
+
+            assert_ok!(pallet_agents::Pallet::<Runtime>::add_era_escrow_volume(
+                &provider, &buyer, 1,
+            ));
+            assert_eq!(
+                <RankedCollective as RankedMembers>::rank_of(&provider),
+                Some(2),
+                "rank 3 must remain unavailable until F03 is fixed"
+            );
+        });
+    }
+
+    #[test]
+    fn runtime_upgrade_removes_ranked_members_without_an_agent_stake() {
+        use frame_support::traits::OnRuntimeUpgrade;
+
+        gov_ext().execute_with(|| {
+            let ghost = account(1);
+            let registered = account(2);
+            for who in [&ghost, &registered] {
+                assert_ok!(Agents::register(
+                    RuntimeOrigin::signed(who.clone()),
+                    AgentsMinStake::get(),
+                ));
+            }
+            assert_ok!(RankedCollective::do_promote_member(
+                ghost.clone(),
+                None,
+                true,
+            ));
+            assert_ok!(RankedCollective::do_promote_member(
+                ghost.clone(),
+                None,
+                true,
+            ));
+            assert_eq!(RankedCollective::rank_of(&ghost), Some(2));
+            pallet_agents::AgentStake::<Runtime>::remove(&ghost);
+
+            <<Runtime as frame_system::Config>::SingleBlockMigrations as OnRuntimeUpgrade>::on_runtime_upgrade();
+            // The cleanup is safe to replay and must preserve registered members.
+            <<Runtime as frame_system::Config>::SingleBlockMigrations as OnRuntimeUpgrade>::on_runtime_upgrade();
+
+            assert_eq!(
+                <RankedCollective as RankedMembers>::rank_of(&ghost),
+                None,
+                "legacy unstaked or evicted agents must lose collective membership"
+            );
+            assert_eq!(
+                <RankedCollective as RankedMembers>::rank_of(&registered),
+                Some(0),
+                "registered agents must keep their collective membership"
+            );
         });
     }
 }
