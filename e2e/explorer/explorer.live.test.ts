@@ -68,7 +68,10 @@ async function get(path: string): Promise<{ status: number; body: string }> {
 
 /** Signs and submits one transfer, then locates it in the block it landed in. */
 async function submitTransfer(sender: KeyringPair, recipient: string): Promise<Fixture> {
-  const transferKeepAlive = required(api.tx.balances?.transferKeepAlive, 'balances.transferKeepAlive call');
+  const transferKeepAlive = required(
+    api.tx.balances?.transferKeepAlive,
+    'balances.transferKeepAlive call',
+  );
   const tx = transferKeepAlive(recipient, ONE_CMN);
   const blockHash = await new Promise<string>((resolve, reject) => {
     tx.signAndSend(sender, { nonce: -1 }, (result) => {
@@ -110,12 +113,17 @@ beforeAll(async () => {
   server = createExplorerServer({
     chain,
     // Only /activity reads it; this suite exercises the node-backed views.
-    activity: createIndexerClient({ baseUrl: process.env.EXPLORER_INDEXER_URL ?? 'http://127.0.0.1:8080' }),
+    activity: createIndexerClient({
+      baseUrl: process.env.EXPLORER_INDEXER_URL ?? 'http://127.0.0.1:8080',
+    }),
   });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
-  transfer = await submitTransfer(keyring.addFromUri(TEST_SEED), keyring.addFromMnemonic(mnemonicGenerate()).address);
+  transfer = await submitTransfer(
+    keyring.addFromUri(TEST_SEED),
+    keyring.addFromMnemonic(mnemonicGenerate()).address,
+  );
 });
 
 afterAll(async () => {
@@ -196,7 +204,9 @@ describe('block view', () => {
 
 describe('extrinsic view', () => {
   it('decodes the signed transfer from runtime metadata: signer, args, outcome, events', async () => {
-    const { status, body } = await get(`/extrinsic/${transfer.blockNumber}/${transfer.extrinsicIndex}`);
+    const { status, body } = await get(
+      `/extrinsic/${transfer.blockNumber}/${transfer.extrinsicIndex}`,
+    );
     expect(status).toBe(200);
     expect(body).toContain('balances.transferKeepAlive');
     expect(body).toContain(transfer.extrinsicHash);
@@ -221,8 +231,8 @@ describe('extrinsic view', () => {
     expect(positions.length).toBeGreaterThan(0);
 
     const { body } = await get(`/extrinsic/${transfer.blockNumber}/${transfer.extrinsicIndex}`);
-    const shown = [...body.matchAll(/<tr><td>(\d+)<\/td><td>[a-zA-Z]+\.[a-zA-Z]+<\/td>/g)].map((match) =>
-      Number(match[1]),
+    const shown = [...body.matchAll(/<tr><td>(\d+)<\/td><td>[a-zA-Z]+\.[a-zA-Z]+<\/td>/g)].map(
+      (match) => Number(match[1]),
     );
     expect(shown).toEqual(positions);
   });

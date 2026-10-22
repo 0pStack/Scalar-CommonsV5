@@ -29,7 +29,8 @@ type Env = Record<string, string | undefined>;
 /** A whole number of blocks/counts. Garbage fails loudly instead of defaulting. */
 function wholeNumber(env: Env, key: string, fallback: string, min: bigint): bigint {
   const raw = (env[key] ?? fallback).trim();
-  if (!/^\d+$/.test(raw)) throw new Error(`${key} must be a non-negative whole number, got "${raw}"`);
+  if (!/^\d+$/.test(raw))
+    throw new Error(`${key} must be a non-negative whole number, got "${raw}"`);
   const n = BigInt(raw);
   if (n < min) throw new Error(`${key} must be >= ${min}, got ${n}`);
   return n;
@@ -43,7 +44,10 @@ function wholeNumber(env: Env, key: string, fallback: string, min: bigint): bigi
 function cmn(env: Env, key: string, fallback: string): bigint {
   const raw = (env[key] ?? fallback).trim();
   const m = /^(\d+)(?:\.(\d{1,12}))?$/.exec(raw);
-  if (!m) throw new Error(`${key} must be a CMN amount with at most ${CMN_DECIMALS} decimals, got "${raw}"`);
+  if (!m)
+    throw new Error(
+      `${key} must be a CMN amount with at most ${CMN_DECIMALS} decimals, got "${raw}"`,
+    );
   const whole = BigInt(m[1] ?? '0') * PLANCKS_PER_CMN;
   const frac = BigInt((m[2] ?? '').padEnd(CMN_DECIMALS, '0') || '0');
   return whole + frac;
@@ -77,7 +81,10 @@ export function loadConfig(env: Env): Config {
     heartbeatEveryBlocks: wholeNumber(env, 'HEARTBEAT_BLOCKS', '600', 1n),
     minDeliveryBlocks: wholeNumber(env, 'MIN_DELIVERY_BLOCKS', '10', 0n),
     buyerAmount: cmn(env, 'BUYER_AMOUNT_CMN', '10'),
-    buyerPeers: (env.BUYER_PEERS ?? '').split(',').map((x) => x.trim()).filter((x) => x !== ''),
+    buyerPeers: (env.BUYER_PEERS ?? '')
+      .split(',')
+      .map((x) => x.trim())
+      .filter((x) => x !== ''),
     buyerMaxOpen: Number(wholeNumber(env, 'BUYER_MAX_OPEN', '2', 0n)),
     buyerDeliverWithin: wholeNumber(env, 'BUYER_DELIVER_WITHIN_BLOCKS', '600', 1n),
     pollSeconds: Number(wholeNumber(env, 'POLL_SECONDS', '6', 1n)),
@@ -92,7 +99,9 @@ export function loadConfig(env: Env): Config {
   // Fail closed: an empty allowlist would let the buyer reserve funds with any
   // registered agent, which may never deliver.
   if (mode !== 'provider' && cfg.buyerPeers.length === 0) {
-    throw new Error(`BUYER_PEERS is required when AGENT_MODE is ${mode}: list the provider addresses this buyer may pay`);
+    throw new Error(
+      `BUYER_PEERS is required when AGENT_MODE is ${mode}: list the provider addresses this buyer may pay`,
+    );
   }
   return cfg;
 }

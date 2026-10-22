@@ -77,9 +77,11 @@ export class ChainIndexer {
       const height = header.number.toNumber();
       // Serialise ingestion: finalized heads can arrive faster than a block is
       // read back, and two concurrent writers would interleave transactions.
-      this.queue = this.queue.then(() => this.catchUpTo(height)).catch((error) => {
-        this.logger.error(`indexer: failed to index up to #${height}: ${String(error)}`);
-      });
+      this.queue = this.queue
+        .then(() => this.catchUpTo(height))
+        .catch((error) => {
+          this.logger.error(`indexer: failed to index up to #${height}: ${String(error)}`);
+        });
     });
   }
 

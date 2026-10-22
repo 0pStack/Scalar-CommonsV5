@@ -145,13 +145,19 @@ test('dialState reads the live response shape', () => {
   assert.equal(state.due, false);
   assert.equal(state.settlesAt, 820757);
   assert.equal(state.percent, 98); // 3558/3600 = 98.8 %, floored: never "100 %" while blocks remain
-  assert.equal(dialState({ ...CURRENT, blocksElapsed: 3599, blocksRemaining: 1 }, field).percent, 99);
+  assert.equal(
+    dialState({ ...CURRENT, blocksElapsed: 3599, blocksRemaining: 1 }, field).percent,
+    99,
+  );
   assert.equal(state.seconds, 252);
   assert.equal(state.fraction, 3558 / 3600);
   assert.equal(state.pastDue, 0);
   assert.equal(dialState(CURRENT, field, 6200).seconds, 260.4);
   // The first blocks of an era, as seen live for era 80.
-  const fresh = dialState({ ...CURRENT, era: 80, startBlock: 820862, blocksElapsed: 352, blocksRemaining: 3248 }, field);
+  const fresh = dialState(
+    { ...CURRENT, era: 80, startBlock: 820862, blocksElapsed: 352, blocksRemaining: 3248 },
+    field,
+  );
   assert.equal(fresh.percent, 9);
   assert.equal(fresh.settlesAt, 824462);
 });
@@ -160,7 +166,10 @@ test('dialState refuses a response missing a field, rather than guessing', () =>
   const { blocksRemaining, ...partial } = CURRENT;
   void blocksRemaining;
   assert.throws(() => dialState(partial, field), /response has no blocksRemaining/);
-  assert.throws(() => dialState({ ...CURRENT, durationBlocks: null }, field), /response has no durationBlocks/);
+  assert.throws(
+    () => dialState({ ...CURRENT, durationBlocks: null }, field),
+    /response has no durationBlocks/,
+  );
 });
 
 test('dialState refuses a field of the wrong type, rather than coercing it', () => {
@@ -174,17 +183,44 @@ test('dialState refuses a field of the wrong type, rather than coercing it', () 
     dueForSettlement: 'true',
   };
   assert.throws(() => dialState(strings, field), /response has a non-numeric startBlock/);
-  assert.throws(() => dialState({ ...CURRENT, era: '79' }, field), /response has a non-numeric era/);
-  assert.throws(() => dialState({ ...CURRENT, blocksElapsed: NaN }, field), /response has a non-numeric blocksElapsed/);
-  assert.throws(() => dialState({ ...CURRENT, blocksElapsed: 12.5 }, field), /response has a non-numeric blocksElapsed/);
-  assert.throws(() => dialState({ ...CURRENT, blocksRemaining: -1 }, field), /response has a non-numeric blocksRemaining/);
-  assert.throws(() => dialState({ ...CURRENT, durationBlocks: 0 }, field), /response has a zero durationBlocks/);
-  assert.throws(() => dialState({ ...CURRENT, dueForSettlement: 'true' }, field), /non-boolean dueForSettlement/);
-  assert.throws(() => dialState({ ...CURRENT, dueForSettlement: 1 }, field), /non-boolean dueForSettlement/);
+  assert.throws(
+    () => dialState({ ...CURRENT, era: '79' }, field),
+    /response has a non-numeric era/,
+  );
+  assert.throws(
+    () => dialState({ ...CURRENT, blocksElapsed: NaN }, field),
+    /response has a non-numeric blocksElapsed/,
+  );
+  assert.throws(
+    () => dialState({ ...CURRENT, blocksElapsed: 12.5 }, field),
+    /response has a non-numeric blocksElapsed/,
+  );
+  assert.throws(
+    () => dialState({ ...CURRENT, blocksRemaining: -1 }, field),
+    /response has a non-numeric blocksRemaining/,
+  );
+  assert.throws(
+    () => dialState({ ...CURRENT, durationBlocks: 0 }, field),
+    /response has a zero durationBlocks/,
+  );
+  assert.throws(
+    () => dialState({ ...CURRENT, dueForSettlement: 'true' }, field),
+    /non-boolean dueForSettlement/,
+  );
+  assert.throws(
+    () => dialState({ ...CURRENT, dueForSettlement: 1 }, field),
+    /non-boolean dueForSettlement/,
+  );
 });
 
 test('awaiting settlement: the arc is complete, the countdown is now, and past-due blocks are counted', () => {
-  const due = { ...CURRENT, blocksElapsed: 3612, blocksRemaining: 0, dueForSettlement: true, currentBlock: 820769 };
+  const due = {
+    ...CURRENT,
+    blocksElapsed: 3612,
+    blocksRemaining: 0,
+    dueForSettlement: true,
+    currentBlock: 820769,
+  };
   const state = dialState(due, field);
   assert.equal(state.due, true);
   assert.equal(state.fraction, 1);
@@ -200,15 +236,24 @@ test('awaiting settlement: the arc is complete, the countdown is now, and past-d
 
 test('the elapsed phrase prints the chain’s figure unclamped, and says how far past due', () => {
   assert.equal(elapsedPhrase(dialState(CURRENT, field), format), '3,558 of 3,600 blocks');
-  const due = dialState({ ...CURRENT, blocksElapsed: 3612, blocksRemaining: 0, dueForSettlement: true }, field);
+  const due = dialState(
+    { ...CURRENT, blocksElapsed: 3612, blocksRemaining: 0, dueForSettlement: true },
+    field,
+  );
   assert.equal(elapsedPhrase(due, format), '3,612 of 3,600 blocks · 12 blocks past due');
-  const justDue = dialState({ ...CURRENT, blocksElapsed: 3601, blocksRemaining: 0, dueForSettlement: true }, field);
+  const justDue = dialState(
+    { ...CURRENT, blocksElapsed: 3601, blocksRemaining: 0, dueForSettlement: true },
+    field,
+  );
   assert.equal(elapsedPhrase(justDue, format), '3,601 of 3,600 blocks · 1 block past due');
 });
 
 test('the aria summary is one plain sentence', () => {
   const state = dialState({ ...CURRENT, blocksElapsed: 3276, blocksRemaining: 324 }, field);
-  assert.equal(ariaSummary(state, format), 'Era 79, 91 % complete, settles at block 820,757, about 32 min from now');
+  assert.equal(
+    ariaSummary(state, format),
+    'Era 79, 91 % complete, settles at block 820,757, about 32 min from now',
+  );
 });
 
 test('the most recent settled era is the first settled entry of /v1/eras', () => {

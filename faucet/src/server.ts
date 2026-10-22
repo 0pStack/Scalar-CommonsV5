@@ -12,7 +12,12 @@
  *   - `GET  /health`                                  → chain + faucet state
  */
 
-import { createServer as createHttpServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
+import {
+  createServer as createHttpServer,
+  type IncomingMessage,
+  type Server,
+  type ServerResponse,
+} from 'node:http';
 import { isIP } from 'node:net';
 
 import { InvalidAddressError } from './address.js';
@@ -47,7 +52,12 @@ const STATUS_BY_CODE: Record<DripFailureCode, number> = {
 
 const DEFAULT_MAX_BODY_BYTES = 4096;
 
-function sendJson(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
+function sendJson(
+  res: ServerResponse,
+  status: number,
+  body: unknown,
+  headers: Record<string, string> = {},
+): void {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
     'content-type': 'application/json; charset=utf-8',
@@ -84,7 +94,10 @@ export function ipBucket(ip: string): string {
   // the longest zero run, so the prefix's own trailing zeros fold into the same `::`.
   let end = 4;
   while (end > 0 && hextets[end - 1] === 0) end -= 1;
-  return `${hextets.slice(0, end).map((h) => h.toString(16)).join(':')}::/64`;
+  return `${hextets
+    .slice(0, end)
+    .map((h) => h.toString(16))
+    .join(':')}::/64`;
 }
 
 /** The eight hextets of an address `isIP` has already accepted as IPv6. */
@@ -95,7 +108,8 @@ function expandIPv6(address: string): number[] {
     const [a = 0, b = 0, c = 0, d = 0] = v4.slice(1).map(Number);
     text = `${text.slice(0, v4.index)}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
   }
-  const parse = (part: string): number[] => (part === '' ? [] : part.split(':').map((h) => parseInt(h, 16)));
+  const parse = (part: string): number[] =>
+    part === '' ? [] : part.split(':').map((h) => parseInt(h, 16));
   const [head = '', tail] = text.split('::');
   const left = parse(head);
   if (tail === undefined) {
@@ -129,7 +143,10 @@ export function clientIp(req: IncomingMessage, trustProxy: boolean): string {
     // the header with `$remote_addr`, which makes the list one entry long — but
     // this code does not depend on that, because a config change elsewhere must
     // not silently re-open a rate-limit bypass.
-    const entries = raw?.split(',').map((e) => e.trim()).filter((e) => e.length > 0);
+    const entries = raw
+      ?.split(',')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0);
     const last = entries?.[entries.length - 1];
     if (last) {
       return last;
@@ -206,7 +223,12 @@ export function createFaucetServer(options: FaucetServerOptions): Server {
 
     if (path === '/drip') {
       if (method !== 'POST') {
-        sendJson(res, 405, { ok: false, code: 'METHOD_NOT_ALLOWED', error: 'use POST /drip' }, { allow: 'POST' });
+        sendJson(
+          res,
+          405,
+          { ok: false, code: 'METHOD_NOT_ALLOWED', error: 'use POST /drip' },
+          { allow: 'POST' },
+        );
         return;
       }
       await handleDrip(req, res);
@@ -284,7 +306,10 @@ export function createFaucetServer(options: FaucetServerOptions): Server {
     }
 
     const headers: Record<string, string> = {};
-    if ((result.code === 'RATE_LIMITED' || result.code === 'FAUCET_PAUSED') && result.retryAfterMs !== undefined) {
+    if (
+      (result.code === 'RATE_LIMITED' || result.code === 'FAUCET_PAUSED') &&
+      result.retryAfterMs !== undefined
+    ) {
       // Retry-After is in whole seconds, rounded up so a client that obeys it
       // does not come back a moment early and get refused again.
       headers['retry-after'] = String(Math.ceil(result.retryAfterMs / 1000));

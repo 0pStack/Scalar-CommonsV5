@@ -35,7 +35,11 @@ let keyring: Keyring;
 beforeAll(async () => {
   await cryptoWaitReady();
   keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
-  chain = await connectChain({ rpcEndpoint: RPC_ENDPOINT, faucetSeed: FAUCET_SEED, ss58Format: 42 });
+  chain = await connectChain({
+    rpcEndpoint: RPC_ENDPOINT,
+    faucetSeed: FAUCET_SEED,
+    ss58Format: 42,
+  });
 });
 
 afterAll(async () => {
@@ -94,7 +98,11 @@ async function postDrip(h: Harness, address: unknown, ip = '203.0.113.1') {
     headers: { 'content-type': 'application/json', 'x-forwarded-for': ip },
     body: JSON.stringify({ address }),
   });
-  return { status: res.status, headers: res.headers, body: (await res.json()) as Record<string, any> };
+  return {
+    status: res.status,
+    headers: res.headers,
+    body: (await res.json()) as Record<string, any>,
+  };
 }
 
 // ─── Live chain wiring ───────────────────────────────────────────────────────
@@ -469,7 +477,10 @@ describe('GET /balance/:address', () => {
     const h = await harness();
     try {
       const dest = freshAddress();
-      const before = (await (await fetch(`${h.url}/balance/${dest}`)).json()) as Record<string, any>;
+      const before = (await (await fetch(`${h.url}/balance/${dest}`)).json()) as Record<
+        string,
+        any
+      >;
       expect(BigInt(before.freePlancks)).toBe(0n);
 
       expect((await postDrip(h, dest)).status).toBe(200);

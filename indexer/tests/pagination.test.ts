@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
-import { parsePage, parseOptionalInteger, DEFAULT_LIMIT, MAX_LIMIT, InvalidQueryError } from '../src/pagination.ts';
+import {
+  parsePage,
+  parseOptionalInteger,
+  DEFAULT_LIMIT,
+  MAX_LIMIT,
+  InvalidQueryError,
+} from '../src/pagination.ts';
 
 /**
  * Every list endpoint is a window onto an unbounded chain. The paging rules are
@@ -44,7 +50,10 @@ describe('parsePage', () => {
     expect(() => page('offset=9223372036854775808')).toThrow(InvalidQueryError);
     // Below 2^63 it binds, but past 2^53 it has already been silently rounded.
     expect(() => page(`offset=${Number.MAX_SAFE_INTEGER + 1}`)).toThrow(InvalidQueryError);
-    expect(page(`offset=${Number.MAX_SAFE_INTEGER}`)).toEqual({ limit: DEFAULT_LIMIT, offset: Number.MAX_SAFE_INTEGER });
+    expect(page(`offset=${Number.MAX_SAFE_INTEGER}`)).toEqual({
+      limit: DEFAULT_LIMIT,
+      offset: Number.MAX_SAFE_INTEGER,
+    });
   });
 
   it('still clamps a huge limit rather than refusing it', () => {
@@ -61,7 +70,9 @@ describe('parseOptionalInteger', () => {
 
   it('rejects a filter too large to represent exactly', () => {
     expect(() => blockNumber('blockNumber=9223372036854775808')).toThrow(InvalidQueryError);
-    expect(() => blockNumber(`blockNumber=${Number.MAX_SAFE_INTEGER + 1}`)).toThrow(InvalidQueryError);
+    expect(() => blockNumber(`blockNumber=${Number.MAX_SAFE_INTEGER + 1}`)).toThrow(
+      InvalidQueryError,
+    );
     expect(blockNumber(`blockNumber=${Number.MAX_SAFE_INTEGER}`)).toBe(Number.MAX_SAFE_INTEGER);
   });
 });

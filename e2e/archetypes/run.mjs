@@ -15,7 +15,17 @@
  */
 
 import { parseArgs, USAGE } from './src/args.mjs';
-import { connect, keyringFor, newRunSeed, deriveAccount, fundFromAlice, balanceOf, claimable, head, waitForBlock } from './src/chain.mjs';
+import {
+  connect,
+  keyringFor,
+  newRunSeed,
+  deriveAccount,
+  fundFromAlice,
+  balanceOf,
+  claimable,
+  head,
+  waitForBlock,
+} from './src/chain.mjs';
 import { ARCHETYPES } from './src/archetypes/index.mjs';
 import { newLedger, recordFunding, settle } from './src/ledger.mjs';
 import { PER_AGENT_FUNDING } from './src/archetypes/index.mjs';
@@ -35,14 +45,20 @@ async function main() {
     console.error(USAGE);
     process.exit(2);
   }
-  if (opts.help) { console.log(USAGE); return; }
+  if (opts.help) {
+    console.log(USAGE);
+    return;
+  }
 
-  const selected = opts.archetype === 'all'
-    ? Object.keys(ARCHETYPES)
-    : opts.archetype.split(',').map((s) => s.trim());
+  const selected =
+    opts.archetype === 'all'
+      ? Object.keys(ARCHETYPES)
+      : opts.archetype.split(',').map((s) => s.trim());
   for (const k of selected) {
     if (!ARCHETYPES[k]) {
-      console.error(`error: unknown archetype '${k}'. Known: ${Object.keys(ARCHETYPES).join(', ')}`);
+      console.error(
+        `error: unknown archetype '${k}'. Known: ${Object.keys(ARCHETYPES).join(', ')}`,
+      );
       process.exit(2);
     }
   }
@@ -55,7 +71,9 @@ async function main() {
   log('');
   log('=== live archetype run ===');
   log(`  endpoint      ${opts.endpoint}`);
-  log(`  chain         ${(await api.rpc.system.chain()).toString()}  spec ${api.runtimeVersion.specVersion.toString()}`);
+  log(
+    `  chain         ${(await api.rpc.system.chain()).toString()}  spec ${api.runtimeVersion.specVersion.toString()}`,
+  );
   log(`  archetypes    ${selected.join(', ')}`);
   log(`  eras          ${opts.eras}   rounds ${opts.rounds}`);
   log(`  run seed      ${runSeed}`);
@@ -66,7 +84,9 @@ async function main() {
   const eraStart = (await api.query.emissions.eraStartBlock()).toNumber();
   const settlesAt = eraStart + eraDuration;
   log(`  head          #${startBlock}`);
-  log(`  era started   #${eraStart}, settles at #${settlesAt} (${Math.max(0, settlesAt - startBlock)} blocks away)`);
+  log(
+    `  era started   #${eraStart}, settles at #${settlesAt} (${Math.max(0, settlesAt - startBlock)} blocks away)`,
+  );
   log('');
 
   // ---- phase 1: fund and execute --------------------------------------------
@@ -87,10 +107,16 @@ async function main() {
       recordFunding(ledger, acct.address, PER_AGENT_FUNDING);
       accounts.push(acct);
     }
-    log(`    funded ${accounts.length} account(s) with ${plancksToCmn(PER_AGENT_FUNDING, 0)} CMN each`);
+    log(
+      `    funded ${accounts.length} account(s) with ${plancksToCmn(PER_AGENT_FUNDING, 0)} CMN each`,
+    );
 
     await arch.run({
-      api, ledger, accounts, log, rounds: opts.rounds,
+      api,
+      ledger,
+      accounts,
+      log,
+      rounds: opts.rounds,
       runSeedTag: `${key}-${runTag}`,
       head: () => head(api),
     });
@@ -113,15 +139,24 @@ async function main() {
     let last = before;
     while (settledEras < opts.eras && Date.now() < deadline) {
       const now = (await api.query.emissions.lastSettledEra()).toString();
-      if (now !== last) { settledEras += 1; last = now; log(`    settled: LastSettledEra now ${now}`); continue; }
+      if (now !== last) {
+        settledEras += 1;
+        last = now;
+        log(`    settled: LastSettledEra now ${now}`);
+        continue;
+      }
       const h = await head(api);
-      const mins = Math.max(0, Math.round((settlesAt - h) * 6 / 60));
-      log(`    #${h} — ${Math.max(0, settlesAt - h)} blocks to settlement (~${mins} min), ${Math.round((deadline - Date.now()) / 60000)} min of budget left`);
+      const mins = Math.max(0, Math.round(((settlesAt - h) * 6) / 60));
+      log(
+        `    #${h} — ${Math.max(0, settlesAt - h)} blocks to settlement (~${mins} min), ${Math.round((deadline - Date.now()) / 60000)} min of budget left`,
+      );
       await waitForBlock(api, h + 25).catch(() => {});
     }
     status = settledEras >= opts.eras ? 'SETTLED' : 'PARTIAL';
     if (status === 'PARTIAL') {
-      log(`    budget exhausted after ${opts.waitMinutes} min with ${settledEras}/${opts.eras} settlement(s)`);
+      log(
+        `    budget exhausted after ${opts.waitMinutes} min with ${settledEras}/${opts.eras} settlement(s)`,
+      );
     }
     log('');
   }
@@ -137,13 +172,17 @@ async function main() {
     for (const a of accounts) {
       const b = await balanceOf(api, a.address);
       balances.push({
-        spendablePlancks: b.spendable, frozenPlancks: b.frozen, reservedPlancks: b.reserved,
+        spendablePlancks: b.spendable,
+        frozenPlancks: b.frozen,
+        reservedPlancks: b.reserved,
         claimablePlancks: await claimable(api, a.address),
       });
     }
     const row = settle(ledger, balances);
     rows.push({ ...row, key: arch.key, title: arch.title, status });
-    log(`    spendable ${plancksToCmn(row.spendablePlancks, 4)}  locked ${plancksToCmn(row.frozenPlancks, 4)}  reserved ${plancksToCmn(row.reservedPlancks, 4)}  claimable ${plancksToCmn(row.claimablePlancks, 4)}`);
+    log(
+      `    spendable ${plancksToCmn(row.spendablePlancks, 4)}  locked ${plancksToCmn(row.frozenPlancks, 4)}  reserved ${plancksToCmn(row.reservedPlancks, 4)}  claimable ${plancksToCmn(row.claimablePlancks, 4)}`,
+    );
     log(`    net ${signedCmn(row.netPlancks)} CMN  (stake still locked counts as NOT recovered)`);
     log('');
   }
@@ -170,21 +209,45 @@ async function main() {
   }
 
   if (opts.json) {
-    writeFileSync(opts.json, JSON.stringify({
-      runSeed, runTag, status, settledEras, startBlock, eraStart, settlesAt,
-      spec: api.runtimeVersion.specVersion.toNumber(),
-      rows: rows.map((r) => ({
-        key: r.key, title: r.title, accounts: r.accounts, extrinsics: r.extrinsics,
-        fundedPlancks: r.fundedPlancks.toString(), spendablePlancks: r.spendablePlancks.toString(),
-        frozenPlancks: r.frozenPlancks.toString(), reservedPlancks: r.reservedPlancks.toString(),
-        claimablePlancks: r.claimablePlancks.toString(), netPlancks: r.netPlancks.toString(),
-        netCmn: signedCmn(r.netPlancks), failures: r.failures, notes: r.notes,
-      })),
-    }, null, 2));
+    writeFileSync(
+      opts.json,
+      JSON.stringify(
+        {
+          runSeed,
+          runTag,
+          status,
+          settledEras,
+          startBlock,
+          eraStart,
+          settlesAt,
+          spec: api.runtimeVersion.specVersion.toNumber(),
+          rows: rows.map((r) => ({
+            key: r.key,
+            title: r.title,
+            accounts: r.accounts,
+            extrinsics: r.extrinsics,
+            fundedPlancks: r.fundedPlancks.toString(),
+            spendablePlancks: r.spendablePlancks.toString(),
+            frozenPlancks: r.frozenPlancks.toString(),
+            reservedPlancks: r.reservedPlancks.toString(),
+            claimablePlancks: r.claimablePlancks.toString(),
+            netPlancks: r.netPlancks.toString(),
+            netCmn: signedCmn(r.netPlancks),
+            failures: r.failures,
+            notes: r.notes,
+          })),
+        },
+        null,
+        2,
+      ),
+    );
     log(`wrote ${opts.json}`);
   }
 
   await api.disconnect();
 }
 
-main().catch((e) => { console.error('FATAL: ' + (e?.stack ?? e)); process.exit(1); });
+main().catch((e) => {
+  console.error('FATAL: ' + (e?.stack ?? e));
+  process.exit(1);
+});

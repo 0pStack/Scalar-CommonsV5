@@ -2,7 +2,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
-import { createApiServer, matchRoute, settledEraFromEvent, ROUTES, type ApiDependencies } from '../src/api.ts';
+import {
+  createApiServer,
+  matchRoute,
+  settledEraFromEvent,
+  ROUTES,
+  type ApiDependencies,
+} from '../src/api.ts';
 import { IndexerStore } from '../src/store.ts';
 
 /**
@@ -58,7 +64,10 @@ describe('matchRoute', () => {
 });
 
 describe('settledEraFromEvent', () => {
-  const settled = { blockNumber: 4_242, data: { era: 7, total_emission: '10000000000000000000', total_weight: '900' } };
+  const settled = {
+    blockNumber: 4_242,
+    data: { era: 7, total_emission: '10000000000000000000', total_weight: '900' },
+  };
 
   it('reports the totals the pallet itself recorded', () => {
     expect(settledEraFromEvent(settled)).toEqual({
@@ -137,7 +146,9 @@ describe('GET /', () => {
     {},
     {
       get(_target, property) {
-        throw new Error(`the root index must read no dependencies; it reached for "${String(property)}"`);
+        throw new Error(
+          `the root index must read no dependencies; it reached for "${String(property)}"`,
+        );
       },
     },
   ) as ApiDependencies;

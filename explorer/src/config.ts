@@ -29,7 +29,9 @@ export function readIntEnv(
   // deliberate zero rather than as the mistake it is.
   const value = raw.trim() === '' ? Number.NaN : Number(raw);
   if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(`${name} must be a whole number between ${min} and ${max}, not ${JSON.stringify(raw)}`);
+    throw new Error(
+      `${name} must be a whole number between ${min} and ${max}, not ${JSON.stringify(raw)}`,
+    );
   }
   return value;
 }

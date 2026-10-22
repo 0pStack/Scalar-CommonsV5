@@ -83,7 +83,9 @@ function headerId(header) {
  * missed head) from reading as one very slow block. Pure; tested.
  */
 export function rateOf(blocks) {
-  const timed = blocks.filter((b) => !b.superseded && Number.isFinite(b.at)).sort((a, b) => a.number - b.number);
+  const timed = blocks
+    .filter((b) => !b.superseded && Number.isFinite(b.at))
+    .sort((a, b) => a.number - b.number);
   if (timed.length < 2) return null;
   const first = timed[0];
   const last = timed[timed.length - 1];
@@ -91,7 +93,13 @@ export function rateOf(blocks) {
   const span = last.at - first.at;
   if (heights <= 0 || span <= 0) return null;
   const intervalMs = span / heights;
-  return { perMinute: 60_000 / intervalMs, intervalMs, blocks: timed.length, from: first.number, to: last.number };
+  return {
+    perMinute: 60_000 / intervalMs,
+    intervalMs,
+    blocks: timed.length,
+    from: first.number,
+    to: last.number,
+  };
 }
 
 /**
@@ -124,7 +132,10 @@ export function cadenceOf(blocks, { now = null, lastArrival = null } = {}) {
   const usable = blocks.filter((b) => !b.superseded && Number.isFinite(b.at));
   const live = usable.filter((b) => b.live);
   const source = live.length >= LIVE_MIN ? 'live' : 'index';
-  const pool = source === 'live' ? live.slice(-CADENCE_WINDOW) : usable.filter((b) => !b.live).slice(-INDEX_WINDOW);
+  const pool =
+    source === 'live'
+      ? live.slice(-CADENCE_WINDOW)
+      : usable.filter((b) => !b.live).slice(-INDEX_WINDOW);
   const rate = rateOf(pool);
   if (!rate || rate.perMinute < MIN_RATE) return null;
   return { ...rate, source, stalled: false };
@@ -151,7 +162,9 @@ export function timestampOf(extrinsicHex, palletIndex = TIMESTAMP_PALLET_INDEX) 
   const version = bytes[next];
   if (version & 0x80) throw new Error('the first extrinsic is signed, not the timestamp inherent');
   if (bytes[next + 1] !== palletIndex || bytes[next + 2] !== 0) {
-    throw new Error(`the first extrinsic is call ${bytes[next + 1]}.${bytes[next + 2]}, not timestamp.set`);
+    throw new Error(
+      `the first extrinsic is call ${bytes[next + 1]}.${bytes[next + 2]}, not timestamp.set`,
+    );
   }
   const { value } = readCompact(bytes, next + 3);
   const ms = Number(value);
@@ -204,7 +217,16 @@ export class Stream {
   /** Adds an indexed block (chain time and extrinsic count known) without disturbing live ones. */
   seed({ number, id, at, count = null }) {
     if (this.blocks.some((b) => b.number === number)) return;
-    this.blocks.push({ number, id, at, arrivedAt: NaN, count, live: false, superseded: false, settle: 1 });
+    this.blocks.push({
+      number,
+      id,
+      at,
+      arrivedAt: NaN,
+      count,
+      live: false,
+      superseded: false,
+      settle: 1,
+    });
     this.blocks.sort((a, b) => a.number - b.number);
     this.trim();
     if (this.best === null || number > this.best) this.best = number;
@@ -269,8 +291,10 @@ export class Stream {
     if (!advanced) return { advanced: false, settled: [] };
     const settled = [];
     for (const block of this.blocks) {
-      if (block.superseded || block.number > number || block.number <= (this.finalized ?? -1)) continue;
-      if (block.live && Number.isFinite(block.arrivedAt)) this.finalitySamples.push(now - block.arrivedAt);
+      if (block.superseded || block.number > number || block.number <= (this.finalized ?? -1))
+        continue;
+      if (block.live && Number.isFinite(block.arrivedAt))
+        this.finalitySamples.push(now - block.arrivedAt);
       settled.push(block);
     }
     if (this.finalitySamples.length > FINALITY_SAMPLES) {
@@ -297,7 +321,8 @@ export class Stream {
   /** Seconds a block takes to become final: measured when possible, else lag × interval. */
   finalitySeconds(cadence) {
     const measured = median(this.finalitySamples);
-    if (measured !== null && this.finalitySamples.length >= 3) return { seconds: measured / 1000, measured: true };
+    if (measured !== null && this.finalitySamples.length >= 3)
+      return { seconds: measured / 1000, measured: true };
     const lag = this.lag();
     if (lag === null || !cadence) return null;
     return { seconds: (lag * cadence.intervalMs) / 1000, measured: false };
@@ -361,19 +386,27 @@ export function init(root, ctx, { strip = null } = {}) {
   /** Wall-clock time of the newest block that arrived (live or polled); null until one has. */
   function lastArrival() {
     let at = null;
-    for (const b of stream.blocks) if (b.live && Number.isFinite(b.arrivedAt) && (at === null || b.arrivedAt > at)) at = b.arrivedAt;
+    for (const b of stream.blocks)
+      if (b.live && Number.isFinite(b.arrivedAt) && (at === null || b.arrivedAt > at))
+        at = b.arrivedAt;
     return at;
   }
 
   function showReadouts() {
     // With the socket and the poll both down there is no listening to time a stall against.
     const listening = mode === 'live' || mode === 'polling' ? listeningSince : null;
-    const cadence = cadenceOf(stream.blocks, { now: ctx.now(), lastArrival: stallBase(lastArrival(), shownAt, listening) });
+    const cadence = cadenceOf(stream.blocks, {
+      now: ctx.now(),
+      lastArrival: stallBase(lastArrival(), shownAt, listening),
+    });
     if (headRecord && stream.best !== null) {
       ctx.readout.showValue(targets.best, headRecord, { value: stream.best, motion: ctx.motion });
     }
     if (finalRecord && stream.finalized !== null) {
-      ctx.readout.showValue(targets.finalized, finalRecord, { value: stream.finalized, motion: ctx.motion });
+      ctx.readout.showValue(targets.finalized, finalRecord, {
+        value: stream.finalized,
+        motion: ctx.motion,
+      });
       const lag = stream.lag();
       if (lag !== null) {
         ctx.readout.showValue(targets.lag, finalRecord, {
@@ -417,8 +450,12 @@ export function init(root, ctx, { strip = null } = {}) {
     if (stream.best === null) return;
     announcedAt = ctx.now();
     const parts = [`Block ${ctx.format.formatInteger(stream.best)} produced.`];
-    if (stream.finalized !== null) parts.push(`Block ${ctx.format.formatInteger(stream.finalized)} final.`);
-    if (cadence?.stalled) parts.push(`No new block for ${Math.round(cadence.sinceMs / 1000)} seconds: the chain is stalled.`);
+    if (stream.finalized !== null)
+      parts.push(`Block ${ctx.format.formatInteger(stream.finalized)} final.`);
+    if (cadence?.stalled)
+      parts.push(
+        `No new block for ${Math.round(cadence.sinceMs / 1000)} seconds: the chain is stalled.`,
+      );
     else if (cadence) parts.push(`${cadence.perMinute.toFixed(0)} blocks per minute.`);
     status.textContent = parts.join(' ');
   }
@@ -470,7 +507,10 @@ export function init(root, ctx, { strip = null } = {}) {
     if (stream.finalized !== null) {
       const final = chain.find((b) => b.number <= stream.finalized && Number.isFinite(b.at));
       const target = final ? xOf(final) + bar / 2 + Math.max(3, bar * 0.6) : 0;
-      boundary = marker.fromX !== null && marker.t < 1 ? marker.fromX + (target - marker.fromX) * marker.t : target;
+      boundary =
+        marker.fromX !== null && marker.t < 1
+          ? marker.fromX + (target - marker.fromX) * marker.t
+          : target;
       marker.target = target;
       // No tint: the final bars are already the settled tone, and a tinted
       // band read as a slab. The labelled marker is the boundary.
@@ -574,7 +614,10 @@ export function init(root, ctx, { strip = null } = {}) {
       draw();
       return;
     }
-    const fromX = marker.fromX !== null && marker.t < 1 ? marker.fromX + (marker.target - marker.fromX) * marker.t : marker.target;
+    const fromX =
+      marker.fromX !== null && marker.t < 1
+        ? marker.fromX + (marker.target - marker.fromX) * marker.t
+        : marker.target;
     marker = { fromX, t: 0 };
     cancelMarker = ctx.motion.tween(200, (t) => {
       marker.t = t;
@@ -618,7 +661,8 @@ export function init(root, ctx, { strip = null } = {}) {
     }
     try {
       const extrinsics = ctx.field(record.data, 'result.block.extrinsics');
-      if (!Array.isArray(extrinsics) || extrinsics.length === 0) throw new Error('block body carries no extrinsics');
+      if (!Array.isArray(extrinsics) || extrinsics.length === 0)
+        throw new Error('block body carries no extrinsics');
       const at = timestampOf(extrinsics[0]);
       const changed = stream.body(number, id, { count: extrinsics.length, at });
       decodedCount += 1;
@@ -650,7 +694,14 @@ export function init(root, ctx, { strip = null } = {}) {
     } catch (error) {
       author = { error: error.message };
     }
-    ctx.bus.emit('head', { record, number, header, author, forked: change.superseded > 0, arrivedAt: now });
+    ctx.bus.emit('head', {
+      record,
+      number,
+      header,
+      author,
+      forked: change.superseded > 0,
+      arrivedAt: now,
+    });
     if (mode !== 'live') setMode('live');
     showReadouts();
     if (change.advanced && change.added) animateArrival(previousAt, newestAt());
@@ -689,12 +740,12 @@ export function init(root, ctx, { strip = null } = {}) {
       const fin = stream.finalize(finalized, ctx.now());
       headRecord = record;
       finalRecord = record;
-      
+
       // A polled height is not a head: it has no header and no author, so it
       // goes out as `poll`, and `head` keeps its contract for the instruments.
       ctx.bus.emit('poll', { record, number: best, finalized, arrivedAt: ctx.now() });
       showReadouts();
-        if (change.advanced && change.added) animateArrival(previousAt, newestAt());
+      if (change.advanced && change.added) animateArrival(previousAt, newestAt());
       if (fin.advanced) {
         animateMarker();
         animateSettle(fin.settled);
@@ -739,13 +790,19 @@ export function init(root, ctx, { strip = null } = {}) {
   });
 
   async function seed() {
-    const [statusRecord, blocks] = await Promise.all([ctx.fetch(ctx.SOURCES.status), ctx.fetch(ctx.SOURCES.blocks)]);
+    const [statusRecord, blocks] = await Promise.all([
+      ctx.fetch(ctx.SOURCES.status),
+      ctx.fetch(ctx.SOURCES.blocks),
+    ]);
     if (blocks.ok) {
       try {
         const items = ctx.field(blocks.data, 'items');
         for (const item of items) {
           const number = ctx.field(item, 'number');
-          const at = item.timestampMs === null || item.timestampMs === undefined ? NaN : Number(item.timestampMs);
+          const at =
+            item.timestampMs === null || item.timestampMs === undefined
+              ? NaN
+              : Number(item.timestampMs);
           const count = ctx.field(item, 'extrinsicCount');
           stream.seed({ number, id: `${number}:${ctx.field(item, 'hash')}`, at, count });
         }
@@ -762,12 +819,18 @@ export function init(root, ctx, { strip = null } = {}) {
         try {
           const best = ctx.field(statusRecord.data, 'chain.bestBlock');
           const finalized = ctx.field(statusRecord.data, 'chain.finalizedBlock');
-          if (stream.best === null || best > stream.best) stream.seed({ number: best, id: `${best}:status`, at: NaN });
+          if (stream.best === null || best > stream.best)
+            stream.seed({ number: best, id: `${best}:status`, at: NaN });
           const fin = stream.finalize(finalized, ctx.now());
           for (const b of fin.settled) b.settle = 1;
           headRecord ??= statusRecord;
           finalRecord ??= statusRecord;
-          ctx.bus.emit('poll', { record: statusRecord, number: best, finalized, arrivedAt: ctx.now() });
+          ctx.bus.emit('poll', {
+            record: statusRecord,
+            number: best,
+            finalized,
+            arrivedAt: ctx.now(),
+          });
         } catch (error) {
           ctx.readout.showError(targets.best, statusRecord, error.message);
         }

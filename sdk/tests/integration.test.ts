@@ -29,26 +29,28 @@ function makeMockApi() {
   const calls: TxCall[] = [];
 
   // A submittable extrinsic whose signAndSend succeeds on the first attempt.
-  const makeTx = (section: string, method: string) => (...args: unknown[]) => {
-    calls.push({ section, method, args });
-    return {
-      signAndSend: (_signer: unknown, cb: (r: unknown) => void) => {
-        cb({
-          status: {
-            isInBlock: true,
-            asInBlock: { toHex: () => '0xblockhash' },
-            isInvalid: false,
-            isDropped: false,
-            isUsurped: false,
-            type: 'InBlock',
-          },
-          dispatchError: undefined,
-          txHash: { toHex: () => '0xtxhash' },
-        });
-        return Promise.resolve(() => {});
-      },
+  const makeTx =
+    (section: string, method: string) =>
+    (...args: unknown[]) => {
+      calls.push({ section, method, args });
+      return {
+        signAndSend: (_signer: unknown, cb: (r: unknown) => void) => {
+          cb({
+            status: {
+              isInBlock: true,
+              asInBlock: { toHex: () => '0xblockhash' },
+              isInvalid: false,
+              isDropped: false,
+              isUsurped: false,
+              type: 'InBlock',
+            },
+            dispatchError: undefined,
+            txHash: { toHex: () => '0xtxhash' },
+          });
+          return Promise.resolve(() => {});
+        },
+      };
     };
-  };
 
   const acc = 3n * ACC_SCALE;
   const debt = 1n * ACC_SCALE;
@@ -128,7 +130,9 @@ describe('ScalarCommonsClient — write method → extrinsic mapping', () => {
     await client.acceptEscrow(SIGNER, PROVIDER, 0, HASH);
     await client.completeEscrow(SIGNER, PROVIDER, 0);
     await client.submitOracle(SIGNER, HASH, HASH, 3);
-    await client.vote(SIGNER, 1, { Standard: { vote: { aye: true, conviction: 'Locked1x' }, balance: 100n } });
+    await client.vote(SIGNER, 1, {
+      Standard: { vote: { aye: true, conviction: 'Locked1x' }, balance: 100n },
+    });
     await client.recordGovVote(SIGNER, 9);
     await client.settleEra(SIGNER);
     await client.claim(SIGNER);
@@ -204,8 +208,9 @@ describe('ScalarCommonsClient — read methods', () => {
 
   it('eraInfo maps a None lastSettledEra to null, not zero', async () => {
     const { api } = makeMockApi();
-    (api as unknown as { query: { emissions: { lastSettledEra: unknown } } }).query.emissions
-      .lastSettledEra = async () => none();
+    (
+      api as unknown as { query: { emissions: { lastSettledEra: unknown } } }
+    ).query.emissions.lastSettledEra = async () => none();
     const client = new ScalarCommonsClient(api);
     expect((await client.eraInfo()).lastSettledEra).toBeNull();
   });
@@ -217,8 +222,9 @@ describe('ScalarCommonsClient — read methods', () => {
     // guard branches on the difference. A decoder that answered `null` to both
     // would pass the `None` test and still be wrong.
     const { api } = makeMockApi();
-    (api as unknown as { query: { emissions: { lastSettledEra: unknown } } }).query.emissions
-      .lastSettledEra = async () => some(0);
+    (
+      api as unknown as { query: { emissions: { lastSettledEra: unknown } } }
+    ).query.emissions.lastSettledEra = async () => some(0);
     const client = new ScalarCommonsClient(api);
     expect((await client.eraInfo()).lastSettledEra).toBe(0);
   });
@@ -253,7 +259,13 @@ describe('ScalarCommonsClient — submit retries are logged, never silent', () =
         attempt += 1;
         if (attempt === 1) {
           cb({
-            status: { isInBlock: false, isInvalid: false, isDropped: false, isUsurped: false, type: 'Ready' },
+            status: {
+              isInBlock: false,
+              isInvalid: false,
+              isDropped: false,
+              isUsurped: false,
+              type: 'Ready',
+            },
             dispatchError: { isModule: true, asModule: {} },
             txHash: { toHex: () => '0xtx' },
           });

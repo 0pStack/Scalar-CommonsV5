@@ -52,7 +52,9 @@ function load(pkg) {
     try {
       const req = createRequire(pathResolve(REPO, c));
       return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch { /* try next */ }
+    } catch {
+      /* try next */
+    }
   }
   throw new Error(`cannot resolve ${pkg}`);
 }
@@ -115,7 +117,9 @@ async function accounts() {
   const api = await connect();
   const kr = new Keyring({ type: 'sr25519', ss58Format: api.registry.chainSS58 ?? 42 });
 
-  log(`chain ${(await api.rpc.system.chain()).toString()} spec ${api.runtimeVersion.specVersion.toNumber()}`);
+  log(
+    `chain ${(await api.rpc.system.chain()).toString()} spec ${api.runtimeVersion.specVersion.toNumber()}`,
+  );
 
   // Three FRESH accounts. A provides, B buys. C exists only to top B up so the escrow
   // volume can be exactly the 60 CMN from #164 — one drip leaves 49.99 CMN after
@@ -148,7 +152,9 @@ async function accounts() {
   const hbAfterRegister = {};
   for (const k of ['A', 'B']) {
     hbAfterRegister[k] = (await api.query.agents.lastHeartbeat(acct[k].address)).toNumber();
-    log(`${k} lastHeartbeat immediately after register = ${hbAfterRegister[k]}  (#161: 0 on spec 305)`);
+    log(
+      `${k} lastHeartbeat immediately after register = ${hbAfterRegister[k]}  (#161: 0 on spec 305)`,
+    );
   }
   for (const k of ['A', 'B']) {
     await send(api, api.tx.agents.heartbeat(), acct[k], `heartbeat ${k}`);
@@ -202,7 +208,13 @@ async function work() {
       const now = (await api.rpc.chain.getHeader()).number.toNumber();
       await send(
         api,
-        api.tx.escrow.createAgreement(acct.A.address, amount, '0x' + '11'.repeat(32), now + 400, null),
+        api.tx.escrow.createAgreement(
+          acct.A.address,
+          amount,
+          '0x' + '11'.repeat(32),
+          now + 400,
+          null,
+        ),
         acct.B,
         'createAgreement',
       );
@@ -241,7 +253,9 @@ async function work() {
 
   const balAfterWork = {};
   for (const k of ['A', 'B']) {
-    balAfterWork[k] = (await api.query.system.account(acct[k].address)).data.free.toBigInt().toString();
+    balAfterWork[k] = (await api.query.system.account(acct[k].address)).data.free
+      .toBigInt()
+      .toString();
   }
 
   writeState({
@@ -268,14 +282,18 @@ async function settle() {
 
   const era = (await api.query.agents.eraNumber()).toNumber();
   const lastSettled = await api.query.emissions.lastSettledEra();
-  log(`era now ${era} (work was done in era ${s.eraAtStart}), lastSettledEra ${lastSettled.toString()}`);
+  log(
+    `era now ${era} (work was done in era ${s.eraAtStart}), lastSettledEra ${lastSettled.toString()}`,
+  );
 
   if (era === s.eraAtStart) {
     const now = (await api.rpc.chain.getHeader()).number.toNumber();
     const start = (await api.query.emissions.eraStartBlock()).toNumber();
     const dur = api.consts.emissions.eraDuration.toNumber();
     if (now < start + dur) {
-      log(`NOT DUE — ${start + dur - now} blocks to go (~${Math.round(((start + dur - now) * 6) / 60)} min)`);
+      log(
+        `NOT DUE — ${start + dur - now} blocks to go (~${Math.round(((start + dur - now) * 6) / 60)} min)`,
+      );
       await api.disconnect();
       process.exit(3);
     }
@@ -318,11 +336,18 @@ async function settle() {
   console.log(`  escrow volume settled   : ${cmn(volume)} CMN  (B -> A, two jobs, one buyer)`);
   console.log(`  era emission (whole era): ${cmn(lastEmission)} CMN`);
   console.log(`  A + B claimed           : ${cmn(total)} CMN`);
-  console.log(`  verdict                 : ${total <= volume ? 'PASS — payout <= escrow volume' : 'FAIL — payout EXCEEDS escrow volume'}`);
+  console.log(
+    `  verdict                 : ${total <= volume ? 'PASS — payout <= escrow volume' : 'FAIL — payout EXCEEDS escrow volume'}`,
+  );
   console.log('  ───────────────────────────────────────────────────────────');
   console.log('');
 
-  writeState({ ...s, payouts, lastEraEmissionPlancks: lastEmission.toString(), verdict: total <= volume ? 'PASS' : 'FAIL' });
+  writeState({
+    ...s,
+    payouts,
+    lastEraEmissionPlancks: lastEmission.toString(),
+    verdict: total <= volume ? 'PASS' : 'FAIL',
+  });
   await api.disconnect();
   if (total > volume) process.exit(1);
 }
@@ -331,4 +356,7 @@ const cmdName = process.argv[2];
 if (cmdName === 'accounts') await accounts();
 else if (cmdName === 'work') await work();
 else if (cmdName === 'settle') await settle();
-else { console.error('usage: economic-gate-retest.mjs accounts|work|settle'); process.exit(2); }
+else {
+  console.error('usage: economic-gate-retest.mjs accounts|work|settle');
+  process.exit(2);
+}

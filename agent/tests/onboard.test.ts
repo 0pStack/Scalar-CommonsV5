@@ -45,7 +45,9 @@ describe('isTestnet', () => {
 
 describe('planStart', () => {
   it('refuses a chain that is not a testnet, even when approved', () => {
-    expect(planStart({ ...base, chain: 'Scalar Commons', registered: true, free: 0n }).action).toBe('refuse');
+    expect(planStart({ ...base, chain: 'Scalar Commons', registered: true, free: 0n }).action).toBe(
+      'refuse',
+    );
   });
 
   it('refuses when no address was approved — the agent never spends without that one explicit step', () => {
@@ -55,7 +57,12 @@ describe('planStart', () => {
   });
 
   it('refuses a key whose address is not the approved one: never silently use an unknown wallet', () => {
-    const p = planStart({ ...base, approvedAddress: '5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy', registered: true, free: 0n });
+    const p = planStart({
+      ...base,
+      approvedAddress: '5CFbRsiZQqc6YUyqEstGF1P4KuQV84A6CTvudLq7Fp3PhBxy',
+      registered: true,
+      free: 0n,
+    });
     expect(p.action).toBe('refuse');
     expect(p.message).toMatch(/does not match/);
   });
@@ -88,6 +95,10 @@ describe('latestTx', () => {
   it('can ignore events before a given time, so start waits for THIS run', () => {
     const log = '{"ts":"2026-01-01T00:00:00.000Z","event":"heartbeat","tx":"0xaa"}';
     expect(latestTx(log, '2026-06-01T00:00:00.000Z')).toBeNull();
-    expect(latestTx(log)).toEqual({ event: 'heartbeat', tx: '0xaa', ts: '2026-01-01T00:00:00.000Z' });
+    expect(latestTx(log)).toEqual({
+      event: 'heartbeat',
+      tx: '0xaa',
+      ts: '2026-01-01T00:00:00.000Z',
+    });
   });
 });

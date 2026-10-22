@@ -41,7 +41,11 @@ function signAndSendOnce(
         let failure: DispatchFailure;
         if (dispatchError.isModule) {
           const decoded = api.registry.findMetaError(dispatchError.asModule);
-          failure = new DispatchFailure(decoded.section, decoded.name, decoded.docs.join(' ').trim());
+          failure = new DispatchFailure(
+            decoded.section,
+            decoded.name,
+            decoded.docs.join(' ').trim(),
+          );
         } else {
           // Non-module errors (BadOrigin, token/arithmetic errors) render as e.g. "BadOrigin".
           failure = new DispatchFailure('system', dispatchError.type, '');

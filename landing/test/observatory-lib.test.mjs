@@ -25,7 +25,14 @@ import {
   formatCmn,
   cmnNumber,
 } from '../src/observatory/format.js';
-import { field, countSince, pageOf, fetchAllPages, Scheduler, SOURCES } from '../src/observatory/data.js';
+import {
+  field,
+  countSince,
+  pageOf,
+  fetchAllPages,
+  Scheduler,
+  SOURCES,
+} from '../src/observatory/data.js';
 import {
   Stream,
   cadenceOf,
@@ -43,12 +50,30 @@ import {
   polledNote,
   TRAIL,
 } from '../src/observatory/instruments/pulse.js';
-import { stateWord, sealingPhrase, liveWord, init as initStatusBar, SEALING_GRACE_MS, FINALITY_LAG_ALERT, LATE_MS } from '../src/observatory/statusbar.js';
+import {
+  stateWord,
+  sealingPhrase,
+  liveWord,
+  init as initStatusBar,
+  SEALING_GRACE_MS,
+  FINALITY_LAG_ALERT,
+  LATE_MS,
+} from '../src/observatory/statusbar.js';
 import * as presenterModule from '../src/observatory/presenter.js';
-import { stepFor, keyAction, init as initPresenter, ADVANCE_MS } from '../src/observatory/presenter.js';
+import {
+  stepFor,
+  keyAction,
+  init as initPresenter,
+  ADVANCE_MS,
+} from '../src/observatory/presenter.js';
 import { start as startReveal } from '../src/observatory/reveal.js';
 import { payoutTotal } from '../src/observatory/instruments/economy.js';
-import { SOURCES_PREF_KEY, readSourcesPreference, writeSourcesPreference, init as initSources } from '../src/observatory/sources.js';
+import {
+  SOURCES_PREF_KEY,
+  readSourcesPreference,
+  writeSourcesPreference,
+  init as initSources,
+} from '../src/observatory/sources.js';
 import { railPositions } from '../src/observatory.mjs';
 
 const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
@@ -94,12 +119,19 @@ test('BABE pre-digest: as seen on the live chain', () => {
   const secondary = decodeBabePreDigest('0x0642414245340201000000c0fcc91100000000');
   assert.deepEqual(secondary, { kind: 'secondary-plain', authorityIndex: 1, slot: 0x11c9fcc0 });
   // Primary (109-byte payload, two-byte compact prefix 0xb501), authority 0.
-  const primary = decodeBabePreDigest(`0x0642414245b5010100000000c1fcc91100000000${'00'.repeat(96)}`);
+  const primary = decodeBabePreDigest(
+    `0x0642414245b5010100000000c1fcc91100000000${'00'.repeat(96)}`,
+  );
   assert.equal(primary.kind, 'primary');
   assert.equal(primary.authorityIndex, 0);
   assert.equal(decodeBabePreDigest('0x05424142450101bcee'), null); // a seal, not a pre-runtime digest
   assert.throws(() => decodeBabePreDigest('0x0642414245340901000000c0fcc91100000000'), /variant/);
-  assert.equal(babePreDigestOf({ digest: { logs: ['0x05424142450101bc', '0x0642414245340201000000c0fcc91100000000'] } }).authorityIndex, 1);
+  assert.equal(
+    babePreDigestOf({
+      digest: { logs: ['0x05424142450101bc', '0x0642414245340201000000c0fcc91100000000'] },
+    }).authorityIndex,
+    1,
+  );
   assert.equal(babePreDigestOf({ digest: { logs: [] } }), null);
   assert.equal(bytesToHex(hexToBytes('0x00ff10')), '0x00ff10');
 });
@@ -136,7 +168,10 @@ test('formatting helpers', () => {
   assert.equal(formatDuration(3600), 'about 1 h');
   assert.equal(formatDuration(90), 'about 2 min');
   assert.equal(shortAddress('5Ck2miBfCe1JQ4cY3NDsXyBaD6EcsgiVmEFTWwqNSs25XDEq'), '5Ck2…XDEq');
-  assert.equal(shortHash('9b67d2f14ce062442f6d6abe158fa2bf95d47b9ac7b45e2901f3e065ae60ed2a'), '9b67d2f1…ae60ed2a');
+  assert.equal(
+    shortHash('9b67d2f14ce062442f6d6abe158fa2bf95d47b9ac7b45e2901f3e065ae60ed2a'),
+    '9b67d2f1…ae60ed2a',
+  );
   assert.equal(formatCmn('1000000000000000'), '1,000');
   assert.equal(formatCmn('1999999999999999'), '1,999');
   assert.equal(cmnNumber('1500000000000'), 1.5);
@@ -147,10 +182,13 @@ test('field() refuses to guess; countSince and pageOf', () => {
   assert.equal(field({ items: [{ blockNumber: 3 }] }, 'items.0.blockNumber'), 3);
   assert.throws(() => field({ chain: {} }, 'chain.bestBlock'), /chain\.bestBlock/);
   assert.throws(() => field(null, 'chain'), /chain/);
-  assert.deepEqual(countSince([{ blockNumber: 30 }, { blockNumber: 20 }, { blockNumber: 10 }], 20), {
-    count: 2,
-    reachedStart: true,
-  });
+  assert.deepEqual(
+    countSince([{ blockNumber: 30 }, { blockNumber: 20 }, { blockNumber: 10 }], 20),
+    {
+      count: 2,
+      reachedStart: true,
+    },
+  );
   assert.equal(pageOf(SOURCES.registrations, 200), `${SOURCES.registrations.path}&offset=200`);
 });
 
@@ -204,10 +242,16 @@ test('fetchAllPages reads a newest-first event list only back to a block, and sa
   assert.equal(whole.complete, true);
   assert.equal(whole.reachedStart, true);
   // A failure carries no start reached, and no source without `stopBelow` gets the fields.
-  const failing = await fetchAllPages(source(100), { fetcher: async () => ({ ok: false, error: 'HTTP 502' }) });
+  const failing = await fetchAllPages(source(100), {
+    fetcher: async () => ({ ok: false, error: 'HTTP 502' }),
+  });
   assert.equal(failing.reachedStart, false);
   calls = 0;
-  assert.equal('reachedStart' in (await fetchAllPages({ kind: 'api', path: '/x?limit=3' }, { fetcher, maxPages: 1 })), false);
+  assert.equal(
+    'reachedStart' in
+      (await fetchAllPages({ kind: 'api', path: '/x?limit=3' }, { fetcher, maxPages: 1 })),
+    false,
+  );
 });
 
 test('Scheduler fetches a shared source once per interval and pauses', async () => {
@@ -217,7 +261,10 @@ test('Scheduler fetches a shared source once per interval and pauses', async () 
   const stopA = scheduler.watch('s', { kind: 'api' }, (r) => seen.push(['a', r.n]), 50);
   const stopB = scheduler.watch('s', { kind: 'api' }, (r) => seen.push(['b', r.n]), 1000);
   await new Promise((r) => setTimeout(r, 10));
-  assert.deepEqual(seen, [['a', 1], ['b', 1]]);
+  assert.deepEqual(seen, [
+    ['a', 1],
+    ['b', 1],
+  ]);
   scheduler.pause();
   await new Promise((r) => setTimeout(r, 80));
   assert.equal(fetches, 1, 'no fetch while paused');
@@ -236,14 +283,22 @@ test('Stream: seeding, arrival, forks and finality', () => {
   s.seed({ number: 11, id: '11:a', at: 7_000, count: 3 });
   s.seed({ number: 12, id: '12:a', at: 13_000, count: 1 });
   assert.equal(s.best, 12);
-  assert.deepEqual(s.head({ number: 13, id: '13:a', arrivedAt: 19_000 }), { added: true, advanced: true, superseded: 0 });
+  assert.deepEqual(s.head({ number: 13, id: '13:a', arrivedAt: 19_000 }), {
+    added: true,
+    advanced: true,
+    superseded: 0,
+  });
   // A live head is placed at its arrival less the learned offset (none yet), with its count unknown.
   const live = s.blocks.find((b) => b.id === '13:a');
   assert.equal(live.at, 19_000);
   assert.equal(live.count, null);
   assert.equal(live.settle, 0);
   // A competing head at the same height supersedes the earlier one.
-  assert.deepEqual(s.head({ number: 13, id: '13:b', arrivedAt: 19_500 }), { added: true, advanced: false, superseded: 1 });
+  assert.deepEqual(s.head({ number: 13, id: '13:b', arrivedAt: 19_500 }), {
+    added: true,
+    advanced: false,
+    superseded: 1,
+  });
   assert.deepEqual(
     s.chain().map((b) => b.id),
     ['13:b', '12:a', '11:a', '10:a'],
@@ -267,7 +322,10 @@ test('Stream: seeding, arrival, forks and finality', () => {
   // Three surviving blocks (10, 11, 12:z) span 1 000 → 20 000 ms: two heights.
   assert.ok(Math.abs(cadence.perMinute - 60_000 / ((20_000 - 1_000) / 2)) < 1e-9);
   // Fewer than LIVE_MIN live blocks: the rate is the indexed ones' alone (10 and 11), never mixed with the live head.
-  assert.deepEqual([cadenceOf(s.blocks).source, cadenceOf(s.blocks).from, cadenceOf(s.blocks).to], ['index', 10, 11]);
+  assert.deepEqual(
+    [cadenceOf(s.blocks).source, cadenceOf(s.blocks).from, cadenceOf(s.blocks).to],
+    ['index', 10, 11],
+  );
   assert.equal(median([3, 1, 2]), 2);
   assert.equal(median([4, 1, 2, 3]), 2.5);
   assert.equal(cadenceOf([]), null);
@@ -281,7 +339,8 @@ test('the rate on load is the index’s last 200 block times, even when a live b
   // The index stopped 17.7 h behind the head; its last 200 blocks are six seconds apart.
   const t0 = 1_791_145_296_001;
   const s = new Stream();
-  for (let k = 0; k < 200; k += 1) s.seed({ number: 894_531 + k, id: `${894_531 + k}:i`, at: t0 + k * 6_000, count: 1 });
+  for (let k = 0; k < 200; k += 1)
+    s.seed({ number: 894_531 + k, id: `${894_531 + k}:i`, at: t0 + k * 6_000, count: 1 });
   const arrived = t0 + 199 * 6_000 + 17.7 * 3_600_000;
   s.head({ number: 905_363, id: '905363:a', arrivedAt: arrived });
   // The old reading: the last 60 timed blocks, 59 indexed and one live, over 59 intervals.
@@ -293,37 +352,97 @@ test('the rate on load is the index’s last 200 block times, even when a live b
   assert.ok(Math.abs(onLoad.perMinute - 10) < 1e-9, `${onLoad.perMinute} a minute`);
   assert.deepEqual([onLoad.blocks, onLoad.from, onLoad.to], [200, 894_531, 894_730]);
   // Nine more live blocks (ten in all): the rate becomes this page's own observation.
-  for (let k = 1; k < LIVE_MIN - 1; k += 1) s.head({ number: 905_363 + k, id: `${905_363 + k}:a`, arrivedAt: arrived + k * 6_000 });
+  for (let k = 1; k < LIVE_MIN - 1; k += 1)
+    s.head({ number: 905_363 + k, id: `${905_363 + k}:a`, arrivedAt: arrived + k * 6_000 });
   assert.equal(cadenceOf(s.blocks).source, 'index', 'nine live blocks: still the index');
   s.head({ number: 905_372, id: '905372:a', arrivedAt: arrived + 9 * 6_000 });
-  const live = cadenceOf(s.blocks, { now: arrived + 9 * 6_000 + 500, lastArrival: arrived + 9 * 6_000 });
+  const live = cadenceOf(s.blocks, {
+    now: arrived + 9 * 6_000 + 500,
+    lastArrival: arrived + 9 * 6_000,
+  });
   assert.equal(live.source, 'live');
   assert.ok(Math.abs(live.perMinute - 10) < 1e-9);
-  assert.deepEqual([live.from, live.to], [905_363, 905_372], 'live blocks only, never mixed with the index');
+  assert.deepEqual(
+    [live.from, live.to],
+    [905_363, 905_372],
+    'live blocks only, never mixed with the index',
+  );
 });
 
 test('a rate is elapsed time over elapsed heights; a stall says "stalled"; nothing below one a minute is ever a rate', () => {
   // A missed head in the run is a gap, not one slow block.
-  assert.equal(rateOf([{ number: 1, at: 0 }, { number: 101, at: 600_000 }]).perMinute, 10);
-  assert.equal(rateOf([{ number: 5, at: 1_000 }, { number: 5, at: 2_000 }]), null);
-  const index = Array.from({ length: 20 }, (_, k) => ({ number: k, at: k * 6_000, live: false, superseded: false }));
+  assert.equal(
+    rateOf([
+      { number: 1, at: 0 },
+      { number: 101, at: 600_000 },
+    ]).perMinute,
+    10,
+  );
+  assert.equal(
+    rateOf([
+      { number: 5, at: 1_000 },
+      { number: 5, at: 2_000 },
+    ]),
+    null,
+  );
+  const index = Array.from({ length: 20 }, (_, k) => ({
+    number: k,
+    at: k * 6_000,
+    live: false,
+    superseded: false,
+  }));
   // No new block for more than 60 s: stalled, whatever the history says.
-  assert.deepEqual(cadenceOf(index, { now: 200_000, lastArrival: 139_000 }), { stalled: true, sinceMs: 61_000 });
-  assert.equal(cadenceOf(index, { now: 200_000, lastArrival: 141_000 }).perMinute, 10, '59 s is not a stall');
-  assert.equal(cadenceOf(index, { now: 200_000, lastArrival: null }).stalled, false, 'nothing has arrived yet: no stall to call');
+  assert.deepEqual(cadenceOf(index, { now: 200_000, lastArrival: 139_000 }), {
+    stalled: true,
+    sinceMs: 61_000,
+  });
+  assert.equal(
+    cadenceOf(index, { now: 200_000, lastArrival: 141_000 }).perMinute,
+    10,
+    '59 s is not a stall',
+  );
+  assert.equal(
+    cadenceOf(index, { now: 200_000, lastArrival: null }).stalled,
+    false,
+    'nothing has arrived yet: no stall to call',
+  );
   // A tab hidden for five minutes saw no blocks because it was not listening: the stall clock restarts when it is shown.
   assert.equal(stallBase(139_000, null), 139_000);
   assert.equal(stallBase(139_000, 190_000), 190_000);
-  assert.equal(cadenceOf(index, { now: 200_000, lastArrival: stallBase(139_000, 190_000) }).stalled, false, 'shown 10 s ago: not stalled');
-  assert.equal(stallBase(null, 190_000), null, 'nothing has arrived and the page is not listening: no stall clock at all');
+  assert.equal(
+    cadenceOf(index, { now: 200_000, lastArrival: stallBase(139_000, 190_000) }).stalled,
+    false,
+    'shown 10 s ago: not stalled',
+  );
+  assert.equal(
+    stallBase(null, 190_000),
+    null,
+    'nothing has arrived and the page is not listening: no stall clock at all',
+  );
   // Loaded while the chain is already stalled, with the index caught up: the head the socket
   // gives on subscribe is already in the index, so nothing ever "arrives". The clock runs from
   // when the page began listening, and 60 s later the page says "stalled".
   assert.equal(stallBase(null, null, 100_000), 100_000);
-  assert.equal(cadenceOf(index, { now: 161_000, lastArrival: stallBase(null, null, 100_000) }).stalled, true, 'listening 61 s, nothing new: stalled');
-  assert.equal(cadenceOf(index, { now: 159_000, lastArrival: stallBase(null, null, 100_000) }).stalled, false, 'listening 59 s: not yet');
-  assert.equal(stallBase(130_000, null, 100_000), 130_000, 'once a block has arrived, the clock runs from it');
-  assert.equal(stallBase(null, 150_000, 100_000), 150_000, 'a hidden spell restarts this clock too');
+  assert.equal(
+    cadenceOf(index, { now: 161_000, lastArrival: stallBase(null, null, 100_000) }).stalled,
+    true,
+    'listening 61 s, nothing new: stalled',
+  );
+  assert.equal(
+    cadenceOf(index, { now: 159_000, lastArrival: stallBase(null, null, 100_000) }).stalled,
+    false,
+    'listening 59 s: not yet',
+  );
+  assert.equal(
+    stallBase(130_000, null, 100_000),
+    130_000,
+    'once a block has arrived, the clock runs from it',
+  );
+  assert.equal(
+    stallBase(null, 150_000, 100_000),
+    150_000,
+    'a hidden spell restarts this clock too',
+  );
   // Two minutes a block is below the floor: not shown as a rate.
   const slow = index.map((b) => ({ ...b, at: b.number * 120_000 }));
   assert.equal(cadenceOf(slow), null);
@@ -340,7 +459,11 @@ test('Stream: a block body sets the count and the chain time, and the arrival of
   // The next arrival is estimated with that offset until its own body is read.
   s.head({ number: 21, id: '21:a', arrivedAt: 107_300 });
   assert.equal(s.blocks[1].at, 106_100);
-  assert.equal(s.body(99, '99:a', { count: 1, at: 1 }), false, 'a body for a block not in the model is ignored');
+  assert.equal(
+    s.body(99, '99:a', { count: 1, at: 1 }),
+    false,
+    'a body for a block not in the model is ignored',
+  );
   // Finality measures the wall-clock arrival, not the chain time.
   const fin = s.finalize(21, 110_000);
   assert.deepEqual(s.finalitySamples, [110_000 - 101_200, 110_000 - 107_300]);
@@ -351,7 +474,8 @@ test('Stream: a block body sets the count and the chain time, and the arrival of
 function compact(n) {
   if (n < 64) return [n << 2];
   if (n < 2 ** 14) return [((n << 2) | 1) & 0xff, n >> 6];
-  if (n < 2 ** 30) return [((n << 2) | 2) & 0xff, (n >> 6) & 0xff, (n >> 14) & 0xff, (n >> 22) & 0xff];
+  if (n < 2 ** 30)
+    return [((n << 2) | 2) & 0xff, (n >> 6) & 0xff, (n >> 14) & 0xff, (n >> 22) & 0xff];
   const bytes = [];
   let v = BigInt(n);
   while (v > 0n) {
@@ -371,9 +495,15 @@ test('the timestamp inherent decodes from the first extrinsic, and nothing else 
   assert.throws(() => timestampOf(toHex([...compact(signed.length), ...signed])), /signed/);
   // Another pallet's call, or another call of the timestamp pallet, is refused rather than read as a time.
   const other = [0x04, 0x04, 0x00, ...compact(moment)];
-  assert.throws(() => timestampOf(toHex([...compact(other.length), ...other])), /not timestamp\.set/);
+  assert.throws(
+    () => timestampOf(toHex([...compact(other.length), ...other])),
+    /not timestamp\.set/,
+  );
   const otherCall = [0x04, 0x01, 0x01, ...compact(moment)];
-  assert.throws(() => timestampOf(toHex([...compact(otherCall.length), ...otherCall])), /not timestamp\.set/);
+  assert.throws(
+    () => timestampOf(toHex([...compact(otherCall.length), ...otherCall])),
+    /not timestamp\.set/,
+  );
   assert.throws(() => timestampOf('0x0c0401'), /too short/);
   assert.throws(() => timestampOf(toHex([...compact(3), 0x04, 0x01, 0x00])), /truncated|empty/);
 });
@@ -383,7 +513,10 @@ test('bars are as tall as their extrinsic count, never off the plate, and the tr
   assert.equal(barHeight(null), 0.26, 'an unread body stands at the floor');
   assert.equal(barHeight(0), 0.26);
   assert.ok(barHeight(2) > barHeight(1));
-  assert.ok(Math.abs(barHeight(3) - barHeight(2) - (barHeight(2) - barHeight(1))) < 1e-12, 'each extrinsic adds one step');
+  assert.ok(
+    Math.abs(barHeight(3) - barHeight(2) - (barHeight(2) - barHeight(1))) < 1e-12,
+    'each extrinsic adds one step',
+  );
   assert.ok(Math.abs(barHeight(100) - 0.94) < 1e-12, 'capped');
   assert.equal(trailAlpha(0), 1);
   assert.ok(trailAlpha(30) < trailAlpha(10));
@@ -399,7 +532,10 @@ test('the river holds sixty blocks on a wide plate and about two dozen on a phon
   assert.equal(wide.labelEvery, Math.ceil(84 / wide.slotPx));
   const phone = riverLayout(358);
   assert.ok(phone.visible >= 20 && phone.visible < 25, `phone holds ${phone.visible}`);
-  assert.ok(phone.bar >= 3 && phone.bar <= wide.bar, `phone bar ${phone.bar}, wide bar ${wide.bar}`);
+  assert.ok(
+    phone.bar >= 3 && phone.bar <= wide.bar,
+    `phone bar ${phone.bar}, wide bar ${wide.bar}`,
+  );
   assert.ok(phone.labelEvery >= wide.labelEvery);
   assert.equal(riverLayout(100).visible, 20, 'never fewer than twenty');
 });
@@ -423,7 +559,13 @@ test('polled heights are named as such: no body was read, so the bar stands at t
 });
 
 test('a figure is plain text in tabular figures: one text node, no digit cells', async () => {
-  const element = () => ({ textContent: '', children: [], replaceChildren(...n) { this.children = n; } });
+  const element = () => ({
+    textContent: '',
+    children: [],
+    replaceChildren(...n) {
+      this.children = n;
+    },
+  });
   const had = 'document' in globalThis;
   const before = globalThis.document;
   globalThis.document = { createTextNode: (t) => ({ nodeValue: String(t) }) };
@@ -433,9 +575,16 @@ test('a figure is plain text in tabular figures: one text node, no digit cells',
     const node = element();
     node.children.push('stale');
     readout.setFigure(node, '847,724');
-    assert.deepEqual(node.children.map((c) => c.nodeValue), ['847,724'], 'the figure is one unbroken text node, read once');
+    assert.deepEqual(
+      node.children.map((c) => c.nodeValue),
+      ['847,724'],
+      'the figure is one unbroken text node, read once',
+    );
     readout.setFigure(node, 12);
-    assert.deepEqual(node.children.map((c) => c.nodeValue), ['12']);
+    assert.deepEqual(
+      node.children.map((c) => c.nodeValue),
+      ['12'],
+    );
   } finally {
     if (had) globalThis.document = before;
     else delete globalThis.document;
@@ -443,30 +592,76 @@ test('a figure is plain text in tabular figures: one text node, no digit cells',
 });
 
 test('the status bar’s state word follows stated rules, worst first', () => {
-  const normal = { socket: 'live', lastOk: true, seen: true, lag: 2, intervalMs: 6_000, hidden: false };
+  const normal = {
+    socket: 'live',
+    lastOk: true,
+    seen: true,
+    lag: 2,
+    intervalMs: 6_000,
+    hidden: false,
+  };
   assert.equal(stateWord(normal), 'Network normal');
   assert.equal(stateWord({ ...normal, hidden: true }), 'Paused');
   assert.equal(stateWord({ ...normal, seen: false }), 'Connecting');
   assert.equal(stateWord({ ...normal, lastOk: false }), 'Not updating');
-  assert.equal(stateWord({ ...normal, seen: false, lastOk: false }), 'Not updating', 'an outage at first load is an outage, not a connection in progress');
+  assert.equal(
+    stateWord({ ...normal, seen: false, lastOk: false }),
+    'Not updating',
+    'an outage at first load is an outage, not a connection in progress',
+  );
   assert.equal(stateWord({ ...normal, lag: FINALITY_LAG_ALERT + 1 }), 'Finality lagging');
   assert.equal(stateWord({ ...normal, lag: FINALITY_LAG_ALERT }), 'Network normal');
   assert.equal(stateWord({ ...normal, intervalMs: 19_000 }), 'Blocks late');
   assert.equal(stateWord({ ...normal, socket: 'polling' }), 'Polling');
-  assert.equal(stateWord({ ...normal, lag: null, intervalMs: null }), 'Network normal', 'unknowns are not faults');
+  assert.equal(
+    stateWord({ ...normal, lag: null, intervalMs: null }),
+    'Network normal',
+    'unknowns are not faults',
+  );
 });
 
 test('the sealing phrase states the active set from the chain read, and counts who has sealed only after a minute', () => {
   // On load the page has seen a block or two: "2 of 5 seen so far" read as three validators down.
   assert.equal(sealingPhrase({ seen: 2, total: 5, sinceMs: 0 }), '5 validators in the active set');
-  assert.equal(sealingPhrase({ seen: 5, total: 5, sinceMs: SEALING_GRACE_MS - 1 }), '5 validators in the active set', 'even a full count waits for the minute');
-  assert.equal(sealingPhrase({ seen: 3, total: 5, sinceMs: SEALING_GRACE_MS }), '5 validators in the active set · 3 seen sealing since you opened this page');
-  assert.equal(sealingPhrase({ seen: 5, total: 5, sinceMs: 600_000 }), '5 validators in the active set · 5 seen sealing since you opened this page');
-  assert.equal(sealingPhrase({ seen: null, total: 5, sinceMs: 600_000 }), '5 validators in the active set', 'polling from the start: no author was ever seen');
-  assert.equal(sealingPhrase({ seen: 1, total: 1, sinceMs: 600_000 }), '1 validator in the active set · 1 seen sealing since you opened this page');
-  assert.equal(sealingPhrase({ seen: 2, total: null, sinceMs: 600_000 }), 'validators not yet read');
-  assert.equal(sealingPhrase({ seen: 5, total: 5, sinceMs: 600_000, error: 'could not decode the set: bad length' }), 'validators unavailable · could not decode the set: bad length');
-  assert.equal(sealingPhrase({ authors: null, total: null, observed: 0, error: 'HTTP 502' }), 'validators unavailable · HTTP 502');
+  assert.equal(
+    sealingPhrase({ seen: 5, total: 5, sinceMs: SEALING_GRACE_MS - 1 }),
+    '5 validators in the active set',
+    'even a full count waits for the minute',
+  );
+  assert.equal(
+    sealingPhrase({ seen: 3, total: 5, sinceMs: SEALING_GRACE_MS }),
+    '5 validators in the active set · 3 seen sealing since you opened this page',
+  );
+  assert.equal(
+    sealingPhrase({ seen: 5, total: 5, sinceMs: 600_000 }),
+    '5 validators in the active set · 5 seen sealing since you opened this page',
+  );
+  assert.equal(
+    sealingPhrase({ seen: null, total: 5, sinceMs: 600_000 }),
+    '5 validators in the active set',
+    'polling from the start: no author was ever seen',
+  );
+  assert.equal(
+    sealingPhrase({ seen: 1, total: 1, sinceMs: 600_000 }),
+    '1 validator in the active set · 1 seen sealing since you opened this page',
+  );
+  assert.equal(
+    sealingPhrase({ seen: 2, total: null, sinceMs: 600_000 }),
+    'validators not yet read',
+  );
+  assert.equal(
+    sealingPhrase({
+      seen: 5,
+      total: 5,
+      sinceMs: 600_000,
+      error: 'could not decode the set: bad length',
+    }),
+    'validators unavailable · could not decode the set: bad length',
+  );
+  assert.equal(
+    sealingPhrase({ authors: null, total: null, observed: 0, error: 'HTTP 502' }),
+    'validators unavailable · HTTP 502',
+  );
 });
 
 // The status bar's event wiring, not only its pure helpers: the three faults
@@ -476,24 +671,46 @@ test('the sealing phrase states the active set from the chain read, and counts w
 
 function fakeBar() {
   // Minimal DOM stand-ins: the bar only reads textContent/dataset.
-  const el = () => ({ textContent: '', dataset: {}, classList: { add() {}, remove() {} }, offsetWidth: 0 });
-  const nodes = { '.pulse-dot': el(), '.sb-state': el(), '.sb-validators': el(), '.sb-finality': el() };
+  const el = () => ({
+    textContent: '',
+    dataset: {},
+    classList: { add() {}, remove() {} },
+    offsetWidth: 0,
+  });
+  const nodes = {
+    '.pulse-dot': el(),
+    '.sb-state': el(),
+    '.sb-validators': el(),
+    '.sb-finality': el(),
+  };
   const root = { dataset: {}, querySelector: (s) => nodes[s] ?? null };
   const handlers = {};
   let clock = 1_000_000;
   const ctx = {
-    bus: { on: (name, fn) => { (handlers[name] ||= []).push(fn); } },
+    bus: {
+      on: (name, fn) => {
+        (handlers[name] ||= []).push(fn);
+      },
+    },
     motion: { reduced: () => true },
     format: { formatInteger: (n) => String(n) },
     readout: { showValue() {}, showError() {} },
     watch() {},
-    field: () => { throw new Error('not used'); },
+    field: () => {
+      throw new Error('not used');
+    },
     now: () => clock,
   };
   return {
-    root, ctx, nodes,
-    emit: (name, payload) => { for (const fn of handlers[name] ?? []) fn(payload); },
-    advance: (ms) => { clock += ms; },
+    root,
+    ctx,
+    nodes,
+    emit: (name, payload) => {
+      for (const fn of handlers[name] ?? []) fn(payload);
+    },
+    advance: (ms) => {
+      clock += ms;
+    },
     now: () => clock,
     state: () => root.dataset.state,
   };
@@ -504,13 +721,23 @@ test('status bar: a finality stall is reported even though no finalized event ar
   const { init } = await import('../src/observatory/statusbar.js');
   init(root, ctx);
 
-  emit('head', { record: { ok: true }, number: 100, author: { authorityIndex: 0 }, arrivedAt: ctx.now() });
+  emit('head', {
+    record: { ok: true },
+    number: 100,
+    author: { authorityIndex: 0 },
+    arrivedAt: ctx.now(),
+  });
   emit('finalized', { number: 98 });
   assert.equal(state(), 'network-normal', 'lag 2 is healthy');
 
   // Finality stops; blocks keep coming. No further `finalized` events.
   for (let n = 101; n <= 112; n++) {
-    emit('head', { record: { ok: true }, number: n, author: { authorityIndex: n % 3 }, arrivedAt: ctx.now() });
+    emit('head', {
+      record: { ok: true },
+      number: n,
+      author: { authorityIndex: n % 3 },
+      arrivedAt: ctx.now(),
+    });
   }
   assert.equal(state(), 'finality-lagging', 'lag must grow from heads alone');
 });
@@ -520,7 +747,12 @@ test('status bar: a full block stall is reported with no event to prompt it', as
   const { init, LATE_MS, STALL_CHECK_MS } = await import('../src/observatory/statusbar.js');
   init(root, ctx);
 
-  emit('head', { record: { ok: true }, number: 100, author: { authorityIndex: 0 }, arrivedAt: ctx.now() });
+  emit('head', {
+    record: { ok: true },
+    number: 100,
+    author: { authorityIndex: 0 },
+    arrivedAt: ctx.now(),
+  });
   emit('finalized', { number: 99 });
   assert.equal(state(), 'network-normal');
 
@@ -546,7 +778,11 @@ test('status bar: polling that repeats the same height is not a stream of arriva
   }
   advance(LATE_MS);
   emit('visibility', { hidden: false });
-  assert.equal(state(), 'blocks-late', 'a height that never advances is a stalled chain, polling or not');
+  assert.equal(
+    state(),
+    'blocks-late',
+    'a height that never advances is a stalled chain, polling or not',
+  );
 });
 
 test('status bar: returning from a hidden tab is not a late block', async () => {
@@ -554,7 +790,12 @@ test('status bar: returning from a hidden tab is not a late block', async () => 
   const { init } = await import('../src/observatory/statusbar.js');
   init(root, ctx);
 
-  emit('head', { record: { ok: true }, number: 100, author: { authorityIndex: 0 }, arrivedAt: ctx.now() });
+  emit('head', {
+    record: { ok: true },
+    number: 100,
+    author: { authorityIndex: 0 },
+    arrivedAt: ctx.now(),
+  });
   emit('finalized', { number: 99 });
   emit('visibility', { hidden: true });
   advance(10 * 60_000); // ten minutes in another tab
@@ -563,16 +804,31 @@ test('status bar: returning from a hidden tab is not a late block', async () => 
 });
 
 test('sealing phrase never claims more validators than the set holds', async () => {
-  const { sealingPhrase: phrase, SEALING_GRACE_MS: grace } = await import('../src/observatory/statusbar.js');
+  const { sealingPhrase: phrase, SEALING_GRACE_MS: grace } = await import(
+    '../src/observatory/statusbar.js'
+  );
   // Validators seen before the set shrank were still seen; the count is clamped to the set.
-  assert.equal(phrase({ seen: 6, total: 5, sinceMs: grace }), '5 validators in the active set · 5 seen sealing since you opened this page');
+  assert.equal(
+    phrase({ seen: 6, total: 5, sinceMs: grace }),
+    '5 validators in the active set · 5 seen sealing since you opened this page',
+  );
 });
 
 // A second harness for the paths the block above does not reach: the `poll`
 // event, the readout calls, the validators read, and the ticker main.js drives.
 function statusBarHarness() {
-  const el = () => ({ textContent: '', dataset: {}, classList: { add() {}, remove() {} }, offsetWidth: 1 });
-  const slots = { '.pulse-dot': el(), '.sb-state': el(), '.sb-validators': el(), '.sb-finality': el() };
+  const el = () => ({
+    textContent: '',
+    dataset: {},
+    classList: { add() {}, remove() {} },
+    offsetWidth: 1,
+  });
+  const slots = {
+    '.pulse-dot': el(),
+    '.sb-state': el(),
+    '.sb-validators': el(),
+    '.sb-finality': el(),
+  };
   const root = { dataset: {}, querySelector: (sel) => slots[sel] ?? null };
   const listeners = new Map();
   const bus = {
@@ -587,7 +843,10 @@ function statusBarHarness() {
     now: () => now,
     format: { formatInteger: (n) => n.toLocaleString('en-US') },
     motion: { reduced: () => false },
-    readout: { showValue: (t, r, o) => calls.shown.push(o.value), showError: (t, r) => calls.errors.push(r) },
+    readout: {
+      showValue: (t, r, o) => calls.shown.push(o.value),
+      showError: (t, r) => calls.errors.push(r),
+    },
     field: (data, path) => path.split('.').reduce((v, k) => v[k], data),
     watch: (name, handler) => watches.set(name, handler),
   };
@@ -596,12 +855,30 @@ function statusBarHarness() {
   const mirror = { dataset: {}, querySelector: (sel) => mirrorSlots[sel] ?? null };
   const controller = initStatusBar(root, ctx, { mirrors: [mirror] });
   return {
-    root, slots, bus, calls, controller, watches, mirror, mirrorSlots,
+    root,
+    slots,
+    bus,
+    calls,
+    controller,
+    watches,
+    mirror,
+    mirrorSlots,
     now: () => now,
     /** Advances the clock and lets the ticker ask, as main.js does every STALL_CHECK_MS. */
-    tick(ms) { now += ms; controller.tick(); },
-    head: (number) => bus.emit('head', { record: { ok: true }, number, header: {}, author: { authorityIndex: number % 5 }, arrivedAt: now }),
-    poll: (number, finalized) => bus.emit('poll', { record: { ok: true }, number, finalized, arrivedAt: now }),
+    tick(ms) {
+      now += ms;
+      controller.tick();
+    },
+    head: (number) =>
+      bus.emit('head', {
+        record: { ok: true },
+        number,
+        header: {},
+        author: { authorityIndex: number % 5 },
+        arrivedAt: now,
+      }),
+    poll: (number, finalized) =>
+      bus.emit('poll', { record: { ok: true }, number, finalized, arrivedAt: now }),
   };
 }
 
@@ -616,15 +893,27 @@ test('status bar wiring: polled heights arrive on `poll`, carry finality, and re
   assert.equal(h.slots['.sb-validators'].textContent, 'validators not yet read');
   assert.deepEqual(h.calls.shown, [500, 501], 'each poll refreshes the figure and its provenance');
   assert.equal(h.controller.state().intervalMs, 6_000);
-  for (let i = 0; i < 4; i += 1) { h.tick(6_000); h.poll(501, 499); }
+  for (let i = 0; i < 4; i += 1) {
+    h.tick(6_000);
+    h.poll(501, 499);
+  }
   assert.equal(h.controller.state().best, 501);
-  assert.equal(h.slots['.sb-state'].textContent, 'Blocks late', 'four polls at one height: the ticker said the stall');
+  assert.equal(
+    h.slots['.sb-state'].textContent,
+    'Blocks late',
+    'four polls at one height: the ticker said the stall',
+  );
   h.poll(502, 500);
   h.tick(6_000);
   h.poll(503, 501);
   assert.equal(h.slots['.sb-state'].textContent, 'Polling');
   // A failed poll is "Not updating", shown through the readout like a failed head.
-  h.bus.emit('poll', { record: { ok: false, error: 'HTTP 502' }, number: null, finalized: null, arrivedAt: h.now() });
+  h.bus.emit('poll', {
+    record: { ok: false, error: 'HTTP 502' },
+    number: null,
+    finalized: null,
+    arrivedAt: h.now(),
+  });
   assert.equal(h.slots['.sb-state'].textContent, 'Not updating');
   assert.equal(h.calls.errors.length, 1);
 });
@@ -634,7 +923,10 @@ test('status bar wiring: the finality lag is held, not read from the DOM, and gr
   h.head(100);
   h.bus.emit('finalized', { record: { ok: true }, number: 98 });
   assert.equal(h.slots['.sb-finality'].textContent, 'finality 2 blocks');
-  for (let n = 101; n <= 100 + FINALITY_LAG_ALERT + 1; n += 1) { h.tick(6_000); h.head(n); }
+  for (let n = 101; n <= 100 + FINALITY_LAG_ALERT + 1; n += 1) {
+    h.tick(6_000);
+    h.head(n);
+  }
   assert.equal(h.slots['.sb-finality'].textContent, 'finality 9 blocks');
   assert.equal(h.slots['.sb-state'].textContent, 'Finality lagging');
   assert.deepEqual([h.controller.state().best, h.controller.state().lastFinalized], [107, 98]);
@@ -644,29 +936,53 @@ test('status bar wiring: the finality lag is held, not read from the DOM, and gr
 
 test('status bar wiring: the validators read is said honestly — decoded, undecodable, or failed — and a changed set restarts the count', () => {
   const h = statusBarHarness();
-  for (const n of [10, 11, 12]) { h.head(n); h.tick(6_000); }
+  for (const n of [10, 11, 12]) {
+    h.head(n);
+    h.tick(6_000);
+  }
   const validators = h.watches.get('validators');
   const five = { ok: true, data: { result: '0x' + '14' + '11'.repeat(32).repeat(5) } };
   validators(five);
   assert.equal(h.controller.state().total, 5);
-  assert.equal(h.slots['.sb-validators'].textContent, '5 validators in the active set', 'the first minute states the set alone');
+  assert.equal(
+    h.slots['.sb-validators'].textContent,
+    '5 validators in the active set',
+    'the first minute states the set alone',
+  );
   h.tick(SEALING_GRACE_MS);
-  assert.equal(h.slots['.sb-validators'].textContent, '5 validators in the active set · 3 seen sealing since you opened this page', 'the ticker adds the count once the minute has passed');
+  assert.equal(
+    h.slots['.sb-validators'].textContent,
+    '5 validators in the active set · 3 seen sealing since you opened this page',
+    'the ticker adds the count once the minute has passed',
+  );
   const quiet = mock.method(console, 'error', () => {});
   validators({ ok: true, data: { result: '0x' + '05' + '11'.repeat(16) } });
   quiet.mock.restore();
   assert.equal(quiet.mock.callCount(), 1, 'the decode error is logged, not swallowed');
   assert.equal(h.controller.state().total, null);
-  assert.match(h.slots['.sb-validators'].textContent, /^validators unavailable · could not decode the set: /);
+  assert.match(
+    h.slots['.sb-validators'].textContent,
+    /^validators unavailable · could not decode the set: /,
+  );
   validators({ ok: false, error: 'HTTP 502' });
   assert.equal(h.slots['.sb-validators'].textContent, 'validators unavailable · HTTP 502');
   validators(five);
-  assert.equal(h.slots['.sb-validators'].textContent, '5 validators in the active set', 'the count restarted when the set changed');
+  assert.equal(
+    h.slots['.sb-validators'].textContent,
+    '5 validators in the active set',
+    'the count restarted when the set changed',
+  );
   h.head(13);
-  assert.equal(h.slots['.sb-validators'].textContent, '5 validators in the active set · 1 seen sealing since you opened this page');
+  assert.equal(
+    h.slots['.sb-validators'].textContent,
+    '5 validators in the active set · 1 seen sealing since you opened this page',
+  );
   // Falling back to polling adds nothing: a polled height has no author, but what was seen stays true.
   h.poll(14, 12);
-  assert.equal(h.slots['.sb-validators'].textContent, '5 validators in the active set · 1 seen sealing since you opened this page');
+  assert.equal(
+    h.slots['.sb-validators'].textContent,
+    '5 validators in the active set · 1 seen sealing since you opened this page',
+  );
 });
 
 test('status bar wiring: a height far below the best is a reset, not a stall', () => {
@@ -680,7 +996,11 @@ test('status bar wiring: a height far below the best is a reset, not a stall', (
   h.tick(6_000);
   h.head(5);
   assert.equal(h.controller.state().best, 5, 'the held height follows the reset');
-  assert.equal(h.slots['.sb-finality'].textContent, 'finality —', 'the old finalized height is not compared with the new chain');
+  assert.equal(
+    h.slots['.sb-finality'].textContent,
+    'finality —',
+    'the old finalized height is not compared with the new chain',
+  );
   h.tick(6_000);
   h.head(6);
   h.bus.emit('finalized', { record: { ok: true }, number: 4 });
@@ -699,21 +1019,77 @@ test('rail markers are equally spaced in order, whatever the block heights', () 
 test('the Sources switch: off by default, remembered per browser, and a storage that throws is an off switch', () => {
   assert.equal(SOURCES_PREF_KEY, 'observatory:sources');
   const store = new Map();
-  const storage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) };
+  const storage = {
+    getItem: (k) => store.get(k) ?? null,
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: (k) => store.delete(k),
+  };
   assert.equal(readSourcesPreference(storage), false);
   writeSourcesPreference(storage, true);
   assert.equal(store.get(SOURCES_PREF_KEY), '1');
   assert.equal(readSourcesPreference(storage), true);
   writeSourcesPreference(storage, false);
-  assert.equal(store.has(SOURCES_PREF_KEY), false, 'off is the absence of the key, as a fresh browser is');
+  assert.equal(
+    store.has(SOURCES_PREF_KEY),
+    false,
+    'off is the absence of the key, as a fresh browser is',
+  );
   assert.equal(readSourcesPreference(null), false);
-  assert.equal(readSourcesPreference({ getItem() { throw new Error('private mode'); } }), false);
-  assert.doesNotThrow(() => writeSourcesPreference({ setItem() { throw new Error('quota'); }, removeItem() { throw new Error('quota'); } }, true));
+  assert.equal(
+    readSourcesPreference({
+      getItem() {
+        throw new Error('private mode');
+      },
+    }),
+    false,
+  );
+  assert.doesNotThrow(() =>
+    writeSourcesPreference(
+      {
+        setItem() {
+          throw new Error('quota');
+        },
+        removeItem() {
+          throw new Error('quota');
+        },
+      },
+      true,
+    ),
+  );
 
   // The switch: role=switch, aria-checked follows the attribute on <html>, a click flips both and the store.
-  const html = { attrs: new Map(), setAttribute(k, v) { this.attrs.set(k, v); }, removeAttribute(k) { this.attrs.delete(k); }, hasAttribute(k) { return this.attrs.has(k); }, toggleAttribute(k, force) { if (force) this.attrs.set(k, ''); else this.attrs.delete(k); return force; } };
-  const button = { attrs: new Map(), handlers: {}, setAttribute(k, v) { this.attrs.set(k, v); }, addEventListener(name, fn) { this.handlers[name] = fn; } };
-  const doc = { documentElement: html, querySelector: (sel) => (sel === '.sb-sources' ? button : null), defaultView: { localStorage: storage } };
+  const html = {
+    attrs: new Map(),
+    setAttribute(k, v) {
+      this.attrs.set(k, v);
+    },
+    removeAttribute(k) {
+      this.attrs.delete(k);
+    },
+    hasAttribute(k) {
+      return this.attrs.has(k);
+    },
+    toggleAttribute(k, force) {
+      if (force) this.attrs.set(k, '');
+      else this.attrs.delete(k);
+      return force;
+    },
+  };
+  const button = {
+    attrs: new Map(),
+    handlers: {},
+    setAttribute(k, v) {
+      this.attrs.set(k, v);
+    },
+    addEventListener(name, fn) {
+      this.handlers[name] = fn;
+    },
+  };
+  const doc = {
+    documentElement: html,
+    querySelector: (sel) => (sel === '.sb-sources' ? button : null),
+    defaultView: { localStorage: storage },
+  };
   const announced = [];
   initSources(doc, { announce: (t) => announced.push(t) });
   assert.equal(button.attrs.get('aria-checked'), 'false');
@@ -727,15 +1103,30 @@ test('the Sources switch: off by default, remembered per browser, and a storage 
   assert.equal(store.has(SOURCES_PREF_KEY), false);
   // A page that booted with the attribute already set (the head script read the store) starts on.
   html.setAttribute('data-sources', '');
-  const button2 = { attrs: new Map(), handlers: {}, setAttribute(k, v) { this.attrs.set(k, v); }, addEventListener(name, fn) { this.handlers[name] = fn; } };
+  const button2 = {
+    attrs: new Map(),
+    handlers: {},
+    setAttribute(k, v) {
+      this.attrs.set(k, v);
+    },
+    addEventListener(name, fn) {
+      this.handlers[name] = fn;
+    },
+  };
   initSources({ ...doc, querySelector: () => button2 }, { announce() {} });
   assert.equal(button2.attrs.get('aria-checked'), 'true');
 });
 
-
 test('the hero’s live line says the bar’s state in a word and the finality lag, from the same reads, with no ceremony first', () => {
   assert.equal(liveWord('Network normal'), 'Live');
-  for (const word of ['Connecting', 'Polling', 'Paused', 'Not updating', 'Finality lagging', 'Blocks late']) {
+  for (const word of [
+    'Connecting',
+    'Polling',
+    'Paused',
+    'Not updating',
+    'Finality lagging',
+    'Blocks late',
+  ]) {
     assert.equal(liveWord(word), word, `${word} is said as it is, never as "Live"`);
   }
   const h = statusBarHarness();
@@ -750,13 +1141,26 @@ test('the hero’s live line says the bar’s state in a word and the finality l
   assert.equal(h.mirrorSlots['.ll-state'].textContent, 'Live');
   assert.equal(h.mirrorSlots['.ll-finality'].textContent, 'finality 2 blocks');
   assert.equal(h.mirror.dataset.state, 'network-normal');
-  h.bus.emit('poll', { record: { ok: false, error: 'HTTP 502' }, number: null, finalized: null, arrivedAt: h.now() });
-  assert.equal(h.mirrorSlots['.ll-state'].textContent, 'Not updating', 'a failure is never shown as live');
+  h.bus.emit('poll', {
+    record: { ok: false, error: 'HTTP 502' },
+    number: null,
+    finalized: null,
+    arrivedAt: h.now(),
+  });
+  assert.equal(
+    h.mirrorSlots['.ll-state'].textContent,
+    'Not updating',
+    'a failure is never shown as live',
+  );
   assert.equal(h.mirror.dataset.state, 'not-updating');
 });
 
 test('presenter mode is toggled by P and the Present button, never by the URL, and driven by the arrow keys', () => {
-  assert.equal(presenterModule.wantsPresenter, undefined, 'no URL flag: /observatory is the one entry point');
+  assert.equal(
+    presenterModule.wantsPresenter,
+    undefined,
+    'no URL flag: /observatory is the one entry point',
+  );
   assert.equal(stepFor('ArrowRight', 0, 7), 1);
   assert.equal(stepFor('ArrowRight', 6, 7), 0, 'wraps');
   assert.equal(stepFor('ArrowLeft', 0, 7), 6);
@@ -767,7 +1171,8 @@ test('presenter mode is toggled by P and the Present button, never by the URL, a
   // Off: P (either case) enters; nothing else is ours, so the arrows still scroll the page.
   assert.deepEqual(keyAction('p', 0, 7, false), { enter: true });
   assert.deepEqual(keyAction('P', 0, 7, false), { enter: true });
-  for (const key of ['ArrowRight', 'Escape', ' ', 'a']) assert.equal(keyAction(key, 0, 7, false), null, `${key} is not ours off presenter mode`);
+  for (const key of ['ArrowRight', 'Escape', ' ', 'a'])
+    assert.equal(keyAction(key, 0, 7, false), null, `${key} is not ours off presenter mode`);
   // On: arrows go, space pauses, P or Escape leaves.
   assert.deepEqual(keyAction('ArrowRight', 0, 7, true), { go: 1 });
   assert.deepEqual(keyAction('ArrowLeft', 0, 7, true), { go: 6 });
@@ -783,11 +1188,23 @@ function presenterHarness({ screens = 3 } = {}) {
     const map = new Map();
     return {
       map,
-      setAttribute(k, v) { map.set(k, String(v)); },
-      removeAttribute(k) { map.delete(k); },
-      hasAttribute(k) { return map.has(k); },
-      getAttribute(k) { return map.get(k) ?? null; },
-      toggleAttribute(k, force) { if (force) map.set(k, ''); else map.delete(k); return force; },
+      setAttribute(k, v) {
+        map.set(k, String(v));
+      },
+      removeAttribute(k) {
+        map.delete(k);
+      },
+      hasAttribute(k) {
+        return map.has(k);
+      },
+      getAttribute(k) {
+        return map.get(k) ?? null;
+      },
+      toggleAttribute(k, force) {
+        if (force) map.set(k, '');
+        else map.delete(k);
+        return force;
+      },
     };
   };
   const html = attrs();
@@ -798,36 +1215,78 @@ function presenterHarness({ screens = 3 } = {}) {
     querySelectorAll: () => [],
   }));
   const handlers = {};
-  const button = { ...attrs(), handlers: {}, addEventListener(name, fn) { this.handlers[name] = fn; }, textContent: 'Present' };
-  const body = { children: [], append(n) { this.children.push(n); } };
+  const button = {
+    ...attrs(),
+    handlers: {},
+    addEventListener(name, fn) {
+      this.handlers[name] = fn;
+    },
+    textContent: 'Present',
+  };
+  const body = {
+    children: [],
+    append(n) {
+      this.children.push(n);
+    },
+  };
   const doc = {
     documentElement: html,
     body,
     hidden: false,
     querySelector: (sel) => (sel === '.sb-present' ? button : null),
     querySelectorAll: (sel) => (sel === '[data-present-screen]' ? deck : []),
-    createElement: () => ({ ...attrs(), className: '', textContent: '', remove() { body.children = body.children.filter((c) => c !== this); } }),
-    addEventListener: (name, fn) => { handlers[name] = fn; },
+    createElement: () => ({
+      ...attrs(),
+      className: '',
+      textContent: '',
+      remove() {
+        body.children = body.children.filter((c) => c !== this);
+      },
+    }),
+    addEventListener: (name, fn) => {
+      handlers[name] = fn;
+    },
     removeEventListener: () => {},
   };
   const timers = [];
   const announced = [];
-  const presenter = initPresenter(doc, { announce: (t) => announced.push(t) }, {
-    setTimer: (fn, ms) => { timers.push({ fn, ms }); return timers.length; },
-    clearTimer: () => {},
-  });
+  const presenter = initPresenter(
+    doc,
+    { announce: (t) => announced.push(t) },
+    {
+      setTimer: (fn, ms) => {
+        timers.push({ fn, ms });
+        return timers.length;
+      },
+      clearTimer: () => {},
+    },
+  );
   const key = (k, extra = {}) => {
     let prevented = false;
-    handlers.keydown({ key: k, target: { tagName: 'BODY' }, preventDefault: () => { prevented = true; }, ...extra });
+    handlers.keydown({
+      key: k,
+      target: { tagName: 'BODY' },
+      preventDefault: () => {
+        prevented = true;
+      },
+      ...extra,
+    });
     return prevented;
   };
-  const visible = (hidden) => { doc.hidden = hidden; handlers.visibilitychange(); };
+  const visible = (hidden) => {
+    doc.hidden = hidden;
+    handlers.visibilitychange();
+  };
   return { html, deck, button, body, presenter, timers, announced, key, visible };
 }
 
 test('presenter wiring: the Present button and P enter, P and Escape leave in place, and the button says which', () => {
   const h = presenterHarness();
-  assert.equal(h.html.hasAttribute('data-present'), false, 'the ordinary page loads; nothing in the URL turns it on');
+  assert.equal(
+    h.html.hasAttribute('data-present'),
+    false,
+    'the ordinary page loads; nothing in the URL turns it on',
+  );
   assert.equal(h.button.getAttribute('aria-pressed'), 'false');
   assert.equal(h.key('ArrowRight'), false, 'off presenter mode the arrows are the page’s');
   h.button.handlers.click();
@@ -838,13 +1297,17 @@ test('presenter wiring: the Present button and P enter, P and Escape leave in pl
   assert.equal(h.timers.at(-1).ms, ADVANCE_MS, 'the advance is armed');
   assert.equal(h.key('ArrowRight'), true);
   assert.equal(h.presenter.current(), 1);
-  assert.ok(!h.deck[0].hasAttribute('data-present-active') && h.deck[1].hasAttribute('data-present-active'));
+  assert.ok(
+    !h.deck[0].hasAttribute('data-present-active') && h.deck[1].hasAttribute('data-present-active'),
+  );
   h.key(' ');
   assert.equal(h.presenter.paused(), true);
   assert.equal(h.key('p'), true);
   assert.equal(h.html.hasAttribute('data-present'), false, 'P leaves in place');
   assert.equal(h.button.getAttribute('aria-pressed'), 'false');
-  assert.ok(h.deck.every((s) => !s.hasAttribute('data-present-active') && !s.hasAttribute('aria-hidden')));
+  assert.ok(
+    h.deck.every((s) => !s.hasAttribute('data-present-active') && !s.hasAttribute('aria-hidden')),
+  );
   h.key('P');
   assert.equal(h.html.hasAttribute('data-present'), true, 'and P comes back to the first screen');
   assert.equal(h.presenter.current(), 0);
@@ -857,7 +1320,10 @@ test('presenter wiring: the Present button and P enter, P and Escape leave in pl
   h.visible(true);
   h.visible(false);
   assert.equal(h.timers.length, armed, 'returning to the tab after leaving arms nothing');
-  assert.ok(h.deck.every((s) => !s.hasAttribute('aria-hidden')), 'the ordinary page keeps every screen in the accessibility tree');
+  assert.ok(
+    h.deck.every((s) => !s.hasAttribute('aria-hidden')),
+    'the ordinary page keeps every screen in the accessibility tree',
+  );
   assert.equal(h.body.children.length, 0, 'the counter is gone');
   // Typing, or a key with a modifier, is never taken for a command.
   assert.equal(h.key('p', { target: { tagName: 'INPUT' } }), false);
@@ -871,43 +1337,94 @@ test('CMN issued to agents is the exact running total of every settled era’s p
     { era: 3, settled: true, settledAtBlock: 10_800, totalEmissionPlancks: '1500000000000' },
     { era: 2, settled: true, settledAtBlock: 7_200, totalEmissionPlancks: '2500000000001' },
   ];
-  assert.deepEqual(payoutTotal(items, field), { plancks: '4000000000001', eras: 2, first: 2, last: 3 });
-  assert.equal(payoutTotal([items[0]], field), null, 'no settled era: nothing to sum, said rather than zero');
+  assert.deepEqual(payoutTotal(items, field), {
+    plancks: '4000000000001',
+    eras: 2,
+    first: 2,
+    last: 3,
+  });
+  assert.equal(
+    payoutTotal([items[0]], field),
+    null,
+    'no settled era: nothing to sum, said rather than zero',
+  );
   // A hole in the eras shortens the run to the unbroken part ending at the newest, never hides inside it.
   const holed = [...items, { era: 0, settled: true, settledAtBlock: 0, totalEmissionPlancks: '9' }];
-  assert.deepEqual(payoutTotal(holed, field), { plancks: '4000000000001', eras: 2, first: 2, last: 3 });
-  assert.throws(() => payoutTotal([{ era: 1, settled: true, settledAtBlock: 1 }], field), /totalEmissionPlancks/);
+  assert.deepEqual(payoutTotal(holed, field), {
+    plancks: '4000000000001',
+    eras: 2,
+    first: 2,
+    last: 3,
+  });
+  assert.throws(
+    () => payoutTotal([{ era: 1, settled: true, settledAtBlock: 1 }], field),
+    /totalEmissionPlancks/,
+  );
 });
 
 test('the scroll reveal: sections fade up once as they enter, by script alone, never under reduced motion or without IntersectionObserver', () => {
   const classes = () => {
     const set = new Set();
-    return { set, add: (c) => set.add(c), remove: (c) => set.delete(c), contains: (c) => set.has(c) };
+    return {
+      set,
+      add: (c) => set.add(c),
+      remove: (c) => set.delete(c),
+      contains: (c) => set.has(c),
+    };
   };
   const make = () => ({ classList: classes() });
   const html = { classList: classes() };
   const targets = [make(), make(), make()];
   let observer = null;
   class IO {
-    constructor(callback, options) { this.callback = callback; this.options = options; this.observed = new Set(); observer = this; }
-    observe(t) { this.observed.add(t); }
-    unobserve(t) { this.observed.delete(t); }
-    disconnect() { this.observed.clear(); }
+    constructor(callback, options) {
+      this.callback = callback;
+      this.options = options;
+      this.observed = new Set();
+      observer = this;
+    }
+    observe(t) {
+      this.observed.add(t);
+    }
+    unobserve(t) {
+      this.observed.delete(t);
+    }
+    disconnect() {
+      this.observed.clear();
+    }
   }
   const running = startReveal({ targets, html, IntersectionObserver: IO, reduced: () => false });
-  assert.ok(html.classList.contains('reveal-ready'), 'the stylesheet hides a section only once the script is running');
+  assert.ok(
+    html.classList.contains('reveal-ready'),
+    'the stylesheet hides a section only once the script is running',
+  );
   assert.equal(observer.observed.size, 3);
-  observer.callback([{ target: targets[0], isIntersecting: true }, { target: targets[1], isIntersecting: false }]);
+  observer.callback([
+    { target: targets[0], isIntersecting: true },
+    { target: targets[1], isIntersecting: false },
+  ]);
   assert.ok(targets[0].classList.contains('is-in'));
   assert.ok(!targets[1].classList.contains('is-in'));
   assert.ok(!observer.observed.has(targets[0]), 'once: a revealed section is no longer watched');
   running.stop();
-  assert.ok(targets.every((t) => t.classList.contains('is-in')), 'stopping shows everything');
+  assert.ok(
+    targets.every((t) => t.classList.contains('is-in')),
+    'stopping shows everything',
+  );
   assert.ok(!html.classList.contains('reveal-ready'));
 
   const still = { classList: classes() };
-  assert.equal(startReveal({ targets, html: still, IntersectionObserver: IO, reduced: () => true }), null);
+  assert.equal(
+    startReveal({ targets, html: still, IntersectionObserver: IO, reduced: () => true }),
+    null,
+  );
   assert.ok(!still.classList.contains('reveal-ready'), 'reduced motion: nothing is ever hidden');
-  assert.equal(startReveal({ targets, html: still, IntersectionObserver: undefined, reduced: () => false }), null);
-  assert.ok(!still.classList.contains('reveal-ready'), 'no IntersectionObserver: nothing is ever hidden');
+  assert.equal(
+    startReveal({ targets, html: still, IntersectionObserver: undefined, reduced: () => false }),
+    null,
+  );
+  assert.ok(
+    !still.classList.contains('reveal-ready'),
+    'no IntersectionObserver: nothing is ever hidden',
+  );
 });

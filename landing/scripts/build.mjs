@@ -58,7 +58,10 @@ copyFileSync(here('../public/posture.json'), join(outDir, 'posture.json'));
 // /pulse: the same design system (the observatory's stylesheet, then the
 // page's own), inlined the same way, written out the same way.
 const pulseCss = (
-  await transform(`${observatoryCss()}\n${readFileSync(here('../src/pulse.css'), 'utf8')}`, { loader: 'css', minify: true })
+  await transform(`${observatoryCss()}\n${readFileSync(here('../src/pulse.css'), 'utf8')}`, {
+    loader: 'css',
+    minify: true,
+  })
 ).code.trim();
 writeFileSync(join(outDir, 'pulse.html'), renderPulse({ css: pulseCss }));
 writeFileSync(join(outDir, 'pulse.css'), pulseCss);

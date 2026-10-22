@@ -143,7 +143,9 @@ body {
   height: 6px;
   border-radius: 50%;
   background: var(--paid);
-  box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--paid);
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 4px var(--paid);
 }
 .sym-dispute::before {
   width: 8px;
@@ -162,7 +164,9 @@ body {
   height: 8px;
   border-radius: 50%;
   background: var(--text);
-  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3px var(--text-dim);
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 3px var(--text-dim);
 }
 
 /* ── the stage: the constellation and the ticker ─────────────────────────── */

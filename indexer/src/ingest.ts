@@ -50,7 +50,9 @@ export function plain(value: unknown): unknown {
 
   // Byte arrays — hashes, proofs, deliverable digests — as hex.
   if (codec instanceof Uint8Array) {
-    return typeof codec.toHex === 'function' ? codec.toHex() : `0x${Buffer.from(codec).toString('hex')}`;
+    return typeof codec.toHex === 'function'
+      ? codec.toHex()
+      : `0x${Buffer.from(codec).toString('hex')}`;
   }
 
   if (Array.isArray(codec)) {
@@ -80,7 +82,8 @@ export function plain(value: unknown): unknown {
   // Enums expose the selected variant and its payload.
   if (typeof codec.type === 'string' && 'value' in codec && typeof codec.toJSON === 'function') {
     const payload = plain(codec.value);
-    return payload === null || (typeof payload === 'object' && Object.keys(payload as object).length === 0)
+    return payload === null ||
+      (typeof payload === 'object' && Object.keys(payload as object).length === 0)
       ? codec.type
       : { type: codec.type, value: payload };
   }
@@ -103,13 +106,19 @@ function phaseName(phase: Codec & Record<string, any>): string {
  * historical block against current metadata is how an indexer starts reporting
  * fiction after a runtime upgrade.
  */
-export async function fetchIndexedBlock(api: ApiPromise, blockNumber: number): Promise<IndexedBlock> {
+export async function fetchIndexedBlock(
+  api: ApiPromise,
+  blockNumber: number,
+): Promise<IndexedBlock> {
   const blockHash = await api.rpc.chain.getBlockHash(blockNumber);
   if (blockHash.isEmpty) {
     throw new Error(`node has no block at height ${blockNumber}`);
   }
 
-  const [signedBlock, apiAt] = await Promise.all([api.rpc.chain.getBlock(blockHash), api.at(blockHash)]);
+  const [signedBlock, apiAt] = await Promise.all([
+    api.rpc.chain.getBlock(blockHash),
+    api.at(blockHash),
+  ]);
   const systemEvents = apiAt.query.system?.events;
   if (systemEvents === undefined) {
     throw new Error('runtime does not expose system.events; cannot index this block');
@@ -148,7 +157,9 @@ export async function fetchIndexedBlock(api: ApiPromise, blockNumber: number): P
     const { event, phase } = record;
     const fields = event.meta.fields;
     const decodedArgs: DecodedArg[] = event.data.map((datum: Codec, argIndex: number) => ({
-      name: fields[argIndex]?.name?.isSome ? fields[argIndex].name.unwrap().toString() : `arg${argIndex}`,
+      name: fields[argIndex]?.name?.isSome
+        ? fields[argIndex].name.unwrap().toString()
+        : `arg${argIndex}`,
       type: typeof datum.toRawType === 'function' ? datum.toRawType() : '',
       value: plain(datum),
     }));

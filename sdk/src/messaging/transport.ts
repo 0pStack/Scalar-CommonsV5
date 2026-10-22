@@ -68,9 +68,13 @@ export class OnChainTransport implements Transport {
 
   async send(message: SignedMessage, opts: { hashOnly?: boolean } = {}): Promise<SubmitResult> {
     if (!u8aEq(this.signer.publicKey, message.envelope.from)) {
-      throw new Error('on-chain signer is not the envelope sender; recipients would reject it as call-mismatch');
+      throw new Error(
+        'on-chain signer is not the envelope sender; recipients would reject it as call-mismatch',
+      );
     }
-    const frame = encodeSignedMessage(opts.hashOnly ? { ...message, body: { type: 'None' } } : message);
+    const frame = encodeSignedMessage(
+      opts.hashOnly ? { ...message, body: { type: 'None' } } : message,
+    );
     if (frame.length > MAX_ONCHAIN_PAYLOAD) {
       throw new Error(
         `SignedMessage is ${frame.length} bytes, pallet-messages accepts at most ${MAX_ONCHAIN_PAYLOAD}; send it hash-only ({ hashOnly: true })`,
@@ -80,7 +84,9 @@ export class OnChainTransport implements Transport {
     return this.client.sendMessage(this.signer, {
       to: encodeAddress(e.to, this.ss58Format),
       kind: e.kind,
-      agreement: e.agreement ? [encodeAddress(e.agreement.account, this.ss58Format), e.agreement.seq] : null,
+      agreement: e.agreement
+        ? [encodeAddress(e.agreement.account, this.ss58Format), e.agreement.seq]
+        : null,
       payloadHash: u8aToHex(e.payloadHash),
       payload: u8aToHex(frame),
     });
@@ -112,8 +118,13 @@ export class HttpsTransport implements Transport {
   async send(message: SignedMessage): Promise<void> {
     const uri = await this.resolve(encodeAddress(message.envelope.to, this.ss58));
     const url = new URL(uri);
-    if (url.protocol !== 'https:' && !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))) {
-      throw new Error(`refusing to deliver over ${url.protocol} to ${url.hostname}: https is required`);
+    if (
+      url.protocol !== 'https:' &&
+      !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))
+    ) {
+      throw new Error(
+        `refusing to deliver over ${url.protocol} to ${url.hostname}: https is required`,
+      );
     }
     const res = await this.fetchImpl(uri, {
       method: 'POST',
@@ -152,12 +163,18 @@ interface Codecish {
 interface ChainApi {
   rpc: {
     chain: {
-      subscribeFinalizedHeads(cb: (h: { number: { toNumber(): number }; hash: unknown }) => void): Promise<() => void>;
+      subscribeFinalizedHeads(
+        cb: (h: { number: { toNumber(): number }; hash: unknown }) => void,
+      ): Promise<() => void>;
       getBlockHash(n: number): Promise<{ toHex(): string }>;
       getBlock(hash: unknown): Promise<{
         block: {
           extrinsics: {
-            method: { section: string; method: string; args: (Codecish & { toU8a(bare?: boolean): Uint8Array })[] };
+            method: {
+              section: string;
+              method: string;
+              args: (Codecish & { toU8a(bare?: boolean): Uint8Array })[];
+            };
             signer: Codecish;
           }[];
         };
@@ -188,9 +205,11 @@ function decodeSendCall(
   origin: string,
 ): { call: OnChainCall; frame: Uint8Array } {
   const [to, kind, agreement, payloadHash, payload] = args;
-  if (!to || !kind || !agreement || !payloadHash || !payload) throw new Error('expected 5 arguments');
+  if (!to || !kind || !agreement || !payloadHash || !payload)
+    throw new Error('expected 5 arguments');
   const kindName = kind.toString();
-  if (!(MESSAGE_KINDS as readonly string[]).includes(kindName)) throw new Error(`unknown kind ${kindName}`);
+  if (!(MESSAGE_KINDS as readonly string[]).includes(kindName))
+    throw new Error(`unknown kind ${kindName}`);
   const agr = (agreement.toJSON?.() ?? null) as [string, number] | null;
   const hash = (payloadHash.toJSON?.() ?? null) as string | null;
   return {
@@ -228,7 +247,8 @@ export async function subscribeMessages(
   const api = apiLike as ChainApi;
   const me = decodeAddress(self);
   const ss58 = opts.ss58Format ?? SS58_PREFIX;
-  const report = (err: unknown) => opts.onError?.(err instanceof Error ? err : new Error(String(err)));
+  const report = (err: unknown) =>
+    opts.onError?.(err instanceof Error ? err : new Error(String(err)));
   let next = opts.fromBlock;
   let queue = Promise.resolve();
 
@@ -237,9 +257,11 @@ export async function subscribeMessages(
     const [block, at] = await Promise.all([api.rpc.chain.getBlock(hash), api.at(hash)]);
     const events = await at.query.system.events();
     for (const { phase, event } of events) {
-      if (event.section !== 'messages' || event.method !== 'MessageSent' || !phase.isApplyExtrinsic) continue;
+      if (event.section !== 'messages' || event.method !== 'MessageSent' || !phase.isApplyExtrinsic)
+        continue;
       const [from, to] = event.data;
-      if (from === undefined || to === undefined || !u8aEq(decodeAddress(to.toString()), me)) continue;
+      if (from === undefined || to === undefined || !u8aEq(decodeAddress(to.toString()), me))
+        continue;
       const index = phase.asApplyExtrinsic.toNumber();
       const ext = block.block.extrinsics[index];
       const origin = encodeAddress(decodeAddress(from.toString()), ss58);
@@ -249,7 +271,9 @@ export async function subscribeMessages(
         ext.method.method !== 'send' ||
         !u8aEq(decodeAddress(ext.signer.toString()), decodeAddress(origin))
       ) {
-        report(new Error(`block ${n}: MessageSent at extrinsic ${index} has no matching messages.send`));
+        report(
+          new Error(`block ${n}: MessageSent at extrinsic ${index} has no matching messages.send`),
+        );
         continue;
       }
       let call: OnChainCall;
@@ -257,11 +281,22 @@ export async function subscribeMessages(
       try {
         ({ call, frame } = decodeSendCall(ext.method.args, origin));
       } catch (err) {
-        report(new Error(`block ${n}: messages.send at extrinsic ${index}: ${err instanceof Error ? err.message : String(err)}`));
+        report(
+          new Error(
+            `block ${n}: messages.send at extrinsic ${index}: ${err instanceof Error ? err.message : String(err)}`,
+          ),
+        );
         continue;
       }
       try {
-        await handler({ frame, origin, call, blockNumber: n, blockHash: hash.toHex(), extrinsicIndex: index });
+        await handler({
+          frame,
+          origin,
+          call,
+          blockNumber: n,
+          blockHash: hash.toHex(),
+          extrinsicIndex: index,
+        });
       } catch (err) {
         report(err);
       }

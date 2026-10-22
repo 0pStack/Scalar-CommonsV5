@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 
-import { parseCmnToPlancks, formatPlancksAsCmn, CMN_DECIMALS, PLANCKS_PER_CMN } from '../src/amount.js';
+import {
+  parseCmnToPlancks,
+  formatPlancksAsCmn,
+  CMN_DECIMALS,
+  PLANCKS_PER_CMN,
+} from '../src/amount.js';
 
 /**
  * CMN amounts are configured by operators in whole tokens but every chain-facing

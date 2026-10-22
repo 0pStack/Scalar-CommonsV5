@@ -80,7 +80,9 @@ export function liveWord(word) {
 
 /** "finality 2 blocks", or "finality —" before both heights are known. */
 export function finalityPhrase(lag, formatInteger = String) {
-  return lag === null ? 'finality —' : `finality ${formatInteger(lag)} block${lag === 1 ? '' : 's'}`;
+  return lag === null
+    ? 'finality —'
+    : `finality ${formatInteger(lag)} block${lag === 1 ? '' : 's'}`;
 }
 
 export function init(root, ctx, { mirrors = [] } = {}) {
@@ -134,9 +136,10 @@ export function init(root, ctx, { mirrors = [] } = {}) {
   }
 
   function recomputeLag() {
-    lag = Number.isFinite(bestNumber) && Number.isFinite(finalizedNumber)
-      ? Math.max(0, bestNumber - finalizedNumber)
-      : null;
+    lag =
+      Number.isFinite(bestNumber) && Number.isFinite(finalizedNumber)
+        ? Math.max(0, bestNumber - finalizedNumber)
+        : null;
   }
 
   /**
@@ -157,7 +160,14 @@ export function init(root, ctx, { mirrors = [] } = {}) {
   }
 
   function render() {
-    const word = stateWord({ socket, lastOk, seen, lag, intervalMs: effectiveIntervalMs(), hidden });
+    const word = stateWord({
+      socket,
+      lastOk,
+      seen,
+      lag,
+      intervalMs: effectiveIntervalMs(),
+      hidden,
+    });
     const state = word.toLowerCase().replace(/\s+/g, '-');
     const finality = finalityPhrase(lag, formatInteger);
     root.dataset.state = state;
@@ -189,7 +199,8 @@ export function init(root, ctx, { mirrors = [] } = {}) {
       return;
     }
     seen = true;
-    if (Number.isFinite(number)) ctx.readout.showValue(root, record, { value: number, motion: ctx.motion });
+    if (Number.isFinite(number))
+      ctx.readout.showValue(root, record, { value: number, motion: ctx.motion });
     noteArrival(number, arrivedAt);
     // Recomputed on EVERY head, not only when a `finalized` event arrives. If
     // GRANDPA stops finalising while blocks keep coming, no `finalized` event
@@ -284,8 +295,23 @@ export function init(root, ctx, { mirrors = [] } = {}) {
 
   return {
     /** Re-evaluates the state word with no event to prompt it; main.js drives this, never while hidden. */
-    tick: () => { if (!hidden && seen) render(); },
+    tick: () => {
+      if (!hidden && seen) render();
+    },
     /** The bar's derived state, for tests. */
-    state: () => ({ socket, lastOk, seen, best: bestNumber, lastFinalized: finalizedNumber, lag, intervalMs, hidden, total, validatorsError, sealed: [...sealed], openedAt }),
+    state: () => ({
+      socket,
+      lastOk,
+      seen,
+      best: bestNumber,
+      lastFinalized: finalizedNumber,
+      lag,
+      intervalMs,
+      hidden,
+      total,
+      validatorsError,
+      sealed: [...sealed],
+      openedAt,
+    }),
   };
 }

@@ -48,11 +48,14 @@ export async function withRetry<T>(
       lastError = err;
       // #160: a dispatch error would recur and cost another fee — give up at once.
       if (isDeterministicFailure(err)) {
-        logger.error(`${label} failed on attempt ${attempt}/${totalAttempts}; deterministic error, not retrying`, {
-          attempt,
-          totalAttempts,
-          error: errorMessage(err),
-        });
+        logger.error(
+          `${label} failed on attempt ${attempt}/${totalAttempts}; deterministic error, not retrying`,
+          {
+            attempt,
+            totalAttempts,
+            error: errorMessage(err),
+          },
+        );
         throw err;
       }
       if (attempt < totalAttempts) {

@@ -26,7 +26,10 @@ test('chain-facts.json is stamped as live runtime metadata, not hand-authored', 
   assert.match(p.rpc, /^wss?:\/\//);
   assert.equal(p.specName, 'scalar-commons');
   assert.ok(Number.isInteger(p.specVersion) && p.specVersion > 0, 'specVersion must be an integer');
-  assert.ok(p.metadataVersion >= 14, `metadata v${p.metadataVersion} is older than the v14 type registry`);
+  assert.ok(
+    p.metadataVersion >= 14,
+    `metadata v${p.metadataVersion} is older than the v14 type registry`,
+  );
   assert.match(p.genesisHash, /^0x[0-9a-f]{64}$/);
   assert.match(p.readAtBlockHash, /^0x[0-9a-f]{64}$/);
   assert.ok(Number.isInteger(p.readAtBlock) && p.readAtBlock > 0);
@@ -99,7 +102,10 @@ test('the page makes no claim the runtime does not implement', () => {
 test('each descriptive claim is grounded in a snippet still present in the repo', () => {
   assert.ok(sourceClaims.length > 0);
   for (const claim of sourceClaims) {
-    assert.ok(claim.claim && claim.file && claim.snippet, 'a source claim is missing claim/file/snippet');
+    assert.ok(
+      claim.claim && claim.file && claim.snippet,
+      'a source claim is missing claim/file/snippet',
+    );
     const source = readRepoFile(claim.file);
     assert.ok(
       source.includes(claim.snippet),
@@ -164,8 +170,15 @@ test('a component whose code is already in the repository is not still advertise
   for (const [key, marker] of Object.entries(shipped)) {
     const link = content.links.find((l) => l.key === key);
     assert.ok(link, `content must link ${key}`);
-    assert.ok(readRepoFile(marker).length > 0, `${marker} is missing — has ${key} been removed from the repo?`);
-    assert.notEqual(link.status, 'planned', `${key} has shipped (${marker}) but the page still calls it planned`);
+    assert.ok(
+      readRepoFile(marker).length > 0,
+      `${marker} is missing — has ${key} been removed from the repo?`,
+    );
+    assert.notEqual(
+      link.status,
+      'planned',
+      `${key} has shipped (${marker}) but the page still calls it planned`,
+    );
     assert.doesNotMatch(
       link.url,
       /\/issues\/\d+$/,

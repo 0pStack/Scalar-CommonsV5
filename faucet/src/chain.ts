@@ -126,9 +126,11 @@ export async function connectChain(options: ConnectOptions): Promise<ChainClient
     `runtime at ${options.rpcEndpoint} exposes no balances.existentialDeposit constant`,
   );
 
-  const existentialDeposit = (existentialDepositConst as unknown as {
-    toBigInt(): bigint;
-  }).toBigInt();
+  const existentialDeposit = (
+    existentialDepositConst as unknown as {
+      toBigInt(): bigint;
+    }
+  ).toBigInt();
 
   // One signer means one nonce stream. Submissions are chained onto this promise
   // so only one transfer is in flight at a time: concurrent requests would
@@ -164,22 +166,20 @@ export async function connectChain(options: ConnectOptions): Promise<ChainClient
             return;
           }
           if (status.isInvalid || status.isDropped || status.isUsurped) {
-            settle(() => reject(new TransferFailedError(`transaction ${status.type.toLowerCase()}`)));
+            settle(() =>
+              reject(new TransferFailedError(`transaction ${status.type.toLowerCase()}`)),
+            );
             return;
           }
           if (status.isInBlock) {
-            settle(() =>
-              resolve({ blockHash: status.asInBlock.toHex(), txHash: txHash.toHex() }),
-            );
+            settle(() => resolve({ blockHash: status.asInBlock.toHex(), txHash: txHash.toHex() }));
           }
         })
         .then((u) => {
           unsub = u;
         })
         .catch((error: unknown) => {
-          reject(
-            new TransferFailedError(error instanceof Error ? error.message : String(error)),
-          );
+          reject(new TransferFailedError(error instanceof Error ? error.message : String(error)));
         });
     });
   }
@@ -193,7 +193,9 @@ export async function connectChain(options: ConnectOptions): Promise<ChainClient
 
     async freeBalance(address: string): Promise<bigint> {
       const account = await queryAccount(address);
-      return (account as unknown as { data: { free: { toBigInt(): bigint } } }).data.free.toBigInt();
+      return (
+        account as unknown as { data: { free: { toBigInt(): bigint } } }
+      ).data.free.toBigInt();
     },
 
     transfer(dest: string, amountPlancks: bigint): Promise<TransferReceipt> {

@@ -65,10 +65,15 @@ describe('declared dependencies', () => {
   });
 
   it('declares every package tests/ imports, as a dependency or a dev dependency', () => {
-    const declared = [...Object.keys(manifest.dependencies), ...Object.keys(manifest.devDependencies)];
+    const declared = [
+      ...Object.keys(manifest.dependencies),
+      ...Object.keys(manifest.devDependencies),
+    ];
     for (const file of sources('tests')) {
       for (const name of importedPackages(file)) {
-        expect(declared, `${file} imports ${name}, which package.json does not declare`).toContain(name);
+        expect(declared, `${file} imports ${name}, which package.json does not declare`).toContain(
+          name,
+        );
       }
     }
   });
@@ -76,7 +81,9 @@ describe('declared dependencies', () => {
   it('does not ship a runtime dependency that only the tests import', () => {
     const usedBySrc = new Set(sources('src').flatMap(importedPackages));
     for (const name of Object.keys(manifest.dependencies)) {
-      expect(usedBySrc, `${name} is a runtime dependency but no file in src/ imports it`).toContain(name);
+      expect(usedBySrc, `${name} is a runtime dependency but no file in src/ imports it`).toContain(
+        name,
+      );
     }
   });
 
@@ -119,7 +126,8 @@ function nodeModulesChain(): string[] {
     }
     const manifestPath = join(dir, 'package.json');
     const isWorkspaceRoot =
-      existsSync(manifestPath) && 'workspaces' in (JSON.parse(readFileSync(manifestPath, 'utf8')) as object);
+      existsSync(manifestPath) &&
+      'workspaces' in (JSON.parse(readFileSync(manifestPath, 'utf8')) as object);
     if (isWorkspaceRoot || dirname(dir) === dir) {
       return chain;
     }
@@ -137,7 +145,9 @@ describe('installed dependencies', () => {
       .map((path) => join(path, 'node_modules', '@polkadot', 'types'))
       .filter((path) => existsSync(path));
     expect(nested).toEqual([]);
-    const visible = chain.map((dir) => join(dir, '@polkadot', 'types')).filter((path) => existsSync(path));
+    const visible = chain
+      .map((dir) => join(dir, '@polkadot', 'types'))
+      .filter((path) => existsSync(path));
     expect(visible).toHaveLength(1);
   });
 });

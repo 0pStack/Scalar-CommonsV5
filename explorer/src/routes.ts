@@ -68,7 +68,9 @@ function undecodable(segment: string): Route {
 export function parseBlockRef(raw: string): BlockRef | null {
   if (BLOCK_NUMBER.test(raw)) {
     const number = Number(raw);
-    return Number.isSafeInteger(number) && number <= MAX_BLOCK_NUMBER ? { kind: 'number', number } : null;
+    return Number.isSafeInteger(number) && number <= MAX_BLOCK_NUMBER
+      ? { kind: 'number', number }
+      : null;
   }
   if (BLOCK_HASH.test(raw)) {
     return { kind: 'hash', hash: raw.toLowerCase() };
@@ -112,7 +114,12 @@ export function parseRoute(url: string): Route {
       : { kind: 'badRequest', message: `not a block number or block hash: ${raw}` };
   }
 
-  if (head === 'extrinsic' && segments.length === 3 && first !== undefined && second !== undefined) {
+  if (
+    head === 'extrinsic' &&
+    segments.length === 3 &&
+    first !== undefined &&
+    second !== undefined
+  ) {
     const raw = decodeSegment(first);
     if (raw === null) {
       return undecodable(first);

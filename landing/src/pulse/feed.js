@@ -84,7 +84,8 @@ export const HOUR_SOURCES = [
 export function headNumber(header, field) {
   const hex = field(header, 'number');
   const number = parseInt(String(hex), 16);
-  if (!Number.isFinite(number) || number < 0) throw new Error(`header number ${JSON.stringify(hex)} is not a block number`);
+  if (!Number.isFinite(number) || number < 0)
+    throw new Error(`header number ${JSON.stringify(hex)} is not a block number`);
   return number;
 }
 
@@ -116,8 +117,6 @@ export function withinWindow(blockNumber, head, windowBlocks) {
   return Number.isFinite(behind) && behind >= 0 && behind <= windowBlocks;
 }
 
-
-
 /**
  * An agent's display name, when the index has one: the top-level `name` the
  * observatory keys operator-run on, else the on-chain metadata's name. A
@@ -126,7 +125,8 @@ export function withinWindow(blockNumber, head, windowBlocks) {
 export function nameOf(agent) {
   if (typeof agent?.name === 'string' && agent.name !== '') return agent.name;
   const meta = agent?.metadata;
-  if (meta && typeof meta === 'object' && typeof meta.name === 'string' && meta.name !== '') return meta.name;
+  if (meta && typeof meta === 'object' && typeof meta.name === 'string' && meta.name !== '')
+    return meta.name;
   return undefined;
 }
 
@@ -150,17 +150,27 @@ export function blockInstant(blockNumber, head, headAt) {
  * hold, `failure` a failed block read, `noHeads` the reason both head sources
  * are gone, `skipped` the blocks the backlog cap passed over. Pure; tested.
  */
-export function stateOf({ head, indexed, windowBlocks, failure = null, noHeads = null, skipped = 0, source = 'socket' }) {
+export function stateOf({
+  head,
+  indexed,
+  windowBlocks,
+  failure = null,
+  noHeads = null,
+  skipped = 0,
+  source = 'socket',
+}) {
   if (noHeads) return { state: 'unavailable', reason: `no head source: ${noHeads}` };
   if (failure) return { state: 'unavailable', reason: `block events read failed: ${failure}` };
-  if (head === null) return { state: 'connecting', reason: 'waiting for the first finalized block' };
+  if (head === null)
+    return { state: 'connecting', reason: 'waiting for the first finalized block' };
   if (indexed === null) return { state: 'connecting', reason: 'waiting for the first index read' };
   const behind = head - indexed;
   if (behind > windowBlocks) {
     return { state: 'stale', reason: `the index is ${behind} blocks behind the chain` };
   }
   const notes = [];
-  if (source === 'poll') notes.push('heads polled from the index every 6 s while the socket is down');
+  if (source === 'poll')
+    notes.push('heads polled from the index every 6 s while the socket is down');
   if (skipped > 0) notes.push(`skipped ${skipped} blocks to stay near the present`);
   return { state: 'live', reason: notes.join('; ') };
 }
@@ -200,13 +210,25 @@ export function createFeed(ctx, { windowBlocks = LIVE_WINDOW_BLOCKS } = {}) {
   const hourRecords = new Map(); // source name -> latest record
 
   /** The newest block the index is known to hold: measured by a read or reported by /v1/status, never assumed from a 404. */
-  const indexedNow = () => (lastRead === null && synced === null ? null : Math.max(lastRead ?? -1, synced ?? -1));
+  const indexedNow = () =>
+    lastRead === null && synced === null ? null : Math.max(lastRead ?? -1, synced ?? -1);
 
   function publishStatus(record) {
     const indexed = indexedNow();
-    const noHeads = socketDown !== null && pollError !== null ? `socket ${socketDown}; status poll ${pollError}` : null;
+    const noHeads =
+      socketDown !== null && pollError !== null
+        ? `socket ${socketDown}; status poll ${pollError}`
+        : null;
     const next = {
-      ...stateOf({ head: liveHead, indexed, windowBlocks, failure, noHeads, skipped, source: headSource }),
+      ...stateOf({
+        head: liveHead,
+        indexed,
+        windowBlocks,
+        failure,
+        noHeads,
+        skipped,
+        source: headSource,
+      }),
       head: liveHead,
       indexed,
       record: record ?? headRecord,
@@ -249,7 +271,10 @@ export function createFeed(ctx, { windowBlocks = LIVE_WINDOW_BLOCKS } = {}) {
     const items = [];
     let first = null;
     for (let page = 0; page < EVENT_PAGES; page += 1) {
-      const record = await ctx.fetch(source, page === 0 ? source.path : ctx.pageOf(source, items.length));
+      const record = await ctx.fetch(
+        source,
+        page === 0 ? source.path : ctx.pageOf(source, items.length),
+      );
       first ??= record;
       if (!record.ok) {
         return { ok: false, record: first, items, notIndexed: /^HTTP 404\b/.test(record.error) };
@@ -257,7 +282,8 @@ export function createFeed(ctx, { windowBlocks = LIVE_WINDOW_BLOCKS } = {}) {
       const pageItems = ctx.field(record.data, 'items');
       const total = ctx.field(record.data, 'total');
       items.push(...pageItems);
-      if (items.length >= total || pageItems.length === 0) return { ok: true, record: first, items, complete: true };
+      if (items.length >= total || pageItems.length === 0)
+        return { ok: true, record: first, items, complete: true };
     }
     return { ok: true, record: first, items, complete: false };
   }
@@ -422,7 +448,12 @@ export function createFeed(ctx, { windowBlocks = LIVE_WINDOW_BLOCKS } = {}) {
       if (liveHead !== null && !draining) publishStatus();
       startHour();
     } else if (!hourStarted) {
-      bus.emit('hour', { records: {}, events: [], hour: null, error: hourError ?? 'the hour is not known yet' });
+      bus.emit('hour', {
+        records: {},
+        events: [],
+        hour: null,
+        error: hourError ?? 'the hour is not known yet',
+      });
     }
   }
 
@@ -454,13 +485,27 @@ export function createFeed(ctx, { windowBlocks = LIVE_WINDOW_BLOCKS } = {}) {
             bus.emit('error', { event, record, error });
             continue;
           }
-          events.push({ event, row, parties, at: anchorAt - (window.to - block) * BLOCK_MS, record });
+          events.push({
+            event,
+            row,
+            parties,
+            at: anchorAt - (window.to - block) * BLOCK_MS,
+            record,
+          });
         }
       }
-      events.sort((a, b) => a.event.blockNumber - b.event.blockNumber || a.event.index - b.event.index);
+      events.sort(
+        (a, b) => a.event.blockNumber - b.event.blockNumber || a.event.index - b.event.index,
+      );
     }
-    bus.emit('hour', { records, events, hour: window, error: window ? null : (hourError ?? 'the hour is not known yet') });
-    if (window && [...hourRecords.values()].every((record) => record.ok)) Promise.resolve().then(endHour);
+    bus.emit('hour', {
+      records,
+      events,
+      hour: window,
+      error: window ? null : (hourError ?? 'the hour is not known yet'),
+    });
+    if (window && [...hourRecords.values()].every((record) => record.ok))
+      Promise.resolve().then(endHour);
   }
 
   return {
@@ -483,9 +528,14 @@ export function createFeed(ctx, { windowBlocks = LIVE_WINDOW_BLOCKS } = {}) {
         ),
       );
       stops.push(
-        ctx.watchAll('escrows', (record) => bus.emit('links', { record, items: record.items ?? [] }), LIST_INTERVAL_MS, {
-          maxPages: LINK_PAGES,
-        }),
+        ctx.watchAll(
+          'escrows',
+          (record) => bus.emit('links', { record, items: record.items ?? [] }),
+          LIST_INTERVAL_MS,
+          {
+            maxPages: LINK_PAGES,
+          },
+        ),
       );
       hour.onChange(onHour);
       stops.push(ctx.bus.on('socket', onSocket));

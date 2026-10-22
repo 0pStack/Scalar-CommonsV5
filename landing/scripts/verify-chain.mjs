@@ -31,7 +31,14 @@ const compare = (label, expected, actual, sink) => {
 };
 
 // Runtime identity: the page prints these, so they must be exact.
-for (const key of ['specName', 'specVersion', 'metadataVersion', 'genesisHash', 'chain', 'ss58Format']) {
+for (const key of [
+  'specName',
+  'specVersion',
+  'metadataVersion',
+  'genesisHash',
+  'chain',
+  'ss58Format',
+]) {
   compare(`provenance.${key}`, committed.provenance[key], live.provenance[key], mismatches);
 }
 for (const key of Object.keys(committed.token)) {
@@ -59,7 +66,8 @@ for (const pallet of committed.pallets) {
   }
   compare(`pallets.${pallet.name}.index`, pallet.index, livePallet.index, mismatches);
   for (const call of pallet.calls) {
-    if (!livePallet.calls.includes(call)) mismatches.push(`pallets.${pallet.name}.${call}: extrinsic no longer exists`);
+    if (!livePallet.calls.includes(call))
+      mismatches.push(`pallets.${pallet.name}.${call}: extrinsic no longer exists`);
   }
 }
 
@@ -67,13 +75,19 @@ for (const key of Object.keys(committed.state)) {
   compare(`state.${key}`, committed.state[key], live.state[key], drift);
 }
 
-console.log(`verified chain-facts.json against ${endpoint} at block #${live.provenance.readAtBlock}`);
+console.log(
+  `verified chain-facts.json against ${endpoint} at block #${live.provenance.readAtBlock}`,
+);
 if (drift.length > 0) {
-  console.log(`\nsnapshot drift (expected — chain state moves; re-run fetch:chain-facts to refresh):`);
+  console.log(
+    `\nsnapshot drift (expected — chain state moves; re-run fetch:chain-facts to refresh):`,
+  );
   for (const line of drift) console.log(`  - ${line}`);
 }
 if (mismatches.length > 0) {
-  console.error(`\n${mismatches.length} metadata mismatch(es) — the page would state something untrue:`);
+  console.error(
+    `\n${mismatches.length} metadata mismatch(es) — the page would state something untrue:`,
+  );
   for (const line of mismatches) console.error(`  - ${line}`);
   process.exitCode = 1;
 } else {

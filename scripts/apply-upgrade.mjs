@@ -56,9 +56,13 @@ function loadPolkadot(pkg) {
     try {
       const req = createRequire(pathResolve(HERE, c));
       return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch (e) { lastErr = e; }
+    } catch (e) {
+      lastErr = e;
+    }
   }
-  throw new Error(`cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`);
+  throw new Error(
+    `cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`,
+  );
 }
 const { ApiPromise, WsProvider } = await loadPolkadot('@polkadot/api');
 const { Keyring } = await loadPolkadot('@polkadot/keyring');
@@ -71,18 +75,22 @@ function usage(msg) {
   if (msg) console.error(`error: ${msg}\n`);
   console.error('usage: node scripts/apply-upgrade.mjs <runtime.wasm> [--dry-run] [--ws url]');
   console.error('       [--expect-spec N] [--ports a,b,c] [--blocks N]');
-  console.error('   or: node scripts/apply-upgrade.mjs --call <pallet.method> [--args <json array>]');
+  console.error(
+    '   or: node scripts/apply-upgrade.mjs --call <pallet.method> [--args <json array>]',
+  );
   console.error('       [--dry-run] [--ws url]');
   process.exit(2);
 }
 
 const argv = process.argv.slice(2);
-let wasmPath = null, dryRun = false;
+let wasmPath = null,
+  dryRun = false;
 let ws = 'ws://127.0.0.1:9944';
 let expectSpec = 305;
 let ports = [9944, 9945, 9946, 9947, 9948];
 let blockBudget = 20;
-let callName = null, callArgs = [];
+let callName = null,
+  callArgs = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--dry-run') dryRun = true;
@@ -92,16 +100,20 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === '--blocks') blockBudget = Number(argv[++i]);
   else if (a === '--call') callName = argv[++i] || usage('--call needs pallet.method');
   else if (a === '--args') {
-    try { callArgs = JSON.parse(argv[++i]); } catch (e) { usage(`--args is not JSON: ${e.message}`); }
+    try {
+      callArgs = JSON.parse(argv[++i]);
+    } catch (e) {
+      usage(`--args is not JSON: ${e.message}`);
+    }
     if (!Array.isArray(callArgs)) usage('--args must be a JSON array');
-  }
-  else if (a.startsWith('-')) usage(`unrecognised flag: ${a}`);
+  } else if (a.startsWith('-')) usage(`unrecognised flag: ${a}`);
   else if (wasmPath === null) wasmPath = a;
   else usage('more than one wasm path given');
 }
 if (callName && wasmPath) usage('give either a wasm path or --call, not both');
 if (!callName && !wasmPath) usage('no wasm path given');
-if (callName && !/^[a-zA-Z]+\.[a-zA-Z]+$/.test(callName)) usage(`--call must be pallet.method, got ${callName}`);
+if (callName && !/^[a-zA-Z]+\.[a-zA-Z]+$/.test(callName))
+  usage(`--call must be pallet.method, got ${callName}`);
 if (!Number.isInteger(expectSpec)) usage('--expect-spec needs an integer');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -110,31 +122,36 @@ const main = async () => {
   await cryptoWaitReady();
 
   // --call mode: no wasm to validate; the runtime metadata validates the call.
-  let wasm = null, isCompressed = false, wasmHash = null;
+  let wasm = null,
+    isCompressed = false,
+    wasmHash = null;
   if (wasmPath) {
-  if (!existsSync(wasmPath)) usage(`wasm not found: ${wasmPath}`);
-  wasm = readFileSync(wasmPath);
-  if (wasm.length === 0) usage('wasm file is empty');
-  // A runtime blob is one of two shapes and BOTH are valid to submit:
-  //
-  //   - raw wasm, starting with the WebAssembly magic 0x0061736d
-  //   - Substrate's zstd-wrapped form, starting with the 8-byte marker
-  //     0x52bc537646db8e05 — this is what `*.compact.compressed.wasm` is, what
-  //     genesis stores, and what comes back out of on-chain `:code`
-  //
-  // An earlier version of this check accepted only the first, which would have
-  // refused the exact file the runbook tells you to submit. Caught by
-  // dry-running against the blob pulled from `:code`. Anything that is neither
-  // shape is a text file, a truncated copy, or the wrong file entirely.
-  const magic = wasm.subarray(0, 4);
-  const isRawWasm = magic[0] === 0x00 && magic[1] === 0x61 && magic[2] === 0x73 && magic[3] === 0x6d;
-  const ZSTD_PREFIX = Buffer.from([0x52, 0xbc, 0x53, 0x76, 0x46, 0xdb, 0x8e, 0x05]);
-  isCompressed = Buffer.from(wasm.subarray(0, 8)).equals(ZSTD_PREFIX);
-  if (!isRawWasm && !isCompressed) {
-    usage(`${wasmPath} is neither raw wasm nor a Substrate-compressed runtime `
-      + `(first bytes ${u8aToHex(wasm.subarray(0, 8))})`);
-  }
-  wasmHash = blake2AsHex(wasm, 256);
+    if (!existsSync(wasmPath)) usage(`wasm not found: ${wasmPath}`);
+    wasm = readFileSync(wasmPath);
+    if (wasm.length === 0) usage('wasm file is empty');
+    // A runtime blob is one of two shapes and BOTH are valid to submit:
+    //
+    //   - raw wasm, starting with the WebAssembly magic 0x0061736d
+    //   - Substrate's zstd-wrapped form, starting with the 8-byte marker
+    //     0x52bc537646db8e05 — this is what `*.compact.compressed.wasm` is, what
+    //     genesis stores, and what comes back out of on-chain `:code`
+    //
+    // An earlier version of this check accepted only the first, which would have
+    // refused the exact file the runbook tells you to submit. Caught by
+    // dry-running against the blob pulled from `:code`. Anything that is neither
+    // shape is a text file, a truncated copy, or the wrong file entirely.
+    const magic = wasm.subarray(0, 4);
+    const isRawWasm =
+      magic[0] === 0x00 && magic[1] === 0x61 && magic[2] === 0x73 && magic[3] === 0x6d;
+    const ZSTD_PREFIX = Buffer.from([0x52, 0xbc, 0x53, 0x76, 0x46, 0xdb, 0x8e, 0x05]);
+    isCompressed = Buffer.from(wasm.subarray(0, 8)).equals(ZSTD_PREFIX);
+    if (!isRawWasm && !isCompressed) {
+      usage(
+        `${wasmPath} is neither raw wasm nor a Substrate-compressed runtime ` +
+          `(first bytes ${u8aToHex(wasm.subarray(0, 8))})`,
+      );
+    }
+    wasmHash = blake2AsHex(wasm, 256);
   }
 
   if (!existsSync(KEYFILE)) {
@@ -145,7 +162,10 @@ const main = async () => {
   const mode = (statSync(KEYFILE).mode & 0o777).toString(8);
   if (mode !== '600') console.error(`WARNING: ${KEYFILE} is mode ${mode}, expected 600`);
   const phrase = readFileSync(KEYFILE, 'utf8').trim();
-  if (!phrase) { console.error(`FATAL: ${KEYFILE} is empty`); process.exit(1); }
+  if (!phrase) {
+    console.error(`FATAL: ${KEYFILE} is empty`);
+    process.exit(1);
+  }
 
   const provider = new WsProvider(ws);
   const api = await ApiPromise.create({ provider });
@@ -181,7 +201,10 @@ const main = async () => {
   } else {
     console.log('  wasm                : ' + wasmPath);
     console.log('  wasm bytes          : ' + wasm.length);
-    console.log('  wasm form           : ' + (isCompressed ? 'zstd-compressed (the form to submit)' : 'raw wasm'));
+    console.log(
+      '  wasm form           : ' +
+        (isCompressed ? 'zstd-compressed (the form to submit)' : 'raw wasm'),
+    );
     console.log('  wasm blake2-256     : ' + wasmHash);
     console.log('');
     console.log('  spec_version before : ' + before);
@@ -190,7 +213,9 @@ const main = async () => {
   console.log('');
   console.log('  signer              : ' + signer.address);
   console.log('  on-chain Sudo::Key  : ' + sudoKey);
-  console.log('  signer is root      : ' + (signer.address === sudoKey ? 'YES' : 'NO — the call will fail'));
+  console.log(
+    '  signer is root      : ' + (signer.address === sudoKey ? 'YES' : 'NO — the call will fail'),
+  );
   console.log('');
   console.log('  call                : sudo.sudo(' + (callName || 'system.setCode(<wasm>)') + ')');
   console.log('  inner call hash     : ' + inner.method.hash.toHex());
@@ -247,7 +272,9 @@ const main = async () => {
 
   if (free === 0n || free < required) {
     console.error('FATAL: signer cannot pay for this transaction.');
-    console.error(`  free ${cmn(free)} < required ${cmn(required)} (estimated fee + existential deposit)`);
+    console.error(
+      `  free ${cmn(free)} < required ${cmn(required)} (estimated fee + existential deposit)`,
+    );
     console.error('');
     console.error('  sudo.sudo dispatches paysFee:No, but that is post-dispatch. The pre-dispatch');
     console.error('  validity check still requires the signer to cover the estimated fee, so this');
@@ -271,32 +298,35 @@ const main = async () => {
   console.log('');
 
   const applied = await new Promise((resolve, reject) => {
-    call.signAndSend(signer, ({ status, dispatchError, events }) => {
-      if (dispatchError) {
-        if (dispatchError.isModule) {
-          const d = api.registry.findMetaError(dispatchError.asModule);
-          return reject(new Error(`${d.section}.${d.name}: ${d.docs.join(' ')}`));
-        }
-        return reject(new Error(dispatchError.toString()));
-      }
-      if (status.isInBlock) console.log('  in block            : ' + status.asInBlock.toHex());
-      if (status.isFinalized) {
-        for (const { event } of events) {
-          // sudo.Sudid carries the inner call's own Result. A sudo call can be
-          // finalized "successfully" while the call it wrapped failed, so this
-          // is checked rather than assumed.
-          if (event.section === 'sudo' && event.method === 'Sudid') {
-            const r = event.data[0];
-            if (r && r.isErr) return reject(new Error('sudo.Sudid reported Err: ' + r.toString()));
+    call
+      .signAndSend(signer, ({ status, dispatchError, events }) => {
+        if (dispatchError) {
+          if (dispatchError.isModule) {
+            const d = api.registry.findMetaError(dispatchError.asModule);
+            return reject(new Error(`${d.section}.${d.name}: ${d.docs.join(' ')}`));
           }
-          console.log(`  event               : ${event.section}.${event.method}`);
+          return reject(new Error(dispatchError.toString()));
         }
-        resolve(status.asFinalized.toHex());
-      }
-      if (status.isDropped || status.isInvalid || status.isUsurped) {
-        reject(new Error(`transaction ${status.type}`));
-      }
-    }).catch(reject);
+        if (status.isInBlock) console.log('  in block            : ' + status.asInBlock.toHex());
+        if (status.isFinalized) {
+          for (const { event } of events) {
+            // sudo.Sudid carries the inner call's own Result. A sudo call can be
+            // finalized "successfully" while the call it wrapped failed, so this
+            // is checked rather than assumed.
+            if (event.section === 'sudo' && event.method === 'Sudid') {
+              const r = event.data[0];
+              if (r && r.isErr)
+                return reject(new Error('sudo.Sudid reported Err: ' + r.toString()));
+            }
+            console.log(`  event               : ${event.section}.${event.method}`);
+          }
+          resolve(status.asFinalized.toHex());
+        }
+        if (status.isDropped || status.isInvalid || status.isUsurped) {
+          reject(new Error(`transaction ${status.type}`));
+        }
+      })
+      .catch(reject);
   });
 
   const hdr = await api.rpc.chain.getHeader(applied);
@@ -318,7 +348,9 @@ const main = async () => {
   // ---- poll every node -----------------------------------------------------
   // The upgrade is not done when one node says so. Ask all of them, on their
   // own RPC ports, and give up after a block budget rather than hanging.
-  console.log(`  polling ports ${ports.join(', ')} for spec ${expectSpec} (budget ${blockBudget} blocks)`);
+  console.log(
+    `  polling ports ${ports.join(', ')} for spec ${expectSpec} (budget ${blockBudget} blocks)`,
+  );
   const deadlineBlock = appliedNumber + blockBudget;
   const seen = new Map();
   let head = appliedNumber;
@@ -330,7 +362,12 @@ const main = async () => {
         const res = await fetch(`http://127.0.0.1:${p}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'state_getRuntimeVersion', params: [] }),
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'state_getRuntimeVersion',
+            params: [],
+          }),
         });
         const j = await res.json();
         const sv = j && j.result && j.result.specVersion;
@@ -338,7 +375,9 @@ const main = async () => {
           if (seen.get(p) !== sv) console.log(`    port ${p}: specVersion ${sv}`);
           seen.set(p, sv);
         }
-      } catch { /* node briefly unreachable; the budget is the timeout */ }
+      } catch {
+        /* node briefly unreachable; the budget is the timeout */
+      }
     }
     if (ports.every((p) => seen.get(p) === expectSpec)) break;
     await sleep(3000);
@@ -353,7 +392,9 @@ const main = async () => {
   await api.disconnect();
 
   if (laggards.length) {
-    console.error(`FAILED — ${laggards.join(', ')} did not report spec ${expectSpec} within ${blockBudget} blocks.`);
+    console.error(
+      `FAILED — ${laggards.join(', ')} did not report spec ${expectSpec} within ${blockBudget} blocks.`,
+    );
     process.exit(1);
   }
   console.log(`  OK — all ${ports.length} nodes report specVersion ${expectSpec}.`);
@@ -361,4 +402,7 @@ const main = async () => {
   console.log(`  wasm blake2-256 ${wasmHash}`);
 };
 
-main().catch((e) => { console.error('FATAL: ' + (e && e.message ? e.message : e)); process.exit(1); });
+main().catch((e) => {
+  console.error('FATAL: ' + (e && e.message ? e.message : e));
+  process.exit(1);
+});

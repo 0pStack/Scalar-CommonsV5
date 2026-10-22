@@ -133,7 +133,9 @@ export function configFromEnv(env: Env = process.env): FaucetConfig {
   const hourlyMax = positiveInt(env, 'FAUCET_GLOBAL_HOURLY_MAX', 20);
   const dailyMax = positiveInt(env, 'FAUCET_GLOBAL_DAILY_MAX', 50);
   if (dailyMax < hourlyMax) {
-    throw new Error(`FAUCET_GLOBAL_DAILY_MAX (${dailyMax}) must be at least FAUCET_GLOBAL_HOURLY_MAX (${hourlyMax})`);
+    throw new Error(
+      `FAUCET_GLOBAL_DAILY_MAX (${dailyMax}) must be at least FAUCET_GLOBAL_HOURLY_MAX (${hourlyMax})`,
+    );
   }
   const lockWaitMs = positiveInt(env, 'FAUCET_LOCK_WAIT_SECONDS', 10) * 1000;
   const inclusionTimeoutMs = positiveInt(env, 'FAUCET_INCLUSION_TIMEOUT_SECONDS', 18) * 1000;
@@ -144,7 +146,11 @@ export function configFromEnv(env: Env = process.env): FaucetConfig {
         'the 60 s agents and nginx wait for a drip',
     );
   }
-  const stateFile = str(env, 'FAUCET_STATE_FILE', join(homedir(), '.local', 'state', 'scalar-commons', 'faucet-limits.json'));
+  const stateFile = str(
+    env,
+    'FAUCET_STATE_FILE',
+    join(homedir(), '.local', 'state', 'scalar-commons', 'faucet-limits.json'),
+  );
   if (!isAbsolute(stateFile)) {
     // Node does not expand `~`, and a relative path would move with the working directory.
     throw new Error(`FAUCET_STATE_FILE must be an absolute path, got ${JSON.stringify(stateFile)}`);

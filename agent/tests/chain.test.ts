@@ -78,27 +78,23 @@ describe.each(WRITES)('SdkChain.%s', (_name, write) => {
     1_000,
   );
 
-  it(
-    'rejects after SUBMIT_TIMEOUT_MS when the subscription never fires',
-    async () => {
-      vi.useFakeTimers();
-      const tx = fakeTx(null);
-      const p = write(chainWith(tx));
-      let settled = false;
-      p.then(
-        () => (settled = true),
-        () => (settled = true),
-      );
-      const rejected = expect(p).rejects.toThrow(/timed out/);
+  it('rejects after SUBMIT_TIMEOUT_MS when the subscription never fires', async () => {
+    vi.useFakeTimers();
+    const tx = fakeTx(null);
+    const p = write(chainWith(tx));
+    let settled = false;
+    p.then(
+      () => (settled = true),
+      () => (settled = true),
+    );
+    const rejected = expect(p).rejects.toThrow(/timed out/);
 
-      await vi.advanceTimersByTimeAsync(SUBMIT_TIMEOUT_MS - 1);
-      expect(settled).toBe(false);
-      await vi.advanceTimersByTimeAsync(1);
-      await rejected;
-      expect(tx.signAndSend).toHaveBeenCalledTimes(1);
-    },
-    1_000,
-  );
+    await vi.advanceTimersByTimeAsync(SUBMIT_TIMEOUT_MS - 1);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await rejected;
+    expect(tx.signAndSend).toHaveBeenCalledTimes(1);
+  }, 1_000);
 
   it('resolves to the tx hash once InBlock', async () => {
     await expect(write(chainWith(fakeTx(result('InBlock'))))).resolves.toBe(TX_HASH);
@@ -106,7 +102,9 @@ describe.each(WRITES)('SdkChain.%s', (_name, write) => {
 
   it('rejects on a dispatch error', async () => {
     const badOrigin = { isModule: false, type: 'BadOrigin', toString: () => 'BadOrigin' };
-    await expect(write(chainWith(fakeTx(result('InBlock', badOrigin))))).rejects.toThrow(/BadOrigin/);
+    await expect(write(chainWith(fakeTx(result('InBlock', badOrigin))))).rejects.toThrow(
+      /BadOrigin/,
+    );
   });
 });
 

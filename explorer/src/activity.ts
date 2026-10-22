@@ -62,7 +62,10 @@ export function createIndexerClient(options: IndexerClientOptions): ActivitySour
 
   return {
     async activity(query) {
-      const params = new URLSearchParams({ limit: String(query.limit), offset: String(query.offset) });
+      const params = new URLSearchParams({
+        limit: String(query.limit),
+        offset: String(query.offset),
+      });
       if (query.agent !== null) params.set('agent', query.agent);
       const url = `${base}/v1/activity?${params.toString()}`;
 
@@ -77,10 +80,14 @@ export function createIndexerClient(options: IndexerClientOptions): ActivitySour
       const body: unknown = await response.json().catch(() => null);
       if (!response.ok) {
         const reason =
-          body !== null && typeof body === 'object' && typeof (body as { error?: unknown }).error === 'string'
+          body !== null &&
+          typeof body === 'object' &&
+          typeof (body as { error?: unknown }).error === 'string'
             ? (body as { error: string }).error
             : `HTTP ${response.status}`;
-        throw new IndexerUnavailableError(`the indexer at ${base} answered ${response.status}: ${reason}`);
+        throw new IndexerUnavailableError(
+          `the indexer at ${base} answered ${response.status}: ${reason}`,
+        );
       }
       return body;
     },
@@ -88,7 +95,10 @@ export function createIndexerClient(options: IndexerClientOptions): ActivitySour
 }
 
 /** Field name → metadata type name, for one event; null when the runtime does not know the event. */
-export type EventFieldTypes = (section: string, method: string) => ReadonlyMap<string, string> | null;
+export type EventFieldTypes = (
+  section: string,
+  method: string,
+) => ReadonlyMap<string, string> | null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -147,7 +157,11 @@ function extrinsicIndexOf(raw: unknown, where: string): number | null {
  * kept exactly as the indexer served it — newest first is the indexer's
  * guarantee, and re-sorting here could only disagree with it.
  */
-export function toActivityView(raw: unknown, fieldTypes: EventFieldTypes, query: ActivityQuery): ActivityView {
+export function toActivityView(
+  raw: unknown,
+  fieldTypes: EventFieldTypes,
+  query: ActivityQuery,
+): ActivityView {
   if (!isRecord(raw) || !Array.isArray(raw.items)) {
     throw new IndexerResponseError('no items list');
   }
@@ -180,7 +194,9 @@ export function toActivityView(raw: unknown, fieldTypes: EventFieldTypes, query:
       section,
       method,
       agents: agents as string[],
-      fields: Object.entries(data).map(([name, value]) => typedField(name, value, types?.get(name))),
+      fields: Object.entries(data).map(([name, value]) =>
+        typedField(name, value, types?.get(name)),
+      ),
     };
   });
 

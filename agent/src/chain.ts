@@ -46,7 +46,8 @@ export class SdkChain implements Chain {
 
   private query(section: string, item: string): Entry {
     const e = this.api.query[section]?.[item];
-    if (typeof e !== 'function') throw new Error(`runtime does not expose storage item ${section}.${item}`);
+    if (typeof e !== 'function')
+      throw new Error(`runtime does not expose storage item ${section}.${item}`);
     return e as unknown as Entry;
   }
 
@@ -69,7 +70,9 @@ export class SdkChain implements Chain {
   }
 
   async isRegistered(address: string): Promise<boolean> {
-    const stake = (await this.query('agents', 'agentStake')(address)) as unknown as { isSome: boolean };
+    const stake = (await this.query('agents', 'agentStake')(address)) as unknown as {
+      isSome: boolean;
+    };
     return stake.isSome;
   }
 
@@ -84,7 +87,9 @@ export class SdkChain implements Chain {
   }
 
   async freeBalance(address: string): Promise<bigint> {
-    const acct = (await this.query('system', 'account')(address)) as unknown as { data: { free: Codec } };
+    const acct = (await this.query('system', 'account')(address)) as unknown as {
+      data: { free: Codec };
+    };
     return big(acct.data.free);
   }
 
@@ -125,7 +130,8 @@ export class SdkChain implements Chain {
 
   async acceptAgreement(buyer: string, seq: number): Promise<string> {
     const call = this.api.tx.escrow?.acceptAgreement;
-    if (typeof call !== 'function') throw new Error('runtime does not expose escrow.acceptAgreement');
+    if (typeof call !== 'function')
+      throw new Error('runtime does not expose escrow.acceptAgreement');
     return this.send(call(buyer, seq), 'acceptAgreement');
   }
 
@@ -139,7 +145,12 @@ export class SdkChain implements Chain {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(
-        () => reject(new Error(`submit(${label}) timed out after ${SUBMIT_TIMEOUT_MS / 1000} s without InBlock`)),
+        () =>
+          reject(
+            new Error(
+              `submit(${label}) timed out after ${SUBMIT_TIMEOUT_MS / 1000} s without InBlock`,
+            ),
+          ),
         SUBMIT_TIMEOUT_MS,
       );
     });
@@ -158,8 +169,15 @@ export class SdkChain implements Chain {
     return (await this.client.acceptEscrow(this.signer, buyer, seq, deliveryHash)).txHash;
   }
 
-  async createAgreement(provider: string, amount: bigint, deliverableHash: string, deliverBy: bigint): Promise<string> {
-    return (await this.client.createEscrow(this.signer, provider, amount, deliverableHash, deliverBy)).txHash;
+  async createAgreement(
+    provider: string,
+    amount: bigint,
+    deliverableHash: string,
+    deliverBy: bigint,
+  ): Promise<string> {
+    return (
+      await this.client.createEscrow(this.signer, provider, amount, deliverableHash, deliverBy)
+    ).txHash;
   }
 
   async confirmDelivery(provider: string, seq: number): Promise<string> {
@@ -171,7 +189,10 @@ export class SdkChain implements Chain {
   }
 
   supportsMessaging(): boolean {
-    return typeof this.api.tx.agents?.setMessagingKey === 'function' && typeof this.api.tx.messages?.send === 'function';
+    return (
+      typeof this.api.tx.agents?.setMessagingKey === 'function' &&
+      typeof this.api.tx.messages?.send === 'function'
+    );
   }
 
   async messagingKeyOf(address: string): Promise<string | null> {

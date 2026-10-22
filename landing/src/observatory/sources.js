@@ -41,14 +41,19 @@ export function init(doc, ctx) {
   const button = doc.querySelector('.sb-sources');
   if (!button) return null;
   const storage = doc.defaultView?.localStorage ?? null;
-  const reflect = () => button.setAttribute('aria-checked', html.hasAttribute(ATTRIBUTE) ? 'true' : 'false');
+  const reflect = () =>
+    button.setAttribute('aria-checked', html.hasAttribute(ATTRIBUTE) ? 'true' : 'false');
   reflect();
   button.addEventListener('click', () => {
     const on = !html.hasAttribute(ATTRIBUTE);
     html.toggleAttribute(ATTRIBUTE, on);
     writeSourcesPreference(storage, on);
     reflect();
-    ctx?.announce?.(on ? 'Sources shown under every figure' : 'Sources hidden; hover a figure, or focus it, for its source');
+    ctx?.announce?.(
+      on
+        ? 'Sources shown under every figure'
+        : 'Sources hidden; hover a figure, or focus it, for its source',
+    );
   });
   return { on: () => html.hasAttribute(ATTRIBUTE) };
 }

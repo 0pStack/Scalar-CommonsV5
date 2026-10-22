@@ -26,8 +26,16 @@ beforeAll(async () => {
 describe('deriveMessagingKey', () => {
   it('derives from the same account secret the keyring signs with', () => {
     const kr = new Keyring({ type: 'sr25519' });
-    for (const suri of ['//Alice', '//Bob//msg', `${DEV_PHRASE}//hard/soft`, `${DEV_PHRASE}///pw`, DEV_PHRASE]) {
-      expect(u8aToHex(deriveMessagingKey(suri).accountId), suri).toBe(u8aToHex(kr.addFromUri(suri).publicKey));
+    for (const suri of [
+      '//Alice',
+      '//Bob//msg',
+      `${DEV_PHRASE}//hard/soft`,
+      `${DEV_PHRASE}///pw`,
+      DEV_PHRASE,
+    ]) {
+      expect(u8aToHex(deriveMessagingKey(suri).accountId), suri).toBe(
+        u8aToHex(kr.addFromUri(suri).publicKey),
+      );
     }
   });
 
@@ -47,8 +55,12 @@ describe('deriveMessagingKey', () => {
 
   it('rotates to an unrelated key per rotation index', () => {
     const r0 = deriveMessagingKey('//Alice');
-    expect(u8aToHex(r0.publicKey)).toBe(u8aToHex(deriveMessagingKey('//Alice', { rotation: 0 }).publicKey));
-    expect(u8aToHex(deriveMessagingKey('//Alice', { rotation: 1 }).publicKey)).not.toBe(u8aToHex(r0.publicKey));
+    expect(u8aToHex(r0.publicKey)).toBe(
+      u8aToHex(deriveMessagingKey('//Alice', { rotation: 0 }).publicKey),
+    );
+    expect(u8aToHex(deriveMessagingKey('//Alice', { rotation: 1 }).publicKey)).not.toBe(
+      u8aToHex(r0.publicKey),
+    );
     expect(() => deriveMessagingKey('//Alice', { rotation: -1 })).toThrow(/rotation/);
   });
 
@@ -62,7 +74,9 @@ describe('NaCl box primitives', () => {
     // "Cryptography in NaCl" §§ 4–5: Alice's secret, Bob's public → firstkey.
     const aliceSk = hexToU8a('0x77076d0a7318a57d3c16c17251b26645df4c2f87ebc0992ab177fba51db92c2a');
     const bobPk = hexToU8a('0xde9edb7d7b7dc1b4d35b61c2ece435373f8343c85b78674dadfc7e146f882b4f');
-    expect(u8aToHex(boxBeforenm(bobPk, aliceSk))).toBe('0x1b27556473e985d462cd51197a9a46c76009549eac6474f206c4ee0844f68389');
+    expect(u8aToHex(boxBeforenm(bobPk, aliceSk))).toBe(
+      '0x1b27556473e985d462cd51197a9a46c76009549eac6474f206c4ee0844f68389',
+    );
     const shared = hexToU8a('0x4a5d9d5ba4ce2de1728e3bf480350f25e07e21c947d19e3376f09b3c1e161742');
     expect(u8aToHex(hsalsa20(shared, new Uint8Array(16)))).toBe(
       '0x1b27556473e985d462cd51197a9a46c76009549eac6474f206c4ee0844f68389',
@@ -77,7 +91,9 @@ describe('NaCl box primitives', () => {
       deriveMessagingKey('//Bob').publicKey,
       new Uint8Array(24).fill(7),
     );
-    expect(u8aToHex(sealed.ciphertext)).toBe('0xe16dfd8957df720c6e19ef90b4fb04c27edfbdac5f7c73ac37fe26a1e7df25');
+    expect(u8aToHex(sealed.ciphertext)).toBe(
+      '0xe16dfd8957df720c6e19ef90b4fb04c27edfbdac5f7c73ac37fe26a1e7df25',
+    );
   });
 });
 
@@ -113,14 +129,16 @@ describe('sealBody / openBody', () => {
       c[i]! ^= 1;
       return c;
     };
-    expect(() => openBody({ ...body, ciphertext: flip(body.ciphertext, 0) }, bob())).toThrow(MessageRejected);
-    expect(() => openBody({ ...body, ciphertext: flip(body.ciphertext, body.ciphertext.length - 1) }, bob())).toThrow(
+    expect(() => openBody({ ...body, ciphertext: flip(body.ciphertext, 0) }, bob())).toThrow(
       MessageRejected,
     );
+    expect(() =>
+      openBody({ ...body, ciphertext: flip(body.ciphertext, body.ciphertext.length - 1) }, bob()),
+    ).toThrow(MessageRejected);
     expect(() => openBody({ ...body, nonce: flip(body.nonce, 3) }, bob())).toThrow(MessageRejected);
-    expect(() => openBody({ ...body, senderKey: deriveMessagingKey('//Charlie').publicKey }, bob())).toThrow(
-      MessageRejected,
-    );
+    expect(() =>
+      openBody({ ...body, senderKey: deriveMessagingKey('//Charlie').publicKey }, bob()),
+    ).toThrow(MessageRejected);
   });
 
   it('refuses a low-order recipient key', () => {

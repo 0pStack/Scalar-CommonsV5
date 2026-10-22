@@ -45,7 +45,8 @@ const INSTRUMENTS = [
 
 function yieldToBrowser() {
   return new Promise((resolve) => {
-    if ('requestIdleCallback' in window) window.requestIdleCallback(() => resolve(), { timeout: 250 });
+    if ('requestIdleCallback' in window)
+      window.requestIdleCallback(() => resolve(), { timeout: 250 });
     else setTimeout(resolve, 0);
   });
 }
@@ -69,7 +70,8 @@ async function boot() {
     const root = document.querySelector(selector);
     if (!root) continue;
     try {
-      if (name === 'pulse') river = instrument.init(root, ctx, { strip: document.querySelector('.hero-river') });
+      if (name === 'pulse')
+        river = instrument.init(root, ctx, { strip: document.querySelector('.hero-river') });
       else instrument.init(root, ctx);
     } catch (error) {
       markFailed(root, error);

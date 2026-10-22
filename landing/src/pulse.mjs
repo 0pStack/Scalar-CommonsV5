@@ -50,8 +50,13 @@ ${renderNav('pulse', [PULSE_NAV])}
 }
 
 function strip() {
-  const figures = FIGURES.map(([key, label]) => reading({ key, label, live: false, className: 'pulse-figure' })).join('\n');
-  const legend = LEGEND.map(([sym, label]) => `      <li><span class="sym ${sym}" aria-hidden="true"></span>${escapeHtml(label)}</li>`).join('\n');
+  const figures = FIGURES.map(([key, label]) =>
+    reading({ key, label, live: false, className: 'pulse-figure' }),
+  ).join('\n');
+  const legend = LEGEND.map(
+    ([sym, label]) =>
+      `      <li><span class="sym ${sym}" aria-hidden="true"></span>${escapeHtml(label)}</li>`,
+  ).join('\n');
   return `  <header class="pulse-strip">
     <h1 class="visually-hidden" id="pulse-h">Pulse</h1>
     <div class="readings pulse-figures">

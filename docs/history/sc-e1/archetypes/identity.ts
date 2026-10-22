@@ -11,12 +11,7 @@ import { Prng, deriveSeed } from './prng.ts';
 import type { Hash32 } from './types.ts';
 
 /** A stable account id, e.g. `A-1:c0:worker3`. */
-export function memberId(
-  archId: string,
-  cohortIndex: number,
-  role: string,
-  index: number,
-): string {
+export function memberId(archId: string, cohortIndex: number, role: string, index: number): string {
   return `${archId}:c${cohortIndex}:${role}${index}`;
 }
 

@@ -98,7 +98,12 @@ export class AgentMessenger {
   }
 
   /** Build and sign a message with a raw body. */
-  composeBytes(to: string, kind: MessageKind, body: Uint8Array, opts: ComposeOptions): SignedMessage {
+  composeBytes(
+    to: string,
+    kind: MessageKind,
+    body: Uint8Array,
+    opts: ComposeOptions,
+  ): SignedMessage {
     return createMessage(this.pair, {
       to,
       kind,
@@ -122,7 +127,11 @@ export class AgentMessenger {
   read(
     bytes: Uint8Array,
     bestBlock: number | bigint,
-    opts: { senderMessagingKey?: string | null; call?: OnChainCall; detachedPlaintext?: Uint8Array } = {},
+    opts: {
+      senderMessagingKey?: string | null;
+      call?: OnChainCall;
+      detachedPlaintext?: Uint8Array;
+    } = {},
   ): ReadMessage {
     const m = this.inbox.receive(bytes, bestBlock, {
       call: opts.call,
@@ -133,7 +142,10 @@ export class AgentMessenger {
     try {
       body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(m.plaintext));
     } catch (err) {
-      throw new MessageRejected('malformed', `body is not UTF-8 JSON: ${err instanceof Error ? err.message : String(err)}`);
+      throw new MessageRejected(
+        'malformed',
+        `body is not UTF-8 JSON: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
     return {
       from: m.from,

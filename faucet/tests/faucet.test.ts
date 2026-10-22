@@ -84,7 +84,13 @@ function setup(opts: { hourly?: number; daily?: number; free?: bigint; store?: M
     warn: (message: string) => warnings.push(message),
     error: (message: string) => errors.push(message),
   };
-  const faucet = new FaucetService({ chain: fake.chain, limiter, dripAmountPlancks: DRIP, reservePlancks: RESERVE, logger });
+  const faucet = new FaucetService({
+    chain: fake.chain,
+    limiter,
+    dripAmountPlancks: DRIP,
+    reservePlancks: RESERVE,
+    logger,
+  });
   return { faucet, limiter, clock, warnings, errors, logger, ...fake };
 }
 
@@ -95,7 +101,12 @@ describe('FaucetService — total budget (F11, #20)', () => {
     expect((await faucet.drip(BOB, '10.0.0.2')).ok).toBe(true);
 
     const paused = await faucet.drip(CHARLIE, '10.0.0.3');
-    expect(paused).toMatchObject({ ok: false, code: 'FAUCET_PAUSED', scope: 'global', retryAfterMs: HOUR });
+    expect(paused).toMatchObject({
+      ok: false,
+      code: 'FAUCET_PAUSED',
+      scope: 'global',
+      retryAfterMs: HOUR,
+    });
   });
 
   it('alerts once, on the drip that spends the budget, not on every refusal after it', async () => {
@@ -151,7 +162,10 @@ describe('FaucetService — total budget (F11, #20)', () => {
 describe('FaucetService — refunds through the reservation', () => {
   it('hands the slot back when the faucet cannot afford the drip', async () => {
     const { faucet, topUp, transfers } = setup({ free: RESERVE + ED + DRIP - 1n });
-    expect(await faucet.drip(ALICE, '10.0.0.1')).toMatchObject({ ok: false, code: 'INSUFFICIENT_FAUCET_FUNDS' });
+    expect(await faucet.drip(ALICE, '10.0.0.1')).toMatchObject({
+      ok: false,
+      code: 'INSUFFICIENT_FAUCET_FUNDS',
+    });
     expect(transfers).toHaveLength(0);
 
     topUp(1n);
@@ -182,7 +196,10 @@ describe('FaucetService — only 32-byte account addresses (#72)', () => {
   for (const [name, address] of Object.entries(shapes)) {
     it(`refuses a ${name} address before reserving anything`, async () => {
       const { faucet, transfers } = setup({ hourly: 1 });
-      expect(await faucet.drip(address, '10.0.0.1')).toMatchObject({ ok: false, code: 'INVALID_ADDRESS' });
+      expect(await faucet.drip(address, '10.0.0.1')).toMatchObject({
+        ok: false,
+        code: 'INVALID_ADDRESS',
+      });
       expect(transfers).toHaveLength(0);
       // Nothing was reserved, so the one-drip hourly budget is still whole.
       expect((await faucet.drip(ALICE, '10.0.0.1')).ok).toBe(true);
@@ -213,7 +230,11 @@ async function request(service: Partial<FaucetService>, path: string, init?: Req
   const { port } = server.address() as AddressInfo;
   try {
     const res = await fetch(`http://127.0.0.1:${port}${path}`, init);
-    return { status: res.status, retryAfter: res.headers.get('retry-after'), body: (await res.json()) as Record<string, unknown> };
+    return {
+      status: res.status,
+      retryAfter: res.headers.get('retry-after'),
+      body: (await res.json()) as Record<string, unknown>,
+    };
   } finally {
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
@@ -223,10 +244,20 @@ describe('HTTP — a paused faucet (F11, #20)', () => {
   it('answers 503 with Retry-After, not the 429 of a per-requester limit', async () => {
     const res = await request(
       {
-        drip: async () => ({ ok: false, code: 'FAUCET_PAUSED', error: 'paused', scope: 'global', retryAfterMs: 90_000 }),
+        drip: async () => ({
+          ok: false,
+          code: 'FAUCET_PAUSED',
+          error: 'paused',
+          scope: 'global',
+          retryAfterMs: 90_000,
+        }),
       },
       '/drip',
-      { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address: ALICE }) },
+      {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ address: ALICE }),
+      },
     );
     expect(res.status).toBe(503);
     expect(res.retryAfter).toBe('90');
@@ -244,6 +275,9 @@ describe('HTTP — a paused faucet (F11, #20)', () => {
       budget: [{ maxRequests: 20, windowMs: HOUR, used: 20 }],
     };
     const res = await request({ status: async () => status }, '/health');
-    expect(res.body).toMatchObject({ paused: true, budget: [{ maxRequests: 20, windowMs: HOUR, used: 20 }] });
+    expect(res.body).toMatchObject({
+      paused: true,
+      budget: [{ maxRequests: 20, windowMs: HOUR, used: 20 }],
+    });
   });
 });

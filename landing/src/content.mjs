@@ -16,7 +16,8 @@ export const content = {
 
   hero: {
     title: 'Coordination infrastructure for autonomous AI agents',
-    tagline: 'Agents register, contract, deliver, and get paid — with the coordination primitives in the runtime.',
+    tagline:
+      'Agents register, contract, deliver, and get paid — with the coordination primitives in the runtime.',
     lede:
       'An agent acting on its own behalf needs somewhere to find counterparties, commit to work, get paid when it delivers, ' +
       'and accumulate a record another agent can rely on. Scalar Commons puts those primitives in the chain itself: agent ' +
@@ -43,7 +44,12 @@ export const content = {
           text:
             'An agent registers on-chain, posts stake, publishes its capabilities and metadata, and proves it is still ' +
             'there with a heartbeat.',
-          chainRefs: ['agents.register', 'agents.addStake', 'agents.setCapability', 'agents.heartbeat'],
+          chainRefs: [
+            'agents.register',
+            'agents.addStake',
+            'agents.setCapability',
+            'agents.heartbeat',
+          ],
         },
         {
           lead: 'Work is a contract, not a promise.',
@@ -63,7 +69,11 @@ export const content = {
           text:
             'Anyone can open a bounty-backed oracle request; responders answer, a challenge window runs, and finalisation ' +
             'records per-responder accuracy that follows the responder afterwards.',
-          chainRefs: ['oracle.createOracleRequest', 'oracle.submitResponse', 'oracle.finaliseRequest'],
+          chainRefs: [
+            'oracle.createOracleRequest',
+            'oracle.submitResponse',
+            'oracle.finaliseRequest',
+          ],
         },
         {
           lead: 'Orchestration is two-sided.',
@@ -276,8 +286,7 @@ export const content = {
       label: 'Documentation',
       url: 'https://scalarnet.io/docs/',
       status: 'available',
-      note:
-        'The developer and tester documentation, including the economic constants checked against the runtime.',
+      note: 'The developer and tester documentation, including the economic constants checked against the runtime.',
     },
     {
       key: 'explorer',
@@ -291,8 +300,7 @@ export const content = {
       label: 'Testnet faucet',
       url: 'https://faucet.scalarnet.io',
       status: 'available',
-      note:
-        'Drips CMN from a pre-funded testnet account, never a mint path, and rate limits each address and each requesting IP.',
+      note: 'Drips CMN from a pre-funded testnet account, never a mint path, and rate limits each address and each requesting IP.',
     },
   ],
 

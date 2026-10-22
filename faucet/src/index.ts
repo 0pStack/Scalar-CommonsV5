@@ -45,7 +45,8 @@ async function main(): Promise<void> {
   // F11 (#20): a hot wallet only needs the reserve plus one day's budget. Anything
   // more is lost with the key and should sit in cold storage.
   const [hourly, daily] = config.global;
-  const hotWalletCeiling = config.reservePlancks + config.dripAmountPlancks * BigInt(daily.maxRequests);
+  const hotWalletCeiling =
+    config.reservePlancks + config.dripAmountPlancks * BigInt(daily.maxRequests);
   if (free > hotWalletCeiling) {
     console.warn(
       `[faucet] WARNING funding account holds more than the reserve plus one day's budget ` +
@@ -72,7 +73,9 @@ async function main(): Promise<void> {
     try {
       limiter.prune();
     } catch (error) {
-      console.error(`[faucet] could not prune rate limits: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(
+        `[faucet] could not prune rate limits: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }, PRUNE_INTERVAL_MS);
   pruneTimer.unref();
@@ -100,6 +103,8 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  console.error(`[faucet] startup failed: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(
+    `[faucet] startup failed: ${error instanceof Error ? error.message : String(error)}`,
+  );
   process.exit(1);
 });

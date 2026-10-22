@@ -49,7 +49,9 @@ const pallets = {};
 for (const pallet of metadata.asLatest.pallets) {
   if (pallet.events.isNone) continue;
   const type = registry.lookup.getSiType(pallet.events.unwrap().type);
-  pallets[section(pallet.name.toString())] = type.def.asVariant.variants.map((v) => v.name.toString()).sort();
+  pallets[section(pallet.name.toString())] = type.def.asVariant.variants
+    .map((v) => v.name.toString())
+    .sort();
 }
 
 const record = {

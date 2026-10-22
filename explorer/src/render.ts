@@ -202,7 +202,10 @@ ${extrinsics}
   const body = `<h1>Block ${view.number}</h1>
 ${kvTable([
   ['Hash', `<span class="mono">${escapeHtml(view.hash)}</span>`],
-  ['Parent', `<a class="mono" href="${escapeHtml(blockPath({ kind: 'hash', hash: view.parentHash }))}">${escapeHtml(view.parentHash)}</a>`],
+  [
+    'Parent',
+    `<a class="mono" href="${escapeHtml(blockPath({ kind: 'hash', hash: view.parentHash }))}">${escapeHtml(view.parentHash)}</a>`,
+  ],
   ['Time', escapeHtml(formatTimestamp(view.timestampMs))],
   ['State root', `<span class="mono">${escapeHtml(view.stateRoot)}</span>`],
   ['Extrinsics root', `<span class="mono">${escapeHtml(view.extrinsicsRoot)}</span>`],
@@ -257,7 +260,10 @@ ${view.args
   const body = `<h1>Extrinsic ${view.block.number}-${view.index}</h1>
 ${kvTable([
   ['Call', escapeHtml(`${view.section}.${view.method}`)],
-  ['Block', `${blockLinkByNumber(view.block.number)} <span class="mono">${escapeHtml(view.block.hash)}</span>`],
+  [
+    'Block',
+    `${blockLinkByNumber(view.block.number)} <span class="mono">${escapeHtml(view.block.hash)}</span>`,
+  ],
   ['Hash', `<span class="mono">${escapeHtml(view.hash)}</span>`],
   ['Signer', signerCell(view.isSigned, view.signer, 'unsigned (inherent)')],
   ['Nonce', view.nonce === null ? '<span class="empty">—</span>' : String(view.nonce)],
@@ -293,7 +299,10 @@ ${kvTable([
   ['Reserved', balance(view.reserved)],
   ['Frozen', balance(view.frozen)],
   ['Nonce', String(view.nonce)],
-  ['State read at', `${blockLinkByNumber(view.at.number)} <span class="mono">${escapeHtml(view.at.hash)}</span>`],
+  [
+    'State read at',
+    `${blockLinkByNumber(view.at.number)} <span class="mono">${escapeHtml(view.at.hash)}</span>`,
+  ],
 ])}`;
 
   return layout('Account', chain, body);
@@ -354,7 +363,9 @@ function activityRow(entry: ActivityEntry, chain: ChainInfo): string {
     .map((field) => `${escapeHtml(field.name)}: ${activityFieldValue(field, chain)}`)
     .join('<br>');
   const agents =
-    entry.agents.length === 0 ? '<span class="empty">none named</span>' : entry.agents.map(agentLink).join('<br>');
+    entry.agents.length === 0
+      ? '<span class="empty">none named</span>'
+      : entry.agents.map(agentLink).join('<br>');
   return `<tr id="${escapeHtml(entry.id)}">
   <td>${where}<br><span class="empty">${escapeHtml(entry.id)} · ${escapeHtml(formatTimestamp(entry.timestampMs))}</span></td>
   <td>${kindBadge(entry.kind)}<br>${escapeHtml(`${entry.section}.${entry.method}`)}</td>
@@ -400,7 +411,9 @@ ${view.entries.map((entry) => activityRow(entry, chain)).join('\n')}
     pager.push(`<a href="${escapeHtml(activityPath(view.agent))}">Newest</a>`);
   }
   if (view.offset + view.entries.length < view.total) {
-    pager.push(`<a href="${escapeHtml(activityPath(view.agent, view.offset + view.limit))}">Older →</a>`);
+    pager.push(
+      `<a href="${escapeHtml(activityPath(view.agent, view.offset + view.limit))}">Older →</a>`,
+    );
   }
 
   const reach =

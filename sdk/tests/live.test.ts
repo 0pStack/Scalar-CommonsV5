@@ -109,9 +109,15 @@ describe.skipIf(!RUN_LIVE)('live devnet — read methods decode real storage', (
   it('netPosition does not double-count the agent stake lock', async () => {
     const pos = await client.netPosition(agentAddress);
     const account = await api.query.system!.account!(agentAddress);
-    const data = (account as unknown as {
-      data: { free: { toString(): string }; reserved: { toString(): string }; frozen: { toString(): string } };
-    }).data;
+    const data = (
+      account as unknown as {
+        data: {
+          free: { toString(): string };
+          reserved: { toString(): string };
+          frozen: { toString(): string };
+        };
+      }
+    ).data;
 
     expect(pos.free).toBe(BigInt(data.free.toString()));
     expect(pos.reserved).toBe(BigInt(data.reserved.toString()));

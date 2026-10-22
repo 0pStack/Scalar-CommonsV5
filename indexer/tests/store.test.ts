@@ -143,7 +143,9 @@ describe('IndexerStore', () => {
     store.saveBlock(other);
 
     expect(store.listExtrinsics({ limit: 10, offset: 0, signer: ALICE }).total).toBe(1);
-    expect(store.listExtrinsics({ limit: 10, offset: 0, signer: BOB }).items[0]?.method).toBe('transferKeepAlive');
+    expect(store.listExtrinsics({ limit: 10, offset: 0, signer: BOB }).items[0]?.method).toBe(
+      'transferKeepAlive',
+    );
     expect(store.listExtrinsics({ limit: 10, offset: 0, blockNumber: 101 }).total).toBe(1);
     expect(store.listExtrinsics({ limit: 10, offset: 0, section: 'agents' }).total).toBe(1);
   });

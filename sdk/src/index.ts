@@ -195,7 +195,10 @@ export class ScalarCommonsClient {
   }
 
   /** Connect to a node over WebSocket and build a ready client. */
-  static async connect(endpoint: string, options: ClientOptions = {}): Promise<ScalarCommonsClient> {
+  static async connect(
+    endpoint: string,
+    options: ClientOptions = {},
+  ): Promise<ScalarCommonsClient> {
     const provider = new WsProvider(endpoint);
     const api = await ApiPromise.create({ provider });
     await api.isReady;
@@ -361,7 +364,11 @@ export class ScalarCommonsClient {
 
   /** Remove the caller's messaging key. → `agents.clearMessagingKey`. */
   clearMessagingKey(signer: AddressOrPair): Promise<SubmitResult> {
-    return this.submit(txEntry(this.api, 'agents', 'clearMessagingKey')(), signer, 'clearMessagingKey');
+    return this.submit(
+      txEntry(this.api, 'agents', 'clearMessagingKey')(),
+      signer,
+      'clearMessagingKey',
+    );
   }
 
   /**
@@ -374,7 +381,13 @@ export class ScalarCommonsClient {
    */
   sendMessage(signer: AddressOrPair, args: SendMessageArgs): Promise<SubmitResult> {
     return this.submit(
-      txEntry(this.api, 'messages', 'send')(args.to, args.kind, args.agreement, args.payloadHash, args.payload),
+      txEntry(this.api, 'messages', 'send')(
+        args.to,
+        args.kind,
+        args.agreement,
+        args.payloadHash,
+        args.payload,
+      ),
       signer,
       'sendMessage',
     );
@@ -393,13 +406,14 @@ export class ScalarCommonsClient {
 
   /** Aggregate era timing/settlement info. */
   async eraInfo(): Promise<EraInfo> {
-    const [eraCodec, startCodec, lastSettledCodec, lastEmissionCodec, headerNow] = await Promise.all([
-      queryEntry(this.api, 'agents', 'eraNumber')(),
-      queryEntry(this.api, 'emissions', 'eraStartBlock')(),
-      queryEntry(this.api, 'emissions', 'lastSettledEra')(),
-      queryEntry(this.api, 'emissions', 'lastEraEmission')(),
-      queryEntry(this.api, 'system', 'number')(),
-    ]);
+    const [eraCodec, startCodec, lastSettledCodec, lastEmissionCodec, headerNow] =
+      await Promise.all([
+        queryEntry(this.api, 'agents', 'eraNumber')(),
+        queryEntry(this.api, 'emissions', 'eraStartBlock')(),
+        queryEntry(this.api, 'emissions', 'lastSettledEra')(),
+        queryEntry(this.api, 'emissions', 'lastEraEmission')(),
+        queryEntry(this.api, 'system', 'number')(),
+      ]);
 
     const eraDuration = toBig(constEntry(this.api, 'emissions', 'eraDuration'));
     const eraStartBlock = toBig(startCodec);
@@ -445,9 +459,11 @@ export class ScalarCommonsClient {
         queryEntry(this.api, 'emissions', 'agentWeightSnapshot')(address),
       ]);
 
-    const data = (accountCodec as unknown as {
-      data: { free: Codec; reserved?: Codec; frozen?: Codec };
-    }).data;
+    const data = (
+      accountCodec as unknown as {
+        data: { free: Codec; reserved?: Codec; frozen?: Codec };
+      }
+    ).data;
     const free = toBig(data.free);
     const reserved = toBig(data.reserved);
     const frozen = toBig(data.frozen);

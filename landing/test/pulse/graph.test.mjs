@@ -35,7 +35,8 @@ const PROVIDER = '5Fy9fakeProviderAddressBBBBBBBBBBBBBBBBBBBBBBQpR2';
 const OTHER = '5Hx1fakeOtherAddressCCCCCCCCCCCCCCCCCCCCCCCCCCMz7';
 
 test('the contract names are exported', () => {
-  for (const fn of [createGraph, nodeOf, linkOf, neighbourhood, burstParticles]) assert.equal(typeof fn, 'function');
+  for (const fn of [createGraph, nodeOf, linkOf, neighbourhood, burstParticles])
+    assert.equal(typeof fn, 'function');
   assert.equal(DPR_MAX, 2);
   assert.ok(NODE_REL_SIZE > 0);
   assert.equal(BURST_COUNT, 12);
@@ -55,12 +56,18 @@ test('nodeOf: the contract fields, the name from the names map, the operator rin
 });
 
 test('nodeOf: no name means the shortened address and no ring; a named but not swarm- agent has no ring', () => {
-  const plain = nodeOf({ address: PROVIDER, activeEscrowCount: 0, completedAgreements: 0 }, new Map());
+  const plain = nodeOf(
+    { address: PROVIDER, activeEscrowCount: 0, completedAgreements: 0 },
+    new Map(),
+  );
   assert.equal(plain.name, shortAddress(PROVIDER));
   assert.equal(plain.name, '5Fy9…QpR2');
   assert.equal(plain.operator, false);
   assert.equal(plain.val, nodeValue(0));
-  const named = nodeOf({ address: PROVIDER, name: 'atlas', activeEscrowCount: 0, completedAgreements: 0 }, null);
+  const named = nodeOf(
+    { address: PROVIDER, name: 'atlas', activeEscrowCount: 0, completedAgreements: 0 },
+    null,
+  );
   assert.equal(named.name, 'atlas');
   assert.equal(named.operator, false);
 });
@@ -75,16 +82,32 @@ test('nodeOf: a counted hour of activity sizes the point ahead of the open-escro
 });
 
 test('linkOf: buyer → provider, keyed as the chain keys the agreement, with its status', () => {
-  const link = linkOf({ buyer: BUYER, provider: PROVIDER, seq: 7, status: 'Disputed', amountPlancks: '10000000000000' });
+  const link = linkOf({
+    buyer: BUYER,
+    provider: PROVIDER,
+    seq: 7,
+    status: 'Disputed',
+    amountPlancks: '10000000000000',
+  });
   assert.equal(link.id, agreementKey(BUYER, PROVIDER, 7));
   assert.equal(link.source, BUYER);
   assert.equal(link.target, PROVIDER);
   assert.equal(link.seq, 7);
   assert.equal(link.status, 'Disputed');
   assert.equal(link.alpha, 1);
-  assert.equal(linkOf({ buyer: BUYER, provider: PROVIDER, seq: 1, status: 'Delivered' }).status, 'Delivered');
-  assert.equal(linkOf({ buyer: BUYER, provider: PROVIDER, seq: 1, status: 'Created' }).status, 'Created');
-  assert.equal(linkOf({ buyer: BUYER, provider: PROVIDER, seq: 1 }).status, 'Created', 'an unknown status reads as open');
+  assert.equal(
+    linkOf({ buyer: BUYER, provider: PROVIDER, seq: 1, status: 'Delivered' }).status,
+    'Delivered',
+  );
+  assert.equal(
+    linkOf({ buyer: BUYER, provider: PROVIDER, seq: 1, status: 'Created' }).status,
+    'Created',
+  );
+  assert.equal(
+    linkOf({ buyer: BUYER, provider: PROVIDER, seq: 1 }).status,
+    'Created',
+    'an unknown status reads as open',
+  );
 });
 
 test('neighbourhood: the agent and every agent it has a thread with, whether the ends are ids or resolved nodes', () => {
@@ -133,7 +156,11 @@ test('capDevicePixelRatio: a ratio above the cap paints at the cap, one below is
   assert.equal(retina.devicePixelRatio, 2);
   const before = Object.getOwnPropertyDescriptor(retina, 'devicePixelRatio').get;
   assert.equal(capDevicePixelRatio(retina, 2), 2);
-  assert.equal(Object.getOwnPropertyDescriptor(retina, 'devicePixelRatio').get, before, 'not wrapped twice');
+  assert.equal(
+    Object.getOwnPropertyDescriptor(retina, 'devicePixelRatio').get,
+    before,
+    'not wrapped twice',
+  );
   const laptop = { devicePixelRatio: 1.5 };
   assert.equal(capDevicePixelRatio(laptop, 2), 1.5);
   // A window that exposes the ratio through a getter, as browsers do, is read through it and follows it.

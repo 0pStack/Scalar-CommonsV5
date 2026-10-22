@@ -24,7 +24,8 @@ export function formatBalance(plancks: bigint, decimals: number, symbol: string)
   const fraction = magnitude % divisor;
 
   const groupedWhole = whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  const fractionText = fraction === 0n ? '' : `.${fraction.toString().padStart(decimals, '0').replace(/0+$/, '')}`;
+  const fractionText =
+    fraction === 0n ? '' : `.${fraction.toString().padStart(decimals, '0').replace(/0+$/, '')}`;
 
   return `${negative ? '-' : ''}${groupedWhole}${fractionText} ${symbol}`;
 }

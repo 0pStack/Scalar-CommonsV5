@@ -39,7 +39,8 @@ export const GRADUATIONS = 60; // hairline marks around the track; every fifth i
  */
 export function progressFraction(blocksElapsed, durationBlocks) {
   if (!Number.isFinite(blocksElapsed)) throw new TypeError('blocksElapsed is not a number');
-  if (!(Number.isFinite(durationBlocks) && durationBlocks > 0)) throw new RangeError('durationBlocks is not positive');
+  if (!(Number.isFinite(durationBlocks) && durationBlocks > 0))
+    throw new RangeError('durationBlocks is not positive');
   return Math.min(1, Math.max(0, blocksElapsed / durationBlocks));
 }
 
@@ -112,7 +113,8 @@ export function graduation(k, count = GRADUATIONS, r = RADIUS, cx = CENTRE, cy =
 /** A whole number of blocks (or an era number), as the indexer emits them: a non-negative integer. */
 function countField(data, field, name) {
   const value = field(data, name);
-  if (!(Number.isInteger(value) && value >= 0)) throw new TypeError(`response has a non-numeric ${name}`);
+  if (!(Number.isInteger(value) && value >= 0))
+    throw new TypeError(`response has a non-numeric ${name}`);
   return value;
 }
 
@@ -208,7 +210,11 @@ function text(className, y, content = '') {
 
 /** Builds the dial's SVG once; the parts that change are returned by name. */
 function buildDial(dial) {
-  const svg = el('svg', { viewBox: `0 0 ${SIZE} ${SIZE}`, 'aria-hidden': 'true', focusable: 'false' });
+  const svg = el('svg', {
+    viewBox: `0 0 ${SIZE} ${SIZE}`,
+    'aria-hidden': 'true',
+    focusable: 'false',
+  });
 
   // Graduations: sixty hairline marks inside the track, one longer every fifth.
   const marks = el('g', {}, 'dial-marks');
@@ -378,11 +384,15 @@ export function init(root, ctx) {
         failure = error.message;
       }
     }
-    const ok = ctx.readout.apply([targets.era, targets.settlement, targets.countdown].filter(Boolean), record, () => {
-      if (failure) throw new Error(failure);
-      showReadings(eraState, record);
-      drawState(eraState);
-    });
+    const ok = ctx.readout.apply(
+      [targets.era, targets.settlement, targets.countdown].filter(Boolean),
+      record,
+      () => {
+        if (failure) throw new Error(failure);
+        showReadings(eraState, record);
+        drawState(eraState);
+      },
+    );
     if (!ok) {
       shown.era = shown.settlement = shown.countdown = null;
       drawUnavailable(failure ?? record?.error ?? 'the reading could not be decoded');

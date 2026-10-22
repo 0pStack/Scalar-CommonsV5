@@ -16,7 +16,8 @@ export function init(root, ctx) {
       ctx.readout.showError(height, record);
       return;
     }
-    if (Number.isFinite(number)) ctx.readout.showValue(height, record, { value: number, motion: ctx.motion });
+    if (Number.isFinite(number))
+      ctx.readout.showValue(height, record, { value: number, motion: ctx.motion });
   };
   ctx.bus.on('head', onNumber);
   ctx.bus.on('poll', onNumber);

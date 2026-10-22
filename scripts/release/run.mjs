@@ -12,17 +12,27 @@
 import { execFileSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, appendFileSync } from 'node:fs';
-import { sectionFor, entryLine, addEntry, nextVersion, cutRelease, parseSpecVersion } from './changelog.mjs';
+import {
+  sectionFor,
+  entryLine,
+  addEntry,
+  nextVersion,
+  cutRelease,
+  parseSpecVersion,
+} from './changelog.mjs';
 
 const CHANGELOG = 'CHANGELOG.md';
 const RUNTIME = 'runtime/src/lib.rs';
 const NODE_DIR = 'node/';
 
-const run = (cmd, args) => execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
+const run = (cmd, args) =>
+  execFileSync(cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).trim();
 const git = (...args) => run('git', args);
 const gh = (...args) => run('gh', args);
 
-const repoSlug = () => process.env.GITHUB_REPOSITORY ?? gh('repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner');
+const repoSlug = () =>
+  process.env.GITHUB_REPOSITORY ??
+  gh('repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner');
 
 const PR_QUERY = `query($owner: String!, $name: String!, $n: Int!) {
   repository(owner: $owner, name: $name) {
@@ -54,7 +64,18 @@ const lastTag = () => git('describe', '--tags', '--abbrev=0', '--match', 'v*');
 function prDetails(slug, number) {
   const [owner, name] = slug.split('/');
   const data = JSON.parse(
-    gh('api', 'graphql', '-f', `query=${PR_QUERY}`, '-f', `owner=${owner}`, '-f', `name=${name}`, '-F', `n=${number}`),
+    gh(
+      'api',
+      'graphql',
+      '-f',
+      `query=${PR_QUERY}`,
+      '-f',
+      `owner=${owner}`,
+      '-f',
+      `name=${name}`,
+      '-F',
+      `n=${number}`,
+    ),
   );
   const pr = data.data.repository.pullRequest;
   const issues = pr.closingIssuesReferences.nodes;
@@ -99,7 +120,9 @@ function release(force) {
   const specChanged = specAt(last) !== specAt('HEAD');
   const nodeChanged = git('diff', '--name-only', last, 'HEAD', '--', NODE_DIR) !== '';
   const version = nextVersion(last, { specChanged, nodeChanged, force });
-  console.log(`last ${last}; spec changed: ${specChanged}; node changed: ${nodeChanged}; next: ${version ?? 'none'}`);
+  console.log(
+    `last ${last}; spec changed: ${specChanged}; node changed: ${nodeChanged}; next: ${version ?? 'none'}`,
+  );
 
   let notes = '';
   if (version) {
@@ -112,7 +135,10 @@ function release(force) {
     // The build runs in another job on another runner, so the notes travel as
     // a multi-line output rather than a file.
     const eof = `NOTES_${randomUUID()}`;
-    appendFileSync(process.env.GITHUB_OUTPUT, `tag=${version ?? ''}\nnotes<<${eof}\n${notes}\n${eof}\n`);
+    appendFileSync(
+      process.env.GITHUB_OUTPUT,
+      `tag=${version ?? ''}\nnotes<<${eof}\n${notes}\n${eof}\n`,
+    );
   }
 }
 

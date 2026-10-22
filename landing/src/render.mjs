@@ -66,7 +66,9 @@ export function resolve(facts, token) {
   const [path, ...filters] = String(token)
     .split('|')
     .map((part) => part.trim());
-  let value = path.split('.').reduce((acc, key) => (acc === null || acc === undefined ? acc : acc[key]), facts);
+  let value = path
+    .split('.')
+    .reduce((acc, key) => (acc === null || acc === undefined ? acc : acc[key]), facts);
   if (value === undefined || value === null) return undefined;
   for (const name of filters) {
     const filter = FILTERS[name];
@@ -106,13 +108,17 @@ export function proseOf(content) {
 }
 
 export const escapeHtml = (value) =>
-  String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  String(value).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
 
 /** Fills placeholders and escapes the result — content is data, never markup. */
 function fill(str, facts) {
   return escapeHtml(str).replace(/\{\{([^}]+)\}\}/g, (_, token) => {
     const value = resolve(facts, token.trim());
-    if (value === undefined) throw new Error(`unresolved placeholder {{${token.trim()}}} — not in chain-facts.json`);
+    if (value === undefined)
+      throw new Error(`unresolved placeholder {{${token.trim()}}} — not in chain-facts.json`);
     return escapeHtml(value);
   });
 }
@@ -154,7 +160,9 @@ function renderLinks(links, facts) {
   const cards = links
     .map((link) => {
       const badge =
-        link.status === 'planned' ? '<span class="badge planned">Planned</span>' : '<span class="badge">Live</span>';
+        link.status === 'planned'
+          ? '<span class="badge planned">Planned</span>'
+          : '<span class="badge">Live</span>';
       return `        <li data-link="${escapeHtml(link.key)}" data-status="${escapeHtml(link.status)}">
           <a href="${escapeHtml(link.url)}">${fill(link.label, facts)}</a>${badge}
           <p>${fill(link.note, facts)}</p>
@@ -201,10 +209,12 @@ const NAV = [
 
 /** The site nav, with `current` marked for assistive tech and styling. */
 export function renderNav(current, extra = []) {
-  const items = [...NAV, ...extra].map(
-    (item) =>
-      `<li><a href="${escapeHtml(item.href)}"${item.key === current ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a></li>`,
-  ).join('');
+  const items = [...NAV, ...extra]
+    .map(
+      (item) =>
+        `<li><a href="${escapeHtml(item.href)}"${item.key === current ? ' aria-current="page"' : ''}>${escapeHtml(item.label)}</a></li>`,
+    )
+    .join('');
   return `    <nav class="site-nav" aria-label="Site"><ul>${items}</ul></nav>`;
 }
 

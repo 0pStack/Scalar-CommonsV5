@@ -62,25 +62,35 @@ describe('configFromEnv — signing seed (I-6, #123)', () => {
     expect(() => configFromEnv({ FAUCET_SEED: '/Alice' })).toThrow(/published dev seed/);
     expect(() => configFromEnv({ FAUCET_SEED: '/Alice//stash' })).toThrow(/published dev seed/);
     expect(configFromEnv({ ...DEV, FAUCET_SEED: '/Alice' }).faucetSeed).toBe('/Alice');
-    expect(configFromEnv({ ...DEV, FAUCET_SEED: '/Alice//stash' }).faucetSeed).toBe('/Alice//stash');
+    expect(configFromEnv({ ...DEV, FAUCET_SEED: '/Alice//stash' }).faucetSeed).toBe(
+      '/Alice//stash',
+    );
   });
 
   it('names every dev-seed form in the refusal', () => {
-    expect(() => configFromEnv({ FAUCET_SEED: '//Ferdie' })).toThrow('(/Name, //Name or the dev phrase)');
+    expect(() => configFromEnv({ FAUCET_SEED: '//Ferdie' })).toThrow(
+      '(/Name, //Name or the dev phrase)',
+    );
   });
 
   it('refuses the published dev phrase, bare or derived, unless explicitly allowed', () => {
     expect(() => configFromEnv({ FAUCET_SEED: DEV_PHRASE })).toThrow(/published dev seed/);
-    expect(() => configFromEnv({ FAUCET_SEED: `${DEV_PHRASE}//Alice` })).toThrow(/published dev seed/);
+    expect(() => configFromEnv({ FAUCET_SEED: `${DEV_PHRASE}//Alice` })).toThrow(
+      /published dev seed/,
+    );
     expect(configFromEnv({ ...DEV, FAUCET_SEED: DEV_PHRASE }).faucetSeed).toBe(DEV_PHRASE);
   });
 
   it('never echoes the seed, which can carry a ///password', () => {
-    expect(() => configFromEnv({ FAUCET_SEED: '//Ferdie///hunter2' })).toThrow(/^(?![\s\S]*hunter2)/);
+    expect(() => configFromEnv({ FAUCET_SEED: '//Ferdie///hunter2' })).toThrow(
+      /^(?![\s\S]*hunter2)/,
+    );
   });
 
   it('treats an explicit opt-out and a padded dev URI the same as no opt-in', () => {
-    expect(() => configFromEnv({ FAUCET_SEED: '//Ferdie', FAUCET_ALLOW_DEV_SEED: 'false' })).toThrow(/published dev seed/);
+    expect(() =>
+      configFromEnv({ FAUCET_SEED: '//Ferdie', FAUCET_ALLOW_DEV_SEED: 'false' }),
+    ).toThrow(/published dev seed/);
     expect(() => configFromEnv({ FAUCET_SEED: '  //Ferdie ' })).toThrow(/published dev seed/);
     expect(() => configFromEnv({ FAUCET_SEED: '   ' })).toThrow(/FAUCET_SEED is required/);
   });
@@ -121,19 +131,27 @@ describe('configFromEnv — total budget, timeouts and state (F11, #20)', () => 
   });
 
   it('yields to FAUCET_GLOBAL_HOURLY_MAX and FAUCET_GLOBAL_DAILY_MAX', () => {
-    const c = configFromEnv({ ...DEV, FAUCET_GLOBAL_HOURLY_MAX: '3', FAUCET_GLOBAL_DAILY_MAX: '7' });
+    const c = configFromEnv({
+      ...DEV,
+      FAUCET_GLOBAL_HOURLY_MAX: '3',
+      FAUCET_GLOBAL_DAILY_MAX: '7',
+    });
     expect(c.global.map((rule) => rule.maxRequests)).toEqual([3, 7]);
   });
 
   it('refuses a zero total budget rather than switching the cap off', () => {
-    expect(() => configFromEnv({ ...DEV, FAUCET_GLOBAL_HOURLY_MAX: '0' })).toThrow(/FAUCET_GLOBAL_HOURLY_MAX/);
-    expect(() => configFromEnv({ ...DEV, FAUCET_GLOBAL_DAILY_MAX: '0' })).toThrow(/FAUCET_GLOBAL_DAILY_MAX/);
+    expect(() => configFromEnv({ ...DEV, FAUCET_GLOBAL_HOURLY_MAX: '0' })).toThrow(
+      /FAUCET_GLOBAL_HOURLY_MAX/,
+    );
+    expect(() => configFromEnv({ ...DEV, FAUCET_GLOBAL_DAILY_MAX: '0' })).toThrow(
+      /FAUCET_GLOBAL_DAILY_MAX/,
+    );
   });
 
   it('refuses a daily budget smaller than the hourly one', () => {
-    expect(() => configFromEnv({ ...DEV, FAUCET_GLOBAL_HOURLY_MAX: '30', FAUCET_GLOBAL_DAILY_MAX: '20' })).toThrow(
-      /FAUCET_GLOBAL_DAILY_MAX/,
-    );
+    expect(() =>
+      configFromEnv({ ...DEV, FAUCET_GLOBAL_HOURLY_MAX: '30', FAUCET_GLOBAL_DAILY_MAX: '20' }),
+    ).toThrow(/FAUCET_GLOBAL_DAILY_MAX/);
   });
 });
 
@@ -145,7 +163,9 @@ describe('configFromEnv — total budget, timeouts and state (F11, #20)', () => 
 describe('configFromEnv — the drip deadline (F11, #20)', () => {
   it('waits 10 s for its turn, 18 s for inclusion and 24 s for finality by default', () => {
     const c = configFromEnv(DEV);
-    expect([c.lockWaitMs, c.inclusionTimeoutMs, c.finalityTimeoutMs]).toEqual([10_000, 18_000, 24_000]);
+    expect([c.lockWaitMs, c.inclusionTimeoutMs, c.finalityTimeoutMs]).toEqual([
+      10_000, 18_000, 24_000,
+    ]);
   });
 
   it('yields to the timeout overrides', () => {
@@ -155,14 +175,18 @@ describe('configFromEnv — the drip deadline (F11, #20)', () => {
       FAUCET_INCLUSION_TIMEOUT_SECONDS: '20',
       FAUCET_FINALITY_TIMEOUT_SECONDS: '30',
     });
-    expect([c.lockWaitMs, c.inclusionTimeoutMs, c.finalityTimeoutMs]).toEqual([5_000, 20_000, 30_000]);
+    expect([c.lockWaitMs, c.inclusionTimeoutMs, c.finalityTimeoutMs]).toEqual([
+      5_000, 20_000, 30_000,
+    ]);
   });
 
   it('refuses a zero timeout', () => {
     expect(() => configFromEnv({ ...DEV, FAUCET_FINALITY_TIMEOUT_SECONDS: '0' })).toThrow(
       /FAUCET_FINALITY_TIMEOUT_SECONDS/,
     );
-    expect(() => configFromEnv({ ...DEV, FAUCET_LOCK_WAIT_SECONDS: '0' })).toThrow(/FAUCET_LOCK_WAIT_SECONDS/);
+    expect(() => configFromEnv({ ...DEV, FAUCET_LOCK_WAIT_SECONDS: '0' })).toThrow(
+      /FAUCET_LOCK_WAIT_SECONDS/,
+    );
   });
 
   it('refuses timeouts that add up to the 60 s callers wait', () => {
@@ -185,12 +209,14 @@ describe('configFromEnv — where the limits are kept (F11, #20)', () => {
   });
 
   it('yields to FAUCET_STATE_FILE', () => {
-    expect(configFromEnv({ ...DEV, FAUCET_STATE_FILE: '/var/lib/faucet/limits.json' }).stateFile).toBe(
-      '/var/lib/faucet/limits.json',
-    );
+    expect(
+      configFromEnv({ ...DEV, FAUCET_STATE_FILE: '/var/lib/faucet/limits.json' }).stateFile,
+    ).toBe('/var/lib/faucet/limits.json');
   });
 
   it('refuses a relative FAUCET_STATE_FILE, which would follow the working directory', () => {
-    expect(() => configFromEnv({ ...DEV, FAUCET_STATE_FILE: 'limits.json' })).toThrow(/FAUCET_STATE_FILE/);
+    expect(() => configFromEnv({ ...DEV, FAUCET_STATE_FILE: 'limits.json' })).toThrow(
+      /FAUCET_STATE_FILE/,
+    );
   });
 });

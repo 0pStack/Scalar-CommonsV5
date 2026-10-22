@@ -272,7 +272,11 @@ export class IndexerStore {
     const { block, extrinsics, events } = indexed;
     this.db.exec('BEGIN');
     try {
-      this.db.prepare('DELETE FROM event_accounts WHERE event_id IN (SELECT id FROM events WHERE block_number = ?)').run(block.number);
+      this.db
+        .prepare(
+          'DELETE FROM event_accounts WHERE event_id IN (SELECT id FROM events WHERE block_number = ?)',
+        )
+        .run(block.number);
       this.db.prepare('DELETE FROM events WHERE block_number = ?').run(block.number);
       this.db.prepare('DELETE FROM extrinsics WHERE block_number = ?').run(block.number);
 
@@ -393,7 +397,10 @@ export class IndexerStore {
 
   /** Number of blocks held. */
   blockCount(): number {
-    const row = this.db.prepare('SELECT COUNT(*) AS c FROM blocks').get() as Record<string, unknown>;
+    const row = this.db.prepare('SELECT COUNT(*) AS c FROM blocks').get() as Record<
+      string,
+      unknown
+    >;
     return asNumber(row.c);
   }
 
@@ -501,7 +508,9 @@ export class IndexerStore {
       params.push(query.method);
     }
     if (query.account !== undefined) {
-      filters.push('EXISTS (SELECT 1 FROM event_accounts ea WHERE ea.event_id = e.id AND ea.address = ?)');
+      filters.push(
+        'EXISTS (SELECT 1 FROM event_accounts ea WHERE ea.event_id = e.id AND ea.address = ?)',
+      );
       params.push(query.account);
     }
     const where = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
@@ -543,13 +552,20 @@ export class IndexerStore {
     });
     const filters = [`(${clauses.join(' OR ')})`];
     if (query.account !== undefined) {
-      filters.push('EXISTS (SELECT 1 FROM event_accounts ea WHERE ea.event_id = e.id AND ea.address = ?)');
+      filters.push(
+        'EXISTS (SELECT 1 FROM event_accounts ea WHERE ea.event_id = e.id AND ea.address = ?)',
+      );
       params.push(query.account);
     }
     const where = `WHERE ${filters.join(' AND ')}`;
 
     const total = asNumber(
-      (this.db.prepare(`SELECT COUNT(*) AS c FROM events e ${where}`).get(...params) as Record<string, unknown>).c,
+      (
+        this.db.prepare(`SELECT COUNT(*) AS c FROM events e ${where}`).get(...params) as Record<
+          string,
+          unknown
+        >
+      ).c,
     );
     const rows = this.db
       .prepare(
@@ -560,7 +576,10 @@ export class IndexerStore {
       .all(...params, query.limit, query.offset) as Record<string, unknown>[];
     return {
       total,
-      items: rows.map((row) => ({ ...this.asEvent(row), timestampMs: asNullableNumber(row.block_timestamp_ms) })),
+      items: rows.map((row) => ({
+        ...this.asEvent(row),
+        timestampMs: asNullableNumber(row.block_timestamp_ms),
+      })),
     };
   }
 
@@ -619,10 +638,9 @@ export class IndexerStore {
     );
     const extrinsicCount = asNumber(
       (
-        this.db.prepare('SELECT COUNT(*) AS c FROM extrinsics WHERE signer = ?').get(address) as Record<
-          string,
-          unknown
-        >
+        this.db
+          .prepare('SELECT COUNT(*) AS c FROM extrinsics WHERE signer = ?')
+          .get(address) as Record<string, unknown>
       ).c,
     );
     return {

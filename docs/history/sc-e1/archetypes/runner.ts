@@ -145,8 +145,7 @@ export function defaultManifestPath(): string {
 }
 
 // ─── CLI ─────────────────────────────────────────────────────────────────────
-const invokedDirectly =
-  process.argv[1] !== undefined && process.argv[1].endsWith('runner.ts');
+const invokedDirectly = process.argv[1] !== undefined && process.argv[1].endsWith('runner.ts');
 
 if (invokedDirectly) {
   const manifest = loadManifest(defaultManifestPath());

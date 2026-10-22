@@ -28,7 +28,12 @@ export function payoutTotal(items, field) {
   const series = emissionSeries(items, field, () => 0, Infinity);
   if (series.length === 0) return null;
   const totals = cumulativePlancks(series.map((e) => e.plancks));
-  return { plancks: totals[totals.length - 1], eras: series.length, first: series[0].era, last: series[series.length - 1].era };
+  return {
+    plancks: totals[totals.length - 1],
+    eras: series.length,
+    first: series[0].era,
+    last: series[series.length - 1].era,
+  };
 }
 
 export function init(root, ctx) {
@@ -44,17 +49,26 @@ export function init(root, ctx) {
           const total = payoutTotal(record.items, ctx.field);
           const from = ctx.field(data, 'settledHistoryFrom');
           if (total === null) {
-            ctx.readout.showAbsent(payouts, record, `no era has settled since block #${formatInteger(from)}, where this site’s record begins`);
+            ctx.readout.showAbsent(
+              payouts,
+              record,
+              `no era has settled since block #${formatInteger(from)}, where this site’s record begins`,
+            );
             return;
           }
-          const span = total.first === total.last ? `era ${formatInteger(total.first)}` : `eras ${formatInteger(total.first)}–${formatInteger(total.last)}`;
+          const span =
+            total.first === total.last
+              ? `era ${formatInteger(total.first)}`
+              : `eras ${formatInteger(total.first)}–${formatInteger(total.last)}`;
           ctx.readout.showValue(payouts, record, {
             value: formatCmn(total.plancks),
             unit: ' CMN',
             live: false,
             extra:
               `derived: sum of totalEmissionPlancks over ${formatInteger(total.eras)} settled era${total.eras === 1 ? '' : 's'}, ${span}` +
-              (record.complete ? '' : ' · the index holds more eras than were read, so this is a floor'),
+              (record.complete
+                ? ''
+                : ' · the index holds more eras than were read, so this is a floor'),
           });
         });
       },

@@ -26,8 +26,18 @@ interface State {
 
 function fake(init: Partial<State> = {}): Fake {
   const s: State = {
-    head: 1000n, registered: true, lastHb: 900n, accept: false, pending: 0n,
-    asProvider: [], asBuyer: [], agents: [ME], failOn: null, messaging: false, onChainKey: null, ...init,
+    head: 1000n,
+    registered: true,
+    lastHb: 900n,
+    accept: false,
+    pending: 0n,
+    asProvider: [],
+    asBuyer: [],
+    agents: [ME],
+    failOn: null,
+    messaging: false,
+    onChainKey: null,
+    ...init,
   };
   const calls: string[] = [];
   const rec = (name: string, ...args: unknown[]) => {
@@ -62,13 +72,28 @@ function fake(init: Partial<State> = {}): Fake {
 }
 
 const cfg: AgentConfig = {
-  address: ME, mode: 'provider', stake: 1000n * CMN, name: 'operator-reference-agent',
-  heartbeatEveryBlocks: 600n, minDeliveryBlocks: 10n, buyerPeers: [], buyerAmount: 10n * CMN, buyerMaxOpen: 2, buyerDeliverWithin: 200n,
+  address: ME,
+  mode: 'provider',
+  stake: 1000n * CMN,
+  name: 'operator-reference-agent',
+  heartbeatEveryBlocks: 600n,
+  minDeliveryBlocks: 10n,
+  buyerPeers: [],
+  buyerAmount: 10n * CMN,
+  buyerMaxOpen: 2,
+  buyerDeliverWithin: 200n,
 };
 
 const agreement = (over: Partial<AgreementView> = {}): AgreementView => ({
-  buyer: BUYER, provider: ME, seq: 0, amount: 10n * CMN, deliverableHash: '0x' + '11'.repeat(32),
-  deliverBy: 5000n, createdAt: 990n, status: 'Created', ...over,
+  buyer: BUYER,
+  provider: ME,
+  seq: 0,
+  amount: 10n * CMN,
+  deliverableHash: '0x' + '11'.repeat(32),
+  deliverBy: 5000n,
+  createdAt: 990n,
+  status: 'Created',
+  ...over,
 });
 
 function make(chain: Fake, over: Partial<AgentConfig> = {}) {
@@ -82,14 +107,22 @@ describe('registration and heartbeat', () => {
     const c = fake({ registered: false, lastHb: null });
     const { agent } = make(c);
     await agent.tick();
-    expect(c.calls).toEqual([`register:${1000n * CMN}`, 'metadata:operator-reference-agent', 'heartbeat']);
+    expect(c.calls).toEqual([
+      `register:${1000n * CMN}`,
+      'metadata:operator-reference-agent',
+      'heartbeat',
+    ]);
   });
 
   it('heartbeats right after registering even when the runtime already stamped the register block', async () => {
     // Spec 306 starts the heartbeat clock at register (#161): lastHeartbeat is recent, not null.
     const c = fake({ registered: false, lastHb: 999n, head: 1000n });
     await make(c).agent.tick();
-    expect(c.calls).toEqual([`register:${1000n * CMN}`, 'metadata:operator-reference-agent', 'heartbeat']);
+    expect(c.calls).toEqual([
+      `register:${1000n * CMN}`,
+      'metadata:operator-reference-agent',
+      'heartbeat',
+    ]);
   });
 
   it('does not re-register a registered agent', async () => {
@@ -147,7 +180,9 @@ describe('provider flow', () => {
   });
 
   it('delivery hash is deterministic per agreement and differs across agreements', async () => {
-    const c = fake({ asProvider: [agreement(), agreement({ seq: 1, deliverableHash: '0x' + '22'.repeat(32) })] });
+    const c = fake({
+      asProvider: [agreement(), agreement({ seq: 1, deliverableHash: '0x' + '22'.repeat(32) })],
+    });
     await make(c).agent.tick();
     const [a, b] = c.calls.filter((x) => x.startsWith('deliver')).map((x) => x.split(':')[3]);
     expect(a).not.toEqual(b);
@@ -246,7 +281,9 @@ describe('buyer mode', () => {
   it('with a peer allowlist, only opens agreements with listed agents', async () => {
     const c = fake({ agents: [ME, 'stranger', 'friend'] });
     await make(c, { mode: 'buyer', buyerPeers: ['friend'] }).agent.tick();
-    expect(c.calls.filter((x) => x.startsWith('create'))).toEqual([`create:friend:${10n * CMN}:${1200n}`]);
+    expect(c.calls.filter((x) => x.startsWith('create'))).toEqual([
+      `create:friend:${10n * CMN}:${1200n}`,
+    ]);
   });
 
   it('with an allowlist and no listed agent registered, opens nothing', async () => {
@@ -262,14 +299,20 @@ describe('buyer mode', () => {
   });
 
   it('respects the open-agreement cap', async () => {
-    const open = [agreement({ buyer: ME, provider: 'p1', seq: 0 }), agreement({ buyer: ME, provider: 'p2', seq: 0 })];
+    const open = [
+      agreement({ buyer: ME, provider: 'p1', seq: 0 }),
+      agreement({ buyer: ME, provider: 'p2', seq: 0 }),
+    ];
     const c = fake({ agents: [ME, 'peer'], asBuyer: open });
     await make(c, { mode: 'buyer', buyerPeers: ['peer'] }).agent.tick();
     expect(c.calls.some((x) => x.startsWith('create'))).toBe(false);
   });
 
   it('confirms a Delivered agreement, releasing funds, exactly once', async () => {
-    const c = fake({ asBuyer: [agreement({ buyer: ME, provider: 'peer', status: 'Delivered' })], agents: [ME] });
+    const c = fake({
+      asBuyer: [agreement({ buyer: ME, provider: 'peer', status: 'Delivered' })],
+      agents: [ME],
+    });
     const { agent } = make(c, { mode: 'both', buyerPeers: ['peer'] });
     await agent.tick();
     await agent.tick();
@@ -303,7 +346,9 @@ describe('messaging key (spec 308)', () => {
     const { agent, events } = make(c, { messagingKey: KEY });
     await agent.tick();
     expect(c.calls).toContain(`messaging-key:${KEY}`);
-    expect(events).toContainEqual(expect.objectContaining({ event: 'messaging-key', key: KEY, previous: null }));
+    expect(events).toContainEqual(
+      expect.objectContaining({ event: 'messaging-key', key: KEY, previous: null }),
+    );
   });
 
   it('rotates a stale on-chain key, and does nothing when it already matches', async () => {
@@ -329,6 +374,8 @@ describe('messaging key (spec 308)', () => {
     const { agent, events } = make(c, { messagingKey: KEY });
     await agent.tick();
     expect(c.calls).toContain('claim');
-    expect(events).toContainEqual(expect.objectContaining({ event: 'error', step: 'messaging-key' }));
+    expect(events).toContainEqual(
+      expect.objectContaining({ event: 'error', step: 'messaging-key' }),
+    );
   });
 });

@@ -28,7 +28,9 @@ export class InvalidAddressError extends Error {
  */
 export function normalizeAddress(address: unknown, ss58Format: number): string {
   if (typeof address !== 'string') {
-    throw new InvalidAddressError(`address must be a string, got ${address === null ? 'null' : typeof address}`);
+    throw new InvalidAddressError(
+      `address must be a string, got ${address === null ? 'null' : typeof address}`,
+    );
   }
   const trimmed = address.trim();
   if (trimmed.length === 0) {
@@ -51,7 +53,9 @@ export function normalizeAddress(address: unknown, ss58Format: number): string {
     );
   }
   if (publicKey.length !== 32) {
-    throw new InvalidAddressError(`not an account address: decodes to ${publicKey.length} bytes, expected 32`);
+    throw new InvalidAddressError(
+      `not an account address: decodes to ${publicKey.length} bytes, expected 32`,
+    );
   }
   return encodeAddress(publicKey, ss58Format);
 }

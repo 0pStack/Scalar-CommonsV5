@@ -42,7 +42,9 @@ interface Vector {
   expected: { payloadHash: string; scaleEnvelope: string; signingHash: string; scaleBody: string };
   sample: { signature: string; signedMessage: string };
 }
-const file = JSON.parse(readFileSync(new URL('./vectors/envelope.json', import.meta.url), 'utf8')) as {
+const file = JSON.parse(
+  readFileSync(new URL('./vectors/envelope.json', import.meta.url), 'utf8'),
+) as {
   genesisHash: string;
   signingDomain: string;
   messages: Vector[];
@@ -58,11 +60,20 @@ function rebuild(v: Vector) {
   const plaintext = hexToU8a(v.input.plaintext);
   const body: Body | undefined =
     v.input.body === 'Sealed'
-      ? sealBody(plaintext, deriveMessagingKey(v.input.fromUri), deriveMessagingKey(v.input.toUri).publicKey, hexToU8a(v.input.boxNonce!))
+      ? sealBody(
+          plaintext,
+          deriveMessagingKey(v.input.fromUri),
+          deriveMessagingKey(v.input.toUri).publicKey,
+          hexToU8a(v.input.boxNonce!),
+        )
       : v.input.body === 'None'
         ? { type: 'None' }
         : undefined;
-  const signer = { type: 'sr25519' as const, publicKey: decodeAddress(v.input.from), sign: () => new Uint8Array(64) };
+  const signer = {
+    type: 'sr25519' as const,
+    publicKey: decodeAddress(v.input.from),
+    sign: () => new Uint8Array(64),
+  };
   return createMessage(signer, {
     to: v.input.to,
     kind: v.input.kind,
@@ -78,10 +89,14 @@ function rebuild(v: Vector) {
 describe('envelope vectors', () => {
   it('cover every body type, with and without an agreement, and the Rust reference vector', () => {
     expect(file.signingDomain).toBe('ScalarMsg/v1|');
-    expect(new Set(file.messages.map((v) => v.input.body))).toEqual(new Set(['Plain', 'Sealed', 'None']));
+    expect(new Set(file.messages.map((v) => v.input.body))).toEqual(
+      new Set(['Plain', 'Sealed', 'None']),
+    );
     expect(file.messages.some((v) => v.input.agreement === null)).toBe(true);
     const rust = file.messages.find((v) => v.name === 'rust-reference-offer')!;
-    expect(rust.expected.signingHash).toBe('0xe5bba61ef4d05553662760a8ae8ff35576c165b88e4441ea5a96f9f9fd99d421');
+    expect(rust.expected.signingHash).toBe(
+      '0xe5bba61ef4d05553662760a8ae8ff35576c165b88e4441ea5a96f9f9fd99d421',
+    );
   });
 
   for (const v of file.messages) {
@@ -90,7 +105,9 @@ describe('envelope vectors', () => {
         const m = rebuild(v);
         expect(u8aToHex(m.envelope.payloadHash)).toBe(v.expected.payloadHash);
         expect(u8aToHex(encodeEnvelope(m.envelope))).toBe(v.expected.scaleEnvelope);
-        expect(u8aToHex(envelopeSigningHash(m.envelope, file.genesisHash))).toBe(v.expected.signingHash);
+        expect(u8aToHex(envelopeSigningHash(m.envelope, file.genesisHash))).toBe(
+          v.expected.signingHash,
+        );
         expect(u8aToHex(encodeBody(m.body))).toBe(v.expected.scaleBody);
       });
 
@@ -127,9 +144,10 @@ describe('envelope vectors', () => {
 
   it('messaging keys derive exactly', () => {
     for (const k of file.messagingKeys) {
-      expect(u8aToHex(deriveMessagingKey(k.suri, { rotation: k.rotation }).publicKey), `${k.suri}#${k.rotation}`).toBe(
-        k.publicKey,
-      );
+      expect(
+        u8aToHex(deriveMessagingKey(k.suri, { rotation: k.rotation }).publicKey),
+        `${k.suri}#${k.rotation}`,
+      ).toBe(k.publicKey);
     }
   });
 });

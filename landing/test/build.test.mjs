@@ -20,8 +20,14 @@ test('npm run build emits a self-contained static site', () => {
   });
 
   const files = readdirSync(out);
-  assert.ok(files.includes('index.html'), `build produced no index.html (got: ${files.join(', ')})`);
-  assert.ok(files.includes('styles.css'), `build produced no styles.css (got: ${files.join(', ')})`);
+  assert.ok(
+    files.includes('index.html'),
+    `build produced no index.html (got: ${files.join(', ')})`,
+  );
+  assert.ok(
+    files.includes('styles.css'),
+    `build produced no styles.css (got: ${files.join(', ')})`,
+  );
 
   const indexHtml = readFileSync(join(out, 'index.html'), 'utf8');
   assert.match(indexHtml, /^<!doctype html>/i);

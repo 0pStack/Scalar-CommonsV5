@@ -104,9 +104,13 @@ function embedded(doc, id) {
 export function createContext({ win = window, doc = document } = {}) {
   const bus = new Emitter();
   const socket = new RpcSocket(RPC_URL);
-  const scheduler = new Scheduler((source) => (source.kind === 'rpc' ? socket.call(source) : fetchHttp(source)));
+  const scheduler = new Scheduler((source) =>
+    source.kind === 'rpc' ? socket.call(source) : fetchHttp(source),
+  );
   // The same, for list endpoints read whole: the fetcher walks every page.
-  const pagedScheduler = new Scheduler((source) => fetchAllPages(source, { maxPages: source.maxPages ?? 5 }));
+  const pagedScheduler = new Scheduler((source) =>
+    fetchAllPages(source, { maxPages: source.maxPages ?? 5 }),
+  );
   const motion = createMotion(win);
   const theme = createTheme(win, bus);
   const status = doc.querySelector('.sr-status');
@@ -133,7 +137,8 @@ export function createContext({ win = window, doc = document } = {}) {
     now: () => Date.now(),
 
     /** One fetch of an HTTP or RPC source, as a provenance record. */
-    fetch: (source, path) => (source.kind === 'rpc' ? socket.call(source) : fetchHttp(source, path)),
+    fetch: (source, path) =>
+      source.kind === 'rpc' ? socket.call(source) : fetchHttp(source, path),
     /** Every page of a list endpoint. */
     fetchAll: (source, options) => fetchAllPages(source, options),
     /** Polls a source on an interval, shared with every other watcher of it. */
@@ -145,7 +150,12 @@ export function createContext({ win = window, doc = document } = {}) {
      * list short and a count from it is a floor.
      */
     watchAll: (name, handler, intervalMs, { maxPages = 5 } = {}) =>
-      pagedScheduler.watch(`${name}:${maxPages}`, { ...SOURCES[name], maxPages }, handler, intervalMs),
+      pagedScheduler.watch(
+        `${name}:${maxPages}`,
+        { ...SOURCES[name], maxPages },
+        handler,
+        intervalMs,
+      ),
     /**
      * Polls a newest-first event list back to a moving block: `since()` is
      * read at each fetch (the block of one hour ago, say), and paging stops
@@ -153,7 +163,12 @@ export function createContext({ win = window, doc = document } = {}) {
      * `reachedStart` (see fetchAllPages).
      */
     watchSince: (name, since, handler, intervalMs, { maxPages = 10 } = {}) =>
-      pagedScheduler.watch(`${name}:since:${maxPages}`, { ...SOURCES[name], maxPages, stopBelow: since }, handler, intervalMs),
+      pagedScheduler.watch(
+        `${name}:since:${maxPages}`,
+        { ...SOURCES[name], maxPages, stopBelow: since },
+        handler,
+        intervalMs,
+      ),
     /** Re-fetches a watched source ahead of schedule. */
     refresh: (name) => scheduler.refresh(name),
     /** The latest record a watched source produced, if any. */

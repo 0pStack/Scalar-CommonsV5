@@ -67,7 +67,12 @@ export function send(
           error = `${d.section}.${d.name}`;
         }
         unsub?.();
-        resolve({ ok: false, error, events: decode(result), blockHash: result.status.asInBlock.toHex() });
+        resolve({
+          ok: false,
+          error,
+          events: decode(result),
+          blockHash: result.status.asInBlock.toHex(),
+        });
       } else if (result.status.isInvalid || result.status.isDropped || result.status.isUsurped) {
         unsub?.();
         reject(new Error(`extrinsic not included: ${result.status.type}`));
@@ -92,7 +97,8 @@ function decode(result: ISubmittableResult): Outcome['events'] {
 }
 
 /** Events of one pallet section from an outcome. */
-export const eventsOf = (o: Outcome, section: string) => o.events.filter((e) => e.section === section);
+export const eventsOf = (o: Outcome, section: string) =>
+  o.events.filter((e) => e.section === section);
 
 /** Transfer `amount` plancks from Alice to `to`, and wait for inclusion. */
 export async function fund(api: ApiPromise, to: KeyringPair, amount: bigint): Promise<void> {

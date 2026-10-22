@@ -45,7 +45,9 @@ if (a !== b) {
       `  Regenerate: copy ${OPERATOR} to ${PUBLISHED} and re-add bootNodes.`,
   );
 } else {
-  console.log(`✓ genesis matches ${OPERATOR} (${Object.keys(published.genesis.raw.top).length} raw top entries)`);
+  console.log(
+    `✓ genesis matches ${OPERATOR} (${Object.keys(published.genesis.raw.top).length} raw top entries)`,
+  );
 }
 
 // 2. Identity fields must agree too — name/id/properties feed the node's UI and

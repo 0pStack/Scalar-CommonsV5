@@ -24,7 +24,15 @@
 // out over 400 ms. Nothing loops; under prefers-reduced-motion every layout is
 // computed synchronously to rest and drawn once.
 
-import { forceCenter, forceCollide, forceLink, forceManyBody, forceSimulation, forceX, forceY } from 'd3-force';
+import {
+  forceCenter,
+  forceCollide,
+  forceLink,
+  forceManyBody,
+  forceSimulation,
+  forceX,
+  forceY,
+} from 'd3-force';
 
 // The same intervals and page caps as the agent field (agent-field.js), so
 // the reads are shared, not repeated. They are restated here rather than
@@ -142,10 +150,13 @@ export function synthesizeNodes(agents, edges, { listComplete = true } = {}) {
   for (const agent of agents) {
     nodes.set(agent.address, { id: agent.address, ...agent, ghost: false, degree: 0 });
   }
-  const absent = listComplete ? 'no longer registered' : 'not among the agents listed — the list was cut short';
+  const absent = listComplete
+    ? 'no longer registered'
+    : 'not among the agents listed — the list was cut short';
   for (const edge of edges.values()) {
     for (const address of [edge.buyer, edge.provider]) {
-      if (!nodes.has(address)) nodes.set(address, { id: address, address, ghost: true, reason: absent, degree: 0 });
+      if (!nodes.has(address))
+        nodes.set(address, { id: address, address, ghost: true, reason: absent, degree: 0 });
     }
   }
   for (const edge of edges.values()) {
@@ -186,7 +197,9 @@ export function nodeRadius(activity, maxActivity, factor = 1) {
 export function activityOf(agent, degree = 0) {
   const completed = Number(agent?.completedAgreements);
   const lines = Number(degree);
-  return (Number.isFinite(completed) ? completed : 0) + (Number.isFinite(lines) ? Math.max(0, lines) : 0);
+  return (
+    (Number.isFinite(completed) ? completed : 0) + (Number.isFinite(lines) ? Math.max(0, lines) : 0)
+  );
 }
 
 /** Smaller than any registered agent's point (which starts at 3 px). */
@@ -238,7 +251,10 @@ export const BUNDLE_MAX_BAND = 36; // px the whole bundle may span before lines 
 export const BUNDLE_MIN_SPACING = 2; // px; closer than this they read as one band anyway
 export function parallelOffset(index, count) {
   if (count <= 1) return 0;
-  const spacing = Math.max(BUNDLE_MIN_SPACING, Math.min(BUNDLE_SPACING, BUNDLE_MAX_BAND / (count - 1)));
+  const spacing = Math.max(
+    BUNDLE_MIN_SPACING,
+    Math.min(BUNDLE_SPACING, BUNDLE_MAX_BAND / (count - 1)),
+  );
   return (index - (count - 1) / 2) * spacing;
 }
 
@@ -283,7 +299,9 @@ export function topAgents(agents, edges, max = GRAPH_MAX_NODES) {
     degree.set(edge.provider, (degree.get(edge.provider) ?? 0) + 1);
   }
   const ranked = [...agents].sort(
-    (a, b) => activityOf(b, degree.get(b.address) ?? 0) - activityOf(a, degree.get(a.address) ?? 0) || (a.address < b.address ? -1 : 1),
+    (a, b) =>
+      activityOf(b, degree.get(b.address) ?? 0) - activityOf(a, degree.get(a.address) ?? 0) ||
+      (a.address < b.address ? -1 : 1),
   );
   const top = ranked.slice(0, max);
   const keep = new Set(top.map((a) => a.address));
@@ -315,7 +333,9 @@ export function clusters(ids, edges) {
     if (!groups.has(root)) groups.set(root, []);
     groups.get(root).push(id);
   }
-  const linked = [...groups.values()].filter((g) => g.length > 1).sort((a, b) => b.length - a.length || (a[0] < b[0] ? -1 : 1));
+  const linked = [...groups.values()]
+    .filter((g) => g.length > 1)
+    .sort((a, b) => b.length - a.length || (a[0] < b[0] ? -1 : 1));
   const alone = [...groups.values()].filter((g) => g.length === 1).flat();
   const index = new Map();
   linked.forEach((group, i) => group.forEach((id) => index.set(id, i)));
@@ -350,7 +370,10 @@ export function clusterAnchors(count, width, height, { alone = false } = {}) {
  * `undefined` one not read yet. The agent count is a floor when the list was
  * cut short.
  */
-export function summaryText({ agents, of = agents, agentsFloor = false, open, disputed, settled }, fmt = String) {
+export function summaryText(
+  { agents, of = agents, agentsFloor = false, open, disputed, settled },
+  fmt = String,
+) {
   const n = (v, one, many) => `${fmt(v)} ${v === 1 ? one : many}`;
   const parts = [
     of > agents
@@ -370,7 +393,7 @@ export function summaryText({ agents, of = agents, agentsFloor = false, open, di
 export function seedAngle(address) {
   let h = 0;
   for (let i = 0; i < address.length; i += 1) h = (h * 31 + address.charCodeAt(i)) >>> 0;
-  return (h % 3600) / 3600 * Math.PI * 2;
+  return ((h % 3600) / 3600) * Math.PI * 2;
 }
 
 // ── the instrument ───────────────────────────────────────────────────────────
@@ -414,7 +437,10 @@ export function init(root, ctx) {
     .force('link', forceLink([]).distance(LINK_DISTANCE))
     .force('charge', forceManyBody().strength(CHARGE))
     .force('center', forceCenter(0, 0))
-    .force('collide', forceCollide((d) => d.r + 4))
+    .force(
+      'collide',
+      forceCollide((d) => d.r + 4),
+    )
     .force('x', forceX(0).strength(CLUSTER_PULL))
     .force('y', forceY(0).strength(CLUSTER_PULL))
     .stop();
@@ -441,9 +467,19 @@ export function init(root, ctx) {
   function aimForces() {
     const { width, height } = plate();
     const s = forceScale(width, height);
-    simulation.force('center').x(width / 2).y(height / 2).strength(0.05);
-    simulation.force('x').x((d) => anchorOf(d).x).strength(CLUSTER_PULL / s);
-    simulation.force('y').y((d) => anchorOf(d).y).strength(CLUSTER_PULL / s);
+    simulation
+      .force('center')
+      .x(width / 2)
+      .y(height / 2)
+      .strength(0.05);
+    simulation
+      .force('x')
+      .x((d) => anchorOf(d).x)
+      .strength(CLUSTER_PULL / s);
+    simulation
+      .force('y')
+      .y((d) => anchorOf(d).y)
+      .strength(CLUSTER_PULL / s);
     simulation.force('link').distance(LINK_DISTANCE * s);
     simulation.force('charge').strength(CHARGE * s);
     simulation.force('collide').radius((d) => d.r + 4 * s);
@@ -469,7 +505,9 @@ export function init(root, ctx) {
       }
     }
     const groupsNow = clusters([...nodes.keys()], edges);
-    anchors = clusterAnchors(groupsNow.count, plate().width, plate().height, { alone: groupsNow.alone });
+    anchors = clusterAnchors(groupsNow.count, plate().width, plate().height, {
+      alone: groupsNow.alone,
+    });
     aimForces();
     if (laidOut) computeRadii();
     draw();
@@ -484,14 +522,22 @@ export function init(root, ctx) {
   function computeRadii() {
     const { radiusFactor } = policy();
     for (const node of nodes.values()) {
-      node.r = node.ghost ? GHOST_RADIUS * radiusFactor : nodeRadius(node.activity, maxActivity, radiusFactor);
+      node.r = node.ghost
+        ? GHOST_RADIUS * radiusFactor
+        : nodeRadius(node.activity, maxActivity, radiusFactor);
     }
   }
 
   function placeNew(node) {
     const { width, height } = plate();
     const neighbour = [...edges.values()]
-      .map((e) => (e.buyer === node.id ? nodes.get(e.provider) : e.provider === node.id ? nodes.get(e.buyer) : null))
+      .map((e) =>
+        e.buyer === node.id
+          ? nodes.get(e.provider)
+          : e.provider === node.id
+            ? nodes.get(e.buyer)
+            : null,
+      )
       .find((n) => n && Number.isFinite(n.x));
     const angle = seedAngle(node.id);
     if (neighbour) {
@@ -499,13 +545,23 @@ export function init(root, ctx) {
       node.y = neighbour.y + Math.sin(angle) * 24;
     } else {
       const spread = Math.min(width, height) * 0.3;
-      node.x = width / 2 + Math.cos(angle) * spread * (0.3 + 0.7 * ((node.id.length * 7 + node.id.charCodeAt(0)) % 10) / 10);
-      node.y = height / 2 + Math.sin(angle) * spread * (0.3 + 0.7 * ((node.id.length * 3 + node.id.charCodeAt(1)) % 10) / 10);
+      node.x =
+        width / 2 +
+        Math.cos(angle) *
+          spread *
+          (0.3 + (0.7 * ((node.id.length * 7 + node.id.charCodeAt(0)) % 10)) / 10);
+      node.y =
+        height / 2 +
+        Math.sin(angle) *
+          spread *
+          (0.3 + (0.7 * ((node.id.length * 3 + node.id.charCodeAt(1)) % 10)) / 10);
     }
   }
 
   const listComplete = () => agentsComplete && !agentsTruncated;
-  const linesReported = () => (openList !== null || Boolean(failures.open)) && (settledList !== null || Boolean(failures.settled));
+  const linesReported = () =>
+    (openList !== null || Boolean(failures.open)) &&
+    (settledList !== null || Boolean(failures.settled));
 
   function rebuild() {
     // Nothing is built on the strength of an unread agent list: until it
@@ -517,8 +573,8 @@ export function init(root, ctx) {
       draw();
       return;
     }
-    const open = failures.open ? [] : openList ?? [];
-    const settled = failures.settled ? [] : settledList ?? [];
+    const open = failures.open ? [] : (openList ?? []);
+    const settled = failures.settled ? [] : (settledList ?? []);
     const all = failures.agents ? { edges: new Map(), settledShown: 0 } : buildEdges(open, settled);
     // Only the most active agents, and only the lines between two of them.
     const chosen = topAgents(failures.agents ? [] : agentsList, all.edges, GRAPH_MAX_NODES);
@@ -565,7 +621,11 @@ export function init(root, ctx) {
     const diff = diffEdges(edges, built.edges);
     for (const [key, data] of built.edges) {
       const existing = edges.get(key);
-      if (existing) Object.assign(existing, data, { source: nodes.get(data.buyer), target: nodes.get(data.provider) });
+      if (existing)
+        Object.assign(existing, data, {
+          source: nodes.get(data.buyer),
+          target: nodes.get(data.provider),
+        });
       else {
         const fresh = seen[data.state === 'settled' ? 'settled' : 'open'] && laidOut;
         edges.set(key, {
@@ -595,7 +655,8 @@ export function init(root, ctx) {
     // Layout. The first one waits for the line sources (or a short grace),
     // so points are placed with their lines; a line source arriving late
     // re-settles fully; later joins and departures reheat gently.
-    const structural = nodesAdded > 0 || nodesRemoved > 0 || diff.added.length > 0 || diff.removed.length > 0;
+    const structural =
+      nodesAdded > 0 || nodesRemoved > 0 || diff.added.length > 0 || diff.removed.length > 0;
     if (!laidOut) {
       if (nodes.size > 0 && (linesReported() || graceElapsed)) {
         clearGrace();
@@ -628,10 +689,19 @@ export function init(root, ctx) {
     }
     if (leaving.length) {
       fading = fading.concat(leaving);
-      ctx.motion.tween(FADE_MS, (t) => {
-        for (const e of leaving) e.alpha = 1 - t;
-        draw();
-      }, { done: () => { fading = fading.filter((e) => !leaving.includes(e)); draw(); } });
+      ctx.motion.tween(
+        FADE_MS,
+        (t) => {
+          for (const e of leaving) e.alpha = 1 - t;
+          draw();
+        },
+        {
+          done: () => {
+            fading = fading.filter((e) => !leaving.includes(e));
+            draw();
+          },
+        },
+      );
     }
 
     // The pointed-at agent: gone with the data, or refreshed with it.
@@ -712,7 +782,9 @@ export function init(root, ctx) {
 
   // ── drawing ──
   function edgeColour(edge) {
-    return colour(edge.state === 'disputed' ? 'disputed' : edge.state === 'settled' ? 'settled' : 'active');
+    return colour(
+      edge.state === 'disputed' ? 'disputed' : edge.state === 'settled' ? 'settled' : 'active',
+    );
   }
 
   function edgePath(g, edge, progress) {
@@ -790,7 +862,9 @@ export function init(root, ctx) {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillStyle = colour('text-dim');
-    lines.forEach((line, i) => g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 16));
+    lines.forEach((line, i) =>
+      g.fillText(line, width / 2, height / 2 + (i - (lines.length - 1) / 2) * 16),
+    );
   }
 
   /** Every point except `except`: does the rectangle sit on one of them? */
@@ -812,7 +886,11 @@ export function init(root, ctx) {
     }
     if (!laidOut) {
       drawEmpty(g, width, height, [
-        agentsList === null ? 'reading the agent list…' : nodes.size === 0 ? 'no agents registered' : 'reading the agreements…',
+        agentsList === null
+          ? 'reading the agent list…'
+          : nodes.size === 0
+            ? 'no agents registered'
+            : 'reading the agreements…',
       ]);
       return;
     }
@@ -824,7 +902,8 @@ export function init(root, ctx) {
     // Lines, back to front: gone, settled, open, disputed.
     for (const edge of fading) drawEdge(g, edge, isolatedAlpha, crowded);
     for (const state of ['settled', 'open', 'disputed']) {
-      for (const edge of edges.values()) if (edge.state === state) drawEdge(g, edge, isolatedAlpha, crowded);
+      for (const edge of edges.values())
+        if (edge.state === state) drawEdge(g, edge, isolatedAlpha, crowded);
     }
 
     // Points.
@@ -857,7 +936,9 @@ export function init(root, ctx) {
     // reachable by pointer and in the list).
     if (labels) {
       g.font = `400 12px ${font}`;
-      const ordered = [...nodes.values()].filter((n) => !n.ghost).sort((a, b) => b.degree - a.degree || b.r - a.r);
+      const ordered = [...nodes.values()]
+        .filter((n) => !n.ghost)
+        .sort((a, b) => b.degree - a.degree || b.r - a.r);
       for (const node of ordered) {
         const text = labelText(node.name, node.id);
         const w = g.measureText(text).width;
@@ -868,7 +949,10 @@ export function init(root, ctx) {
         ];
         const side = sides.find(
           ({ rect }) =>
-            rect.x >= 0 && rect.x + w <= area.width && !placed.some((p) => overlaps(rect, p)) && !rectOnAnyNode(rect, node),
+            rect.x >= 0 &&
+            rect.x + w <= area.width &&
+            !placed.some((p) => overlaps(rect, p)) &&
+            !rectOnAnyNode(rect, node),
         );
         if (!side) continue;
         placed.push(side.rect);
@@ -916,7 +1000,6 @@ export function init(root, ctx) {
     canvas.setAttribute('aria-label', label);
   }
 
-
   /** "9 open here" from the open-agreement list, or why it cannot be said. */
   function openHereText(id) {
     if (failures.open) return 'open lines unavailable';
@@ -933,9 +1016,7 @@ export function init(root, ctx) {
   function renderList() {
     if (!bundles) return;
     bundles.replaceChildren();
-    const rows = bundleLabels
-      .filter(({ a, b }) => a && b)
-      .sort((x, y) => y.total - x.total);
+    const rows = bundleLabels.filter(({ a, b }) => a && b).sort((x, y) => y.total - x.total);
     bundles.hidden = rows.length === 0;
     for (const { a, b, text } of rows) {
       const li = document.createElement('li');
@@ -967,7 +1048,10 @@ export function init(root, ctx) {
           ? 'the dashed line is the most recently settled agreement'
           : `dashed lines are the ${formatInteger(settledShown)} most recently settled agreements`,
       );
-      if (bundleLabels.length) parts.push(`more than ${BUNDLE_CAP} lines of a kind between two agents are counted in the list`);
+      if (bundleLabels.length)
+        parts.push(
+          `more than ${BUNDLE_CAP} lines of a kind between two agents are counted in the list`,
+        );
     }
     if (failures.agents) parts.push(`agents could not be read: ${failures.agents}`);
     if (failures.open) parts.push(`open agreements could not be read: ${failures.open}`);
@@ -986,15 +1070,30 @@ export function init(root, ctx) {
     const lines = [];
     if (node.ghost) {
       const drawn = linesAt(edges, node.id, { drawnOnly: true });
-      lines.push([shortAddress(node.id), true], [node.reason, false], [`${drawn} ${drawn === 1 ? 'line' : 'lines'} drawn`, false]);
+      lines.push(
+        [shortAddress(node.id), true],
+        [node.reason, false],
+        [`${drawn} ${drawn === 1 ? 'line' : 'lines'} drawn`, false],
+      );
     } else {
-      lines.push([node.name ? `${node.name} · ${shortAddress(node.id)}` : shortAddress(node.id), true]);
+      lines.push([
+        node.name ? `${node.name} · ${shortAddress(node.id)}` : shortAddress(node.id),
+        true,
+      ]);
       lines.push([node.id, false]);
-      lines.push([`${formatCmn(node.stakePlancks)} CMN staked · activity ${formatInteger(node.activity ?? 0)}`, false]);
+      lines.push([
+        `${formatCmn(node.stakePlancks)} CMN staked · activity ${formatInteger(node.activity ?? 0)}`,
+        false,
+      ]);
       lines.push([openHereText(node.id), false]);
       lines.push([providerText(node), false]);
       if (node.leaving) lines.push(['leaving — unstake requested', false]);
-      lines.push([lastPointerType === 'touch' ? 'tap again to open in the explorer' : 'click to open in the explorer', false]);
+      lines.push([
+        lastPointerType === 'touch'
+          ? 'tap again to open in the explorer'
+          : 'click to open in the explorer',
+        false,
+      ]);
     }
     return lines;
   }
@@ -1083,7 +1182,11 @@ export function init(root, ctx) {
       return;
     }
     if (!node.ghost) {
-      window.open(`${ctx.EXPLORER_ORIGIN}/activity?agent=${encodeURIComponent(node.id)}`, '_blank', 'noopener');
+      window.open(
+        `${ctx.EXPLORER_ORIGIN}/activity?agent=${encodeURIComponent(node.id)}`,
+        '_blank',
+        'noopener',
+      );
     }
   });
 
@@ -1108,7 +1211,10 @@ export function init(root, ctx) {
           activeEscrowCount: ctx.field(item, 'activeEscrowCount'),
           // Both are documented as nullable: null is "none", not a missing field.
           name: item.metadata === null ? null : ctx.field(item, 'metadata.name'),
-          leaving: item.unstakeAtBlock === null ? false : Number.isFinite(ctx.field(item, 'unstakeAtBlock')),
+          leaving:
+            item.unstakeAtBlock === null
+              ? false
+              : Number.isFinite(ctx.field(item, 'unstakeAtBlock')),
         }));
         agentsComplete = record.complete;
         failures.agents = null;

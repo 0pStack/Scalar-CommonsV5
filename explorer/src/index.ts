@@ -27,12 +27,17 @@ const host = process.env.EXPLORER_HOST ?? '127.0.0.1';
 // depends on it: every other view still reads the node alone.
 const indexerUrl = process.env.EXPLORER_INDEXER_URL ?? 'http://127.0.0.1:8080';
 if (!/^https?:\/\//.test(indexerUrl)) {
-  throw new Error(`EXPLORER_INDEXER_URL must be an http:// or https:// URL, not ${JSON.stringify(indexerUrl)}`);
+  throw new Error(
+    `EXPLORER_INDEXER_URL must be an http:// or https:// URL, not ${JSON.stringify(indexerUrl)}`,
+  );
 }
 
 const chain = await connectExplorerChain({ rpcEndpoint });
 const info = chain.chainInfo();
-const server = createExplorerServer({ chain, activity: createIndexerClient({ baseUrl: indexerUrl }) });
+const server = createExplorerServer({
+  chain,
+  activity: createIndexerClient({ baseUrl: indexerUrl }),
+});
 
 server.listen(port, host, () => {
   console.log(

@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
-import { renderAccount, renderBlock, renderError, renderExtrinsic, renderHome } from '../src/render.js';
+import {
+  renderAccount,
+  renderBlock,
+  renderError,
+  renderExtrinsic,
+  renderHome,
+} from '../src/render.js';
 import type { AccountView, BlockView, ChainInfo, ExtrinsicView, HomeView } from '../src/types.js';
 
 const ALICE = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';

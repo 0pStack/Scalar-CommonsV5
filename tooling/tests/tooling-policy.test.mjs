@@ -27,6 +27,10 @@ test('every workspace uses one exact Vitest version', () => {
 test('offline suites keep Vitest default timeouts and parallelism', () => {
   for (const workspace of ['faucet', 'indexer', 'explorer']) {
     const config = readFileSync(join(root, workspace, 'vitest.config.ts'), 'utf8');
-    assert.doesNotMatch(config, /testTimeout|hookTimeout|fileParallelism/, `${workspace} still has live-suite settings`);
+    assert.doesNotMatch(
+      config,
+      /testTimeout|hookTimeout|fileParallelism/,
+      `${workspace} still has live-suite settings`,
+    );
   }
 });

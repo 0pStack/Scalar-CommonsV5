@@ -54,7 +54,13 @@ export async function escrowRoundTrip(api, ledger, buyer, provider, amountPlanck
 
   const c = await submit(
     api,
-    api.tx.escrow.createAgreement(provider.address, amountPlancks, hash32(`${tag}:deliverable`), deliverBy, null),
+    api.tx.escrow.createAgreement(
+      provider.address,
+      amountPlancks,
+      hash32(`${tag}:deliverable`),
+      deliverBy,
+      null,
+    ),
     buyer,
   );
   recordExtrinsic(ledger);

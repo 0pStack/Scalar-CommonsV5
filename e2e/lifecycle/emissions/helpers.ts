@@ -1,14 +1,14 @@
-import { ApiPromise, WsProvider } from "@polkadot/api";
-import { Keyring } from "@polkadot/keyring";
-import type { KeyringPair } from "@polkadot/keyring/types";
-import type { Codec, ISubmittableResult } from "@polkadot/types/types";
-import { cryptoWaitReady } from "@polkadot/util-crypto";
-import { SS58_PREFIX } from "@scalar-commons/sdk";
+import { ApiPromise, WsProvider } from '@polkadot/api';
+import { Keyring } from '@polkadot/keyring';
+import type { KeyringPair } from '@polkadot/keyring/types';
+import type { Codec, ISubmittableResult } from '@polkadot/types/types';
+import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { SS58_PREFIX } from '@scalar-commons/sdk';
 
-export const WS = process.env.SCALAR_WS ?? "ws://127.0.0.1:9955";
+export const WS = process.env.SCALAR_WS ?? 'ws://127.0.0.1:9955';
 
 /** Decode a storage/const value to bigint. */
-export const big = (c: Codec): bigint => BigInt(c.toString().replace(/,/g, ""));
+export const big = (c: Codec): bigint => BigInt(c.toString().replace(/,/g, ''));
 
 export async function connect(): Promise<ApiPromise> {
   return ApiPromise.create({ provider: new WsProvider(WS) });
@@ -16,7 +16,7 @@ export async function connect(): Promise<ApiPromise> {
 
 export async function keyring(): Promise<Keyring> {
   await cryptoWaitReady();
-  return new Keyring({ type: "sr25519", ss58Format: SS58_PREFIX });
+  return new Keyring({ type: 'sr25519', ss58Format: SS58_PREFIX });
 }
 
 export interface Outcome {
@@ -30,12 +30,13 @@ export interface Outcome {
 /** Sign, send and wait for inclusion; decode the module error if there is one. */
 async function sendOnce(
   api: ApiPromise,
-  tx: ReturnType<ApiPromise["tx"]["system"]["remark"]>,
+  tx: ReturnType<ApiPromise['tx']['system']['remark']>,
   signer: KeyringPair,
 ): Promise<Outcome> {
   return new Promise((resolve, reject) => {
     tx.signAndSend(signer, { nonce: -1 }, (result) => {
-      if (result.isError) return reject(new Error(`tx dropped (usurped): ${result.status.toString()}`));
+      if (result.isError)
+        return reject(new Error(`tx dropped (usurped): ${result.status.toString()}`));
       if (!result.isInBlock) return;
       let error: string | null = null;
       const events: string[] = [];
@@ -72,7 +73,7 @@ const RETRYABLE = /1012|1013|1014|Priority is too low|usurped|nonce/i;
  */
 export async function send(
   api: ApiPromise,
-  tx: ReturnType<ApiPromise["tx"]["system"]["remark"]>,
+  tx: ReturnType<ApiPromise['tx']['system']['remark']>,
   signer: KeyringPair,
 ): Promise<Outcome> {
   let last: unknown;

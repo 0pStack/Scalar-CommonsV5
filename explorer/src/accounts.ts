@@ -31,7 +31,12 @@ function isAccountId(value: unknown): value is GenericAccountId {
   return value instanceof GenericAccountId;
 }
 
-function walk(value: unknown, depth: number, sink: (address: string) => void, ss58Format: number): void {
+function walk(
+  value: unknown,
+  depth: number,
+  sink: (address: string) => void,
+  ss58Format: number,
+): void {
   if (value === null || value === undefined || depth > MAX_DEPTH) {
     return;
   }
@@ -65,7 +70,11 @@ function walk(value: unknown, depth: number, sink: (address: string) => void, ss
     return;
   }
 
-  const codec = value as Partial<Codec> & { value?: unknown; isSome?: boolean; unwrap?: () => unknown };
+  const codec = value as Partial<Codec> & {
+    value?: unknown;
+    isSome?: boolean;
+    unwrap?: () => unknown;
+  };
 
   // Option: only a Some carries anything, and unwrapping a None throws.
   if (typeof codec.isSome === 'boolean' && typeof codec.unwrap === 'function') {

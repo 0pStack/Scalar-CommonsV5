@@ -23,7 +23,12 @@ test('security outranks every other label, on the PR or a closed issue', () => {
 
 test('an entry links the PR and every issue it closes', () => {
   assert.equal(
-    entryLine({ repo: REPO, number: 121, title: 'runtime: ship quick-fix bundle (#19)', closes: [19] }),
+    entryLine({
+      repo: REPO,
+      number: 121,
+      title: 'runtime: ship quick-fix bundle (#19)',
+      closes: [19],
+    }),
     `- runtime: ship quick-fix bundle ([#121](${REPO}/pull/121), closes [#19](${REPO}/issues/19))`,
   );
   assert.equal(
@@ -52,7 +57,8 @@ test('adding the same PR twice is a no-op, so a re-run cannot duplicate it', () 
 });
 
 test('entries never leak into an already released section', () => {
-  const log = '# Changelog\n\n## Unreleased\n\n## [v0.5.0] - 2026-10-20\n\n### Fixed\n\n- old ([#1](x/pull/1))\n';
+  const log =
+    '# Changelog\n\n## Unreleased\n\n## [v0.5.0] - 2026-10-20\n\n### Fixed\n\n- old ([#1](x/pull/1))\n';
   const out = addEntry(log, 'Fixed', '- new ([#2](x/pull/2))');
   assert.equal(
     out,
@@ -62,7 +68,10 @@ test('entries never leak into an already released section', () => {
 
 test('content under Unreleased that would be lost on a rewrite is refused, not dropped', () => {
   const prose = '# Changelog\n\n## Unreleased\n\nA hand-written note.\n';
-  assert.throws(() => addEntry(prose, 'Fixed', '- b ([#2](x/pull/2))'), /Unreleased.*A hand-written note/s);
+  assert.throws(
+    () => addEntry(prose, 'Fixed', '- b ([#2](x/pull/2))'),
+    /Unreleased.*A hand-written note/s,
+  );
   const wrapped = '# Changelog\n\n## Unreleased\n\n### Fixed\n\n- a\n  continued\n';
   assert.throws(() => cutRelease(wrapped, 'v0.6.0', '2026-10-22'), /continued/);
 });
@@ -88,8 +97,14 @@ test('a spec_version change is a minor release, a node change a patch, anything 
 });
 
 test('a forced bump overrides the detected one', () => {
-  assert.equal(nextVersion('v0.5.0', { specChanged: false, nodeChanged: false, force: 'minor' }), 'v0.6.0');
-  assert.equal(nextVersion('v0.5.0', { specChanged: true, nodeChanged: false, force: 'patch' }), 'v0.5.1');
+  assert.equal(
+    nextVersion('v0.5.0', { specChanged: false, nodeChanged: false, force: 'minor' }),
+    'v0.6.0',
+  );
+  assert.equal(
+    nextVersion('v0.5.0', { specChanged: true, nodeChanged: false, force: 'patch' }),
+    'v0.5.1',
+  );
   assert.throws(() => nextVersion('v0.5.0', { force: 'major' }), /force/);
   assert.throws(() => nextVersion('0.5', {}), /tag/);
 });

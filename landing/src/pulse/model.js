@@ -13,7 +13,15 @@ import { shortAddress } from '../observatory/format.js';
 import { EXPLORER_ORIGIN, field } from '../observatory/data.js';
 
 /** The kinds of light, in the order the legend shows them. */
-export const KINDS = ['agreement', 'message', 'settled', 'dispute', 'resolved', 'oracle', 'registered'];
+export const KINDS = [
+  'agreement',
+  'message',
+  'settled',
+  'dispute',
+  'resolved',
+  'oracle',
+  'registered',
+];
 
 /**
  * One row per runtime event the page reacts to. `lifetimeMs` is how long its
@@ -22,14 +30,62 @@ export const KINDS = ['agreement', 'message', 'settled', 'dispute', 'resolved', 
  * (DisputeOpened) returns to the accent and goes.
  */
 export const EVENTS = [
-  { section: 'escrow', method: 'AgreementCreated', kind: 'agreement', lifetimeMs: 400, describe: 'agreement opened' },
-  { section: 'messages', method: 'MessageSent', kind: 'message', lifetimeMs: 1200, describe: 'message sent' },
-  { section: 'escrow', method: 'DeliveryConfirmed', kind: 'settled', lifetimeMs: 1500, describe: 'work paid for' },
-  { section: 'escrow', method: 'DisputeOpened', kind: 'dispute', lifetimeMs: 800, describe: 'dispute opened' },
-  { section: 'escrow', method: 'DisputeResolved', kind: 'resolved', lifetimeMs: 1500, describe: 'dispute resolved' },
-  { section: 'oracle', method: 'OracleResponseSubmitted', kind: 'oracle', lifetimeMs: 500, describe: 'oracle answer' },
-  { section: 'oracle', method: 'BatchResponseSubmitted', kind: 'oracle', lifetimeMs: 500, describe: 'oracle answer' },
-  { section: 'agents', method: 'AgentRegistered', kind: 'registered', lifetimeMs: 600, describe: 'agent joined' },
+  {
+    section: 'escrow',
+    method: 'AgreementCreated',
+    kind: 'agreement',
+    lifetimeMs: 400,
+    describe: 'agreement opened',
+  },
+  {
+    section: 'messages',
+    method: 'MessageSent',
+    kind: 'message',
+    lifetimeMs: 1200,
+    describe: 'message sent',
+  },
+  {
+    section: 'escrow',
+    method: 'DeliveryConfirmed',
+    kind: 'settled',
+    lifetimeMs: 1500,
+    describe: 'work paid for',
+  },
+  {
+    section: 'escrow',
+    method: 'DisputeOpened',
+    kind: 'dispute',
+    lifetimeMs: 800,
+    describe: 'dispute opened',
+  },
+  {
+    section: 'escrow',
+    method: 'DisputeResolved',
+    kind: 'resolved',
+    lifetimeMs: 1500,
+    describe: 'dispute resolved',
+  },
+  {
+    section: 'oracle',
+    method: 'OracleResponseSubmitted',
+    kind: 'oracle',
+    lifetimeMs: 500,
+    describe: 'oracle answer',
+  },
+  {
+    section: 'oracle',
+    method: 'BatchResponseSubmitted',
+    kind: 'oracle',
+    lifetimeMs: 500,
+    describe: 'oracle answer',
+  },
+  {
+    section: 'agents',
+    method: 'AgentRegistered',
+    kind: 'registered',
+    lifetimeMs: 600,
+    describe: 'agent joined',
+  },
 ];
 
 /**
@@ -71,7 +127,8 @@ const rowOrThrow = (event) => {
 export function partiesOf(event) {
   const row = rowOrThrow(event);
   const data = field(event, 'data');
-  if (AGREEMENT_KINDS.has(row.kind)) return { from: field(data, 'buyer'), to: field(data, 'provider') };
+  if (AGREEMENT_KINDS.has(row.kind))
+    return { from: field(data, 'buyer'), to: field(data, 'provider') };
   if (row.kind === 'message') return { from: field(data, 'from'), to: field(data, 'to') };
   if (row.kind === 'oracle') return { from: field(data, 'agent'), to: null };
   return { from: field(data, 'who'), to: null };
@@ -92,7 +149,8 @@ export function agreementKeyOf(event) {
   const row = kindOf(event);
   if (!row) return null;
   const data = field(event, 'data');
-  if (AGREEMENT_KINDS.has(row.kind)) return agreementKey(field(data, 'buyer'), field(data, 'provider'), field(data, 'seq'));
+  if (AGREEMENT_KINDS.has(row.kind))
+    return agreementKey(field(data, 'buyer'), field(data, 'provider'), field(data, 'seq'));
   if (row.kind !== 'message') return null;
   const agreement = data.agreement; // nullable by design: not every message is about an agreement
   if (!Array.isArray(agreement) || agreement.length !== 2) return null;
