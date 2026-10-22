@@ -46,6 +46,6 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@noble/curves": "^1.9.7"
+    "@noble/curves": "^2.4.0"
   }
 }
