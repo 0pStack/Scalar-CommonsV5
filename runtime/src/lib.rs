@@ -860,6 +860,8 @@ impl pallet_identity::Config for Runtime {
     type WeightInfo = pallet_identity::weights::SubstrateWeight<Runtime>;
     type UsernameDeposit = UsernameDeposit;
     type UsernameGracePeriod = UsernameGracePeriod;
+    #[cfg(feature = "runtime-benchmarks")]
+    type BenchmarkHelper = ();
 }
 
 // ImOnline removed M1
