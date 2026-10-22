@@ -225,7 +225,7 @@ while :; do
   (
     cd "$WORKDIR" || exit 1
     timeout --signal=TERM --kill-after=30s "${REMAIN_SECS}s" \
-      claude -p "$(cat "$PROMPTFILE")" --dangerously-skip-permissions
+      claude -p "$(cat "$PROMPTFILE")" --model "$FACTORY_MODEL" --dangerously-skip-permissions
   ) >"$AGENT_LOG" 2>&1
   AGENT_RC=$?
   set -e

@@ -2,7 +2,7 @@
 name: kg-updater
 description: Use PROACTIVELY at the end of any completed issue, merged PR, experiment run, or design decision, to record it in the project knowledge graph files under knowledge/. Appends entities and relations; never rewrites history; never touches code.
 tools: Read, Write, Edit, Grep, Glob
-model: haiku
+model: claude-opus-5-5
 ---
 
 You maintain the Scalar Commons knowledge graph — the shared state that lets

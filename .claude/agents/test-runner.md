@@ -2,7 +2,7 @@
 name: test-runner
 description: Use PROACTIVELY after code changes to run affected Scalar Commons tests and matching Rust, npm, docs, shell, or workflow gates. Returns raw pass/fail evidence with failure excerpts. Never modifies code.
 tools: Read, Bash, Grep, Glob
-model: haiku
+model: claude-opus-5-5
 ---
 
 # Test runner

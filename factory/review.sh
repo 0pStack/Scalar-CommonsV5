@@ -342,8 +342,8 @@ fi
 
 [ -s "$WORK/allfiles.txt" ] || die "PR #$PR has an empty diff"
 
-# Which model the lenses run on, decided once from the diff and used by every
-# lens so all three judge the same way. See run_lens for the reasoning.
+# Which model the lenses run on: FACTORY_MODEL from config.env, the same for
+# every lens so all three judge the same way. See run_lens for the reasoning.
 #
 # LENS_MODEL can be set in the environment to override, but ONLY to a name on
 # this list. The standing-rule lens objected to the unvalidated version on this
@@ -362,7 +362,7 @@ fi
 # single bogus value. Caught by the spec-conformance lens on this PR's review;
 # an allow-list that can be satisfied by concatenating its own entries is not an
 # allow-list.
-LENS_MODEL_ALLOWED="opus sonnet"
+LENS_MODEL_ALLOWED="$FACTORY_MODEL"
 if [ -n "${LENS_MODEL:-}" ]; then
   _lm_ok=0
   for _lm in $LENS_MODEL_ALLOWED; do
@@ -372,13 +372,9 @@ if [ -n "${LENS_MODEL:-}" ]; then
   log "lens model overridden from the environment: $LENS_MODEL"
   unset _lm _lm_ok
 else
-  if grep -qE '^(runtime|pallets)/' "$WORK/allfiles.txt"; then
-    LENS_MODEL=opus
-  else
-    LENS_MODEL=sonnet
-  fi
+  LENS_MODEL="$FACTORY_MODEL"
 fi
-log "lens model: $LENS_MODEL ($(grep -cE '^(runtime|pallets)/' "$WORK/allfiles.txt" || true) of $(grep -c . "$WORK/allfiles.txt") changed path(s) under runtime/ or pallets/)"
+log "lens model: $LENS_MODEL"
 
 # ------------------------------------------------- bind the review to a SHA --
 # Record the exact commit these lenses are about to read. This is what makes
@@ -723,18 +719,12 @@ run_lens() {
   # and E2BIG cannot recur at any diff size. The caps below exist for
   # reviewability, NOT to keep an argv string under a limit.
   #
-  # MODEL: sonnet, except opus when this diff touches runtime/ or pallets/ —
-  # the consensus and economic code, where the reviewer should not be weaker
-  # than the change it is judging. Chosen explicitly rather than left to the
-  # CLI default (LAB decision, 27 Sep 2026).
-  #
-  # It was briefly opus for EVERY lens. That was set when loops billed a
-  # metered API key, where the cost of three opus calls per review is linear
-  # and predictable. This box now bills a Max subscription, where the cost is a
-  # rate limit instead — three opus lenses per review hit one within hours on
-  # 27 Sep, and a rate limit pauses dispatch, every worker and every lens at
-  # once. Sonnet by default keeps the review cadence affordable; the diffs that
-  # actually warrant opus are named above.
+  # MODEL: FACTORY_MODEL (config.env) for every lens. Until 22 Oct 2026 this
+  # was sonnet, with opus only for diffs under runtime/ or pallets/, because
+  # three opus lenses per review hit the Max rate limit within hours on 27 Sep
+  # and a rate limit pauses dispatch, every worker and every lens at once.
+  # Moving all lenses to Opus 5.5 was a deliberate choice; if rate limits
+  # return, start_backoff below still engages.
   ( cd "$WORK" && timeout "$REVIEW_LENS_TIMEOUT" claude -p --model "$LENS_MODEL" --dangerously-skip-permissions ) \
     < "$pf" > "$out" 2> "$err"
   rc=$?
