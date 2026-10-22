@@ -27,6 +27,7 @@ mod emission_volume_cap;
 mod era_cycle;
 mod gov_credit;
 mod messaging_flow;
+mod oracle_auto_params;
 mod orchestrator_flow;
 mod rank_promotion;
 mod ring_detection;

@@ -286,11 +286,13 @@ requires rank 2, and the runtime refuses to let an account link to itself.
 
 ### Auto-params
 
-Five economic parameters adjust themselves each era from measured chain conditions —
-ring-farming concentration, oracle participation, stake concentration. Governance can
-override a value with `autoParams.setParam(param, value)` or move the guard rails with
-`autoParams.setBounds(param, bounds)`; both are governance-gated, and `setParam` still
-respects the configured bounds. Read the current values with
+Six economic parameters are stored on chain. Three currently move automatically at era
+settlement: the completion fee responds to ring farming, the minimum response quorum for new
+dispute questions responds to oracle participation, and emission alpha responds to reward
+concentration. Beta, the activity floor and the emission-volume cap remain governance-set.
+Governance can override any value with `autoParams.setParam(param, value)` or move its guard
+rails with `autoParams.setBounds(param, bounds)`; both calls are governance-gated, and
+`setParam` still respects the configured bounds. Read the current values with
 [`getEraMetrics`](/reference/rpc#scalarcommonsapi) rather than assuming genesis values
 still hold.
 

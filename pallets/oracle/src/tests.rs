@@ -145,6 +145,7 @@ impl super::Config for Test {
     type MinChallengeWindow = MinChallengeWindow;
     type MinConsensusThreshold = MinConsensusThreshold;
     type MaxResponsesPerRequest = MaxResponsesPerReq;
+    type MinResponses = ConstU32<3>;
     type DisputeCallback = RecordingDisputeCallback;
     type CapabilityChecker = (); // permissive in tests
     type MaxBatchSubmissions = ConstU32<20>;

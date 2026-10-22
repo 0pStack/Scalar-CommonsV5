@@ -187,18 +187,21 @@ All values verified against source. "Live value" is the effective genesis value.
 | `MaxEmissionOverrideEras` | 10 | `:1048` | override horizon |
 | `OrchestratorEmissionMultiplier` | 5,000 | `:1051` | orch carve-out |
 
-### 2.2 Auto-params genesis values (dynamic inputs to the formula) — `runtime/src/lib.rs`
+### 2.2 Auto-params genesis values (storage-backed economic parameters) — `runtime/src/lib.rs`
 
-These are **storage-backed and auto-params-adjustable each era**; the values below are the
-genesis initializers. They are read fresh inside `settle_era` (§1.2 inputs).
+These are **storage-backed parameters**; the values below are genesis initializers.
+Consumers read the current value at the point of use. The rule engine automatically moves
+completion fee, minimum oracle responses and alpha; governance can move every parameter
+inside its configured bounds.
 
-| Param | Genesis value | Source (`file:line`) | Formula role |
+| Param | Genesis value | Source | Live role |
 |---|---|---|---|
-| `InitialAlpha` → `alpha()` | 4,000 | `:1065`, `:1081` | gov weight (STEP 6) |
-| `InitialBeta` → `beta()` | 5,000 | `:1066`, `:1082` | work weight (STEP 7) |
-| `InitialFloorBps` → `floor_bps()` | 1,000 | `:1067`, `:1083` | floor activity (STEP 5/7) |
-| `InitialMinScoreEligible` | 5 | `:1068`, `:1084` | oracle eligibility |
-| `InitialCompletionFeeBps` | 25 (**0.25%**, bps of value) | `:1064`, `:1080` | escrow completion fee |
+| `InitialAlpha` → `alpha()` | 1,500 | `AutoInitialAlpha` | governance weight (STEP 6) |
+| `InitialBeta` → `beta()` | 5,000 | `AutoInitialBeta` | work weight (STEP 7) |
+| `InitialFloorBps` → `floor_bps()` | 1,000 | `AutoInitialFloorBps` | floor activity (STEP 5/7) |
+| `InitialMinScoreEligible` | 5 | `AutoInitialMinScore` | minimum responses on newly-created dispute questions |
+| `InitialCompletionFeeBps` | 25 (**0.25%**, bps of value) | `AutoInitialFeeBps` | escrow completion fee |
+| `InitialEmissionVolumeAlphaBps` | 10,000 (1.0× volume) | `AutoInitialEmissionVolumeAlphaBps` | era emission-volume cap |
 
 Bounds (auto-params, `pallets/auto-params/src/lib.rs:190-192`): `CompletionFeeBps` max
 2,500 bps (25%), `max_step` 25 bps/era.

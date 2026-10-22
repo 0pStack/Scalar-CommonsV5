@@ -350,10 +350,28 @@ Four properties of that arithmetic are load-bearing:
    `work_score > 0`. Voting on everything while selling nothing contributes zero, by
    construction. Votes are also verified against `convictionVoting.votingFor` rather than
    self-asserted.
-4. **`alpha`, `beta` and `floor_bps` are read fresh every era**, not fixed at genesis —
-   pallet-auto-params adjusts them from measured conditions. The table above is the genesis
-   initializer; query the live value with
-   [`getEraMetrics`](/reference/rpc#scalarcommonsapi).
+4. **`alpha`, `beta` and `floor_bps` are read fresh every era**, rather than fixed at
+   genesis. The concentration rule can adjust `alpha`; `beta` and `floor_bps` currently move
+   only through bounded governance calls. The table above is the genesis initializer; query
+   the live value with [`getEraMetrics`](/reference/rpc#scalarcommonsapi).
+
+### Oracle participation quorum
+
+At each era settlement, the oracle-participation rule moves
+`autoParams.minScoreEligibleResponses` by at most one: below 40% successful questions lowers
+the value, while above 90% raises it, after the minimum question count is met. Runtime spec 314
+wires that live value into every newly-created dispute question; existing questions keep the
+quorum stored when they were created. User-created factual requests continue to carry the
+caller's explicit bounded quorum.
+
+The runtime clamps the live value to `1..oracle.maxResponsesPerRequest` when it creates a
+dispute question. That prevents a mistaken governance bound from making new disputes
+impossible to finalise. The gaming trade-off remains visible: withholding responses can lower
+future quorum and reduce security, while easy questions can raise it and reduce liveness.
+The per-era one-step limit, 3–20 default bounds, minimum-question gate, bounty, capability checks
+and response deadline limit how quickly either strategy changes the system. Operators should
+monitor both participation and the live quorum rather than treating the rule as a fixed
+safeguard.
 
 ### Rank, heartbeat, and the bonuses
 
