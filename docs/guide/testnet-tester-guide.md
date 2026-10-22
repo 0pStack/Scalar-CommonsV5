@@ -510,28 +510,30 @@ Three calls, in this order, and the middle one has a timing guard:
 | 2 | `acceptEscrow(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
 | 3 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
 
-::: warning Provider consent and expiry are NOT shipped
-An earlier version of this page said spec 307 added `escrow.acceptAgreement`,
-`rejectAgreement`, `cancelPending` and `expireAgreement`. **It does not.** Spec 307 is live on
-the public testnet and none of those four calls exist in it — nor in spec 309, nor on `master`.
-Neither does the `NotAccepted` error the old text referred to.
+::: warning Provider consent is required since spec 309
+Since spec 309 (applied at block 907929) a provider must consent before it can deliver.
+`escrow.createAgreement` leaves the agreement pending; the provider calls
+`escrow.acceptAgreement(buyer, seq)`, and until it does, `escrow.recordDelivery` fails with
+`NotAccepted`. On a 309+ chain the lifecycle is create → accept → deliver → confirm: an
+accept step sits between rows 1 and 2 of the table above.
 
-The complete escrow call list in live spec 307, read from the chain's own metadata:
+The other consent and expiry calls:
 
-```text
-createAgreement  recordDelivery  confirmDelivery
-disputeDelivery  claimRefund     extendDeadline
-```
+- `escrow.rejectAgreement(buyer, seq)` — the provider declines a pending agreement; the
+  buyer's reserve is released in full.
+- `escrow.cancelPending(provider, seq)` — the buyer withdraws a pending agreement, available
+  immediately, for the full amount. `claimRefund` refuses a pending agreement with
+  `NotAccepted`; this is the way out instead.
+- `escrow.expireAgreement(buyer, provider, seq)` — any signed account may close an agreement
+  once its status's window plus a 10-block grace has passed; the refund goes to the buyer.
 
-So the lifecycle is exactly the three steps in the table above — create → deliver → confirm.
-There is no accept step to wait for, and a provider does not need to consent before you can
-`recordDelivery`.
+Agreements created before 309 are treated as already accepted.
 
-Provider consent and the expiry path are **designed but unmerged**: see
-`pallets/escrow/DESIGN-E18-E2.md`, [issue #180](https://github.com/tejaspatil1936/scalar-commons-v4/issues/180)
-and PRs [#204](https://github.com/tejaspatil1936/scalar-commons-v4/pull/204) /
-[#233](https://github.com/tejaspatil1936/scalar-commons-v4/pull/233). When they ship, this page
-gets the table back with a version number that has been checked against a running chain.
+The SDK does not wrap the consent calls yet, and its `acceptEscrow` (row 2) sends
+`recordDelivery`, not acceptance ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
+
+An earlier version of this page said none of these calls existed in 307, 309 or `master`.
+That was right for 307 and wrong from 309 on.
 
 **Check for yourself rather than trusting this page** — it is the habit that would have caught
 the error above:

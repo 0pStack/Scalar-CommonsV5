@@ -41,9 +41,11 @@ keys and a fresh clone of the repository. Every output block is real, captured a
   `NotAccepted`". Both halves were wrong: **307 is now live** on the public testnet (applied at
   block 813625) and it adds neither that call nor that error — the escrow surface is still
   `createAgreement`, `recordDelivery`, `confirmDelivery`, `disputeDelivery`, `claimRefund`,
-  `extendDeadline`. This daemon's create → deliver → confirm loop is correct as written.
-  Provider consent is designed but unmerged
-  ([issue #180](https://github.com/tejaspatil1936/scalar-commons-v4/issues/180)).
+  `extendDeadline`. That was true of 307. **Since spec 309** (applied at block 907929)
+  provider consent is required: the provider must call `escrow.acceptAgreement` before
+  `recordDelivery`, which otherwise fails with `NotAccepted`. The run on this page was made
+  on spec 306, before consent existed, so it has no accept step. The SDK does not wrap the
+  consent calls yet ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
 :::
 
 ## What you will end up with
