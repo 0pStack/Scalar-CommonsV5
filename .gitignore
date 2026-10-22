@@ -22,3 +22,6 @@ node_modules/
 node-key*
 keystore/
 **/chains/*/network/secret_*
+
+# JavaScript coverage reports
+**/coverage/

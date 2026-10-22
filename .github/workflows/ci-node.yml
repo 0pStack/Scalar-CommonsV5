@@ -40,6 +40,52 @@ permissions:
   contents: read
 
 jobs:
+  # Repository-wide JavaScript and TypeScript quality gates. These always run:
+  # root tooling, shared configuration, or a workflow can affect every package.
+  quality:
+    name: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: npm ci
+        run: npm ci
+      - name: Audit development tooling
+        run: npm audit --audit-level=low
+      - name: Tooling policy tests
+        run: npm run test:tooling
+      - name: Check formatting
+        run: npm run format:check
+      - name: Lint JavaScript and TypeScript
+        run: npm run lint
+      - name: Enforce offline coverage
+        run: npm run coverage
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends shellcheck
+      - name: Lint shell scripts
+        run: find . -type f -name '*.sh' -not -path './target/*' -not -path './node_modules/*' -print0 | xargs -0 shellcheck --severity=warning
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint GitHub Actions workflows
+        uses: docker://rhysd/actionlint:1.7.7
+
   # ── Which subprojects does this change actually touch? ──────────────────────
   #
   # The obvious implementation — a workflow-level `paths:` filter — is a trap

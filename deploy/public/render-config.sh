@@ -27,8 +27,10 @@ _env_LANDING_DIST="${LANDING_DIST-}"
 _env_DOCS_DIST="${DOCS_DIST-}"
 _env_ACME_WEBROOT="${ACME_WEBROOT-}"
 
+set -a
 # shellcheck source=/dev/null
-set -a; . "$ENV_FILE"; set +a
+. "$ENV_FILE"
+set +a
 
 # ...then put it back. Environment wins over the file, never the other way.
 # Written as if/fi, not `[ -n x ] && VAR=y`: under `set -e` a false AND-list is

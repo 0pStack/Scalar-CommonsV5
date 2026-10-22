@@ -64,7 +64,7 @@ run >/dev/null
 [ "$(builds)" = 2 ] || fail "docs merge did not build"
 [ "$(cat "$T/www/docs/index.html")" = v2 ] || fail "docs merge not published"
 [ "$(cat "$T/www/landing/index.html")" = v2 ] || fail "landing not published"
-[ -z "$(ls -A "$T/www" | grep -v '^landing$\|^docs$' || true)" ] || fail "staging left behind: $(ls -A "$T/www")"
+[ -z "$(find "$T/www" -mindepth 1 -maxdepth 1 ! -name landing ! -name docs -print -quit)" ] || fail "staging left behind: $(ls -A "$T/www")"
 pass "4 docs merge: built, swapped, no staging left"
 
 good="$(cat "$T/state/last-deployed-sha")"
@@ -73,6 +73,6 @@ if run >/dev/null 2>&1; then fail "failed build exited 0"; fi
 [ "$(cat "$T/www/docs/index.html")" = v2 ] || fail "failed build touched the live docs"
 [ "$(cat "$T/www/landing/index.html")" = v2 ] || fail "failed build touched the live landing"
 [ "$(cat "$T/state/last-deployed-sha")" = "$good" ] || fail "failed build advanced the SHA"
-[ -z "$(ls -A "$T/www" | grep -v '^landing$\|^docs$' || true)" ] || fail "failed build left staging: $(ls -A "$T/www")"
+[ -z "$(find "$T/www" -mindepth 1 -maxdepth 1 ! -name landing ! -name docs -print -quit)" ] || fail "failed build left staging: $(ls -A "$T/www")"
 pass "5 failed build: live site untouched, SHA not advanced, staging removed"
 echo "ALL PASS"
