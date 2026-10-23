@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadConfig } from '../src/config.js';
 import { isLoopbackWs } from '../src/loopback.js';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
 describe('loadConfig', () => {
   const base = { AGENT_MNEMONIC: 'test test test test test test test test test test test junk' };
@@ -10,7 +11,7 @@ describe('loadConfig', () => {
     expect(c.ws).toBe('ws://127.0.0.1:9944');
     expect(c.mode).toBe('provider');
     expect(c.heartbeatEveryBlocks).toBe(600n);
-    expect(c.stake).toBe(1000n * 1_000_000_000_000n);
+    expect(c.stake).toBe(1000n * PLANCKS_PER_CMN);
     expect(c.name).toBe('operator-reference-agent');
   });
 

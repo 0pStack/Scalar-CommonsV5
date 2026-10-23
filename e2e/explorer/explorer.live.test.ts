@@ -7,6 +7,7 @@ import { Keyring } from '@polkadot/keyring';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import type { AccountInfo, EventRecord } from '@polkadot/types/interfaces';
 import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
+import { PLANCKS_PER_CMN, SS58_PREFIX } from '@scalar-commons/sdk';
 
 import { createIndexerClient } from '../../explorer/src/activity.js';
 import { connectExplorerChain, type ExplorerChain } from '../../explorer/src/chain.js';
@@ -32,7 +33,7 @@ await availabilityApi?.disconnect();
 /** Genesis-endowed devnet account used only to author one real signed extrinsic. */
 const TEST_SEED = process.env.EXPLORER_TEST_SEED ?? '//Eve';
 
-const ONE_CMN = 1_000_000_000_000n;
+const ONE_CMN = PLANCKS_PER_CMN;
 
 let api: ApiPromise;
 let chain: ExplorerChain;
@@ -98,7 +99,7 @@ async function submitTransfer(sender: KeyringPair, recipient: string): Promise<F
 
 beforeAll(async () => {
   await cryptoWaitReady();
-  keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
+  keyring = new Keyring({ type: 'sr25519', ss58Format: SS58_PREFIX });
 
   api = await connectChain(RPC_ENDPOINT);
 

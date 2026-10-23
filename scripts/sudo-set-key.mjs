@@ -31,32 +31,7 @@
  * current root key, and exits WITHOUT submitting anything.
  */
 
-import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, resolve as pathResolve } from 'node:path';
-
-// `scripts/` is not an npm package and has no node_modules of its own, and ESM
-// bare-specifier resolution does not consult NODE_PATH. So resolve @polkadot
-// out of whichever sibling subproject actually has it installed — sdk/ first,
-// then indexer/ — and import it by file URL. This keeps the script standalone
-// without adding a package.json here or hardcoding an absolute path.
-const HERE = dirname(fileURLToPath(import.meta.url));
-const CANDIDATES = ['../sdk/package.json', '../indexer/package.json'];
-function loadPolkadot(pkg) {
-  let lastErr;
-  for (const c of CANDIDATES) {
-    try {
-      const req = createRequire(pathResolve(HERE, c));
-      return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw new Error(
-    `cannot resolve ${pkg} from sdk/ or indexer/ node_modules — run \`npm ci\` ` +
-      `in one of them first (${lastErr && lastErr.message})`,
-  );
-}
+import { loadPolkadot } from '../sdk/scripts/load-polkadot.mjs';
 
 const { ApiPromise, WsProvider } = await loadPolkadot('@polkadot/api');
 const { Keyring } = await loadPolkadot('@polkadot/keyring');

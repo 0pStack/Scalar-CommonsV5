@@ -4,12 +4,12 @@ import type { Server } from 'node:http';
 
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
+import { CMN_DECIMALS, PLANCKS_PER_CMN, SS58_PREFIX } from '@scalar-commons/sdk';
 
 import { connectChain, type ChainClient } from '../../faucet/src/chain.js';
 import { FaucetService } from '../../faucet/src/faucet.js';
 import { SlidingWindowRateLimiter } from '../../faucet/src/rateLimiter.js';
 import { createFaucetServer } from '../../faucet/src/server.js';
-import { PLANCKS_PER_CMN } from '../../faucet/src/amount.js';
 import { connectLiveSuite } from '../support/chain.js';
 
 /**
@@ -39,11 +39,11 @@ let keyring: Keyring;
 
 beforeAll(async () => {
   await cryptoWaitReady();
-  keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
+  keyring = new Keyring({ type: 'sr25519', ss58Format: SS58_PREFIX });
   chain = await connectChain({
     rpcEndpoint: RPC_ENDPOINT,
     faucetSeed: FAUCET_SEED,
-    ss58Format: 42,
+    ss58Format: SS58_PREFIX,
   });
 });
 
@@ -120,8 +120,8 @@ liveDescribe('live devnet connection', () => {
     // Issue #75 targets spec 304; a later runtime is fine, an earlier one is not.
     expect(info.specVersion).toBeGreaterThanOrEqual(304);
     expect(info.tokenSymbol).toBe('CMN');
-    expect(info.tokenDecimals).toBe(12);
-    expect(info.ss58Format).toBe(42);
+    expect(info.tokenDecimals).toBe(CMN_DECIMALS);
+    expect(info.ss58Format).toBe(SS58_PREFIX);
   });
 
   it('resolves the pre-funded faucet account and finds it solvent', async () => {

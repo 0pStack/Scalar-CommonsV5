@@ -42,28 +42,9 @@
  *   other four nodes reject would still be a failed upgrade.
  */
 
-import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, resolve as pathResolve } from 'node:path';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const CANDIDATES = ['../sdk/package.json', '../indexer/package.json'];
-function loadPolkadot(pkg) {
-  let lastErr;
-  for (const c of CANDIDATES) {
-    try {
-      const req = createRequire(pathResolve(HERE, c));
-      return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw new Error(
-    `cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`,
-  );
-}
+import { loadPolkadot } from '../sdk/scripts/load-polkadot.mjs';
 const { ApiPromise, WsProvider } = await loadPolkadot('@polkadot/api');
 const { Keyring } = await loadPolkadot('@polkadot/keyring');
 const { cryptoWaitReady, blake2AsHex } = await loadPolkadot('@polkadot/util-crypto');

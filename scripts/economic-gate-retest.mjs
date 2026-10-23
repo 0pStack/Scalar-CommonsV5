@@ -40,24 +40,12 @@
  *
  *   node scripts/emissions-zero-override.mjs --era N --schedule-for N
  */
-import { createRequire } from 'node:module';
-import { pathToFileURL, fileURLToPath } from 'node:url';
-import { dirname, resolve as pathResolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { loadPolkadot as load } from '../sdk/scripts/load-polkadot.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const REPO = pathResolve(HERE, '..');
-function load(pkg) {
-  for (const c of ['sdk/package.json', 'indexer/package.json']) {
-    try {
-      const req = createRequire(pathResolve(REPO, c));
-      return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch {
-      /* try next */
-    }
-  }
-  throw new Error(`cannot resolve ${pkg}`);
-}
 const { ApiPromise, WsProvider } = await load('@polkadot/api');
 const { Keyring } = await load('@polkadot/keyring');
 const { cryptoWaitReady, mnemonicGenerate } = await load('@polkadot/util-crypto');

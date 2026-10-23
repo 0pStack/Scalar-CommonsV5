@@ -7,8 +7,9 @@ import {
   planStart,
   registrationNeed,
 } from '../src/onboard-core.js';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
-const CMN = 10n ** 12n;
+const CMN = PLANCKS_PER_CMN;
 // Live on spec 306: agents.minStake 1 000 CMN, agents.baseRegistrationFee 50 CMN,
 // balances.existentialDeposit 0.01 CMN.
 const costs = { stake: 1_000n * CMN, registrationFee: 50n * CMN, existentialDeposit: CMN / 100n };

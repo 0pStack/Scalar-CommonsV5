@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Agent } from '../src/agent.js';
 import type { AgentConfig, AgreementView, Chain } from '../src/types.js';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
 const ME = '5Me';
 const BUYER = '5Buyer';
-const CMN = 1_000_000_000_000n;
+const CMN = PLANCKS_PER_CMN;
 
 interface Fake extends Chain {
   calls: string[];
