@@ -1,7 +1,7 @@
-import type { AddressOrPair, SubmittableExtrinsic } from '@polkadot/api/types';
+import type { AddressOrPair } from '@polkadot/api/types';
 import type { Codec } from '@polkadot/types/types';
 import { hexToU8a, u8aToHex } from '@polkadot/util';
-import { ScalarCommonsClient, submitAndWatch } from '@scalar-commons/sdk';
+import { ScalarCommonsClient, type SubmitResult, submitAndWatch } from '@scalar-commons/sdk';
 import type { AgreementView, Chain } from './types.js';
 
 /**
@@ -32,13 +32,21 @@ interface Entry {
  * Writes go through the SDK client (signed, in-block, no silent retries);
  * reads use polkadot-js storage queries directly, because the SDK has no
  * agreement-listing surface yet. `escrow.acceptAgreement` is feature-detected
- * from the runtime metadata: spec 306 nodes do not have it.
+ * from the runtime metadata: runtimes before spec 309 do not have it.
  */
 export class SdkChain implements Chain {
+  /**
+   * The same SDK client over the same `ApiPromise` (the constructor only stores it, so no
+   * second connection), but single-shot: SDK-wrapped writes that keep #57's policy go here.
+   */
+  private readonly oneShot: ScalarCommonsClient;
+
   constructor(
     private readonly client: ScalarCommonsClient,
     private readonly signer: AddressOrPair,
-  ) {}
+  ) {
+    this.oneShot = new ScalarCommonsClient(client.api, { maxRetries: 0 });
+  }
 
   private get api() {
     return this.client.api;
@@ -121,7 +129,9 @@ export class SdkChain implements Chain {
     // Name the instance so ambient activity is attributable to its operator.
     const meta = this.api.tx.agents?.updateMetadata;
     if (typeof meta !== 'function') return null;
-    return this.send(meta('', name), 'updateMetadata');
+    return this.withDeadline('updateMetadata', () =>
+      submitAndWatch(this.api, meta('', name), this.signer, 'updateMetadata', { maxRetries: 0 }),
+    );
   }
 
   async heartbeat(): Promise<string> {
@@ -129,19 +139,20 @@ export class SdkChain implements Chain {
   }
 
   async acceptAgreement(buyer: string, seq: number): Promise<string> {
-    const call = this.api.tx.escrow?.acceptAgreement;
-    if (typeof call !== 'function')
-      throw new Error('runtime does not expose escrow.acceptAgreement');
-    return this.send(call(buyer, seq), 'acceptAgreement');
+    // On a runtime without the call the SDK throws a named error before signing.
+    return this.withDeadline('acceptAgreement', () =>
+      this.oneShot.acceptAgreement(this.signer, buyer, seq),
+    );
   }
 
   /**
-   * Submit a call the SDK client has no wrapper for. `submitAndWatch` rejects on
+   * Run a single-shot write under the #57 deadline. `submitAndWatch` rejects on
    * Dropped/Invalid/Usurped; the timer covers a subscription that never fires.
-   * `maxRetries: 0` keeps these writes single-shot, as they were (#76 owns retries).
-   * On timeout the SDK's subscription is not cancelled: it has no handle for that (#74).
+   * Callers pass `maxRetries: 0` (or use `oneShot`), keeping these writes single-shot as
+   * they were (#76 owns retries). On timeout the SDK's subscription is not cancelled: it
+   * has no handle for that (#74).
    */
-  private async send(tx: SubmittableExtrinsic<'promise'>, label: string): Promise<string> {
+  private async withDeadline(label: string, submit: () => Promise<SubmitResult>): Promise<string> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(
@@ -155,10 +166,7 @@ export class SdkChain implements Chain {
       );
     });
     try {
-      const { txHash } = await Promise.race([
-        submitAndWatch(this.api, tx, this.signer, label, { maxRetries: 0 }),
-        deadline,
-      ]);
+      const { txHash } = await Promise.race([submit(), deadline]);
       return txHash;
     } finally {
       clearTimeout(timer);
@@ -166,7 +174,7 @@ export class SdkChain implements Chain {
   }
 
   async recordDelivery(buyer: string, seq: number, deliveryHash: string): Promise<string> {
-    return (await this.client.acceptEscrow(this.signer, buyer, seq, deliveryHash)).txHash;
+    return (await this.client.recordDelivery(this.signer, buyer, seq, deliveryHash)).txHash;
   }
 
   async createAgreement(

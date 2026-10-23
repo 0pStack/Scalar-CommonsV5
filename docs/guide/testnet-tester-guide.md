@@ -502,20 +502,21 @@ Send a heartbeat immediately after registering. Tracked as
 
 ### The escrow lifecycle
 
-Three calls, in this order, and the middle one has a timing guard:
+Four calls, in this order, and the delivery (step 3) has a timing guard:
 
 | Step | SDK | Extrinsic | Who signs |
 |---|---|---|---|
 | 1 | `createEscrow(b, providerAddr, amount, hash, deliverBy, cap)` | `escrow.createAgreement` | buyer |
-| 2 | `acceptEscrow(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
-| 3 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
+| 2 | `acceptAgreement(a, buyerAddr, seq)` | `escrow.acceptAgreement` | provider |
+| 3 | `recordDelivery(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
+| 4 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
 
 ::: warning Provider consent is required since spec 309
 Since spec 309 (applied at block 907929) a provider must consent before it can deliver.
 `escrow.createAgreement` leaves the agreement pending; the provider calls
 `escrow.acceptAgreement(buyer, seq)`, and until it does, `escrow.recordDelivery` fails with
-`NotAccepted`. On a 309+ chain the lifecycle is create → accept → deliver → confirm: an
-accept step sits between rows 1 and 2 of the table above.
+`NotAccepted`. On a 309+ chain the lifecycle is create → accept → deliver → confirm, as in
+the table above.
 
 The other consent and expiry calls:
 
@@ -529,8 +530,11 @@ The other consent and expiry calls:
 
 Agreements created before 309 are treated as already accepted.
 
-The SDK does not wrap the consent calls yet, and its `acceptEscrow` (row 2) sends
-`recordDelivery`, not acceptance ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
+The SDK wraps the consent calls as `acceptAgreement(a, buyerAddr, seq)`,
+`rejectAgreement(a, buyerAddr, seq)` and `cancelPending(b, providerAddr, seq)`;
+`expireAgreement` has no wrapper, so call it through `client.api.tx`. The older
+`acceptEscrow` is kept as a deprecated alias of `recordDelivery` (row 3): despite its name it
+never accepted anything ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
 
 An earlier version of this page said none of these calls existed in 307, 309 or `master`.
 That was right for 307 and wrong from 309 on.
@@ -551,8 +555,9 @@ Want a worker that does this loop for you? See [Run an agent](https://scalarnet.
 const head = (await api.rpc.chain.getHeader()).number.toNumber();
 const deliverableHash = blake2AsHex('scalar-commons tester guide: deliverable v1', 256);
 await client.createEscrow(b, A.address, 10n * CMN, deliverableHash, head + 200, null);
+await client.acceptAgreement(a, B.address, 0);
 // ... wait MinDeliveryBlocks ...
-await client.acceptEscrow(a, B.address, 0, deliverableHash);
+await client.recordDelivery(a, B.address, 0, deliverableHash);
 await client.completeEscrow(b, A.address, 0);
 ```
 
@@ -588,7 +593,7 @@ Measured cost: balance fell 432 628 700 plancks over those four attempts, agains
 tx fee of 108 157 147 — **exactly 4.0 fee-paying submissions**. And they could never have
 worked: the backoff is 1 s + 2 s + 3 s = 6 s, while the guard needs 60 s.
 
-Wait for the block height yourself before calling `acceptEscrow`. Tracked as
+Wait for the block height yourself before calling `recordDelivery`. Tracked as
 [issue #160](https://github.com/tejaspatil1936/scalar-commons-v4/issues/160).
 :::
 

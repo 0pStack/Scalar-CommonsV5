@@ -44,8 +44,9 @@ keys and a fresh clone of the repository. Every output block is real, captured a
   `extendDeadline`. That was true of 307. **Since spec 309** (applied at block 907929)
   provider consent is required: the provider must call `escrow.acceptAgreement` before
   `recordDelivery`, which otherwise fails with `NotAccepted`. The run on this page was made
-  on spec 306, before consent existed, so it has no accept step. The SDK does not wrap the
-  consent calls yet ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
+  on spec 306, before consent existed, so it has no accept step. The SDK now wraps the
+  consent calls as `acceptAgreement`, `rejectAgreement` and `cancelPending`, and delivery as
+  `recordDelivery` ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
 :::
 
 ## What you will end up with
@@ -456,6 +457,8 @@ Underneath, the actions map to these SDK calls (from `sdk/src/index.ts`):
 | claim | `client.claim(signer)` | `emissions.claim` | — check `netPosition(addr).pendingEmissions > 0n` first |
 | read position | `client.netPosition(address)` | `system.account` + `agents.*` + `emissions.*` | returns bigint plancks |
 | publish capability | `api.tx.agents.setCapability(id, true)` via `submitAndWatch` | `agents.setCapability` | needs an identity (`identity.setIdentity`) first |
+
+On spec 309+ the provider must call `client.acceptAgreement(signer, buyer, seq)` (`escrow.acceptAgreement`) before delivering, or delivery fails with `NotAccepted`; the SDK's deliver call is now `client.recordDelivery(signer, buyer, seq, deliveryHash)`, and `acceptEscrow` is a deprecated alias of it.
 
 Two things every wrapper should do:
 
