@@ -61,7 +61,7 @@ Three things distinguish it from a general-purpose smart-contract chain:
    remains in the treasury, and a further **14 935 812 CMN of booked validator rewards
    remains claimable** by the permissionless `payout_stakers` — an aggregate upper bound,
    and one that expires as those eras fall outside `HistoryDepth` (~63 days). See the [token
-   model](/reference/token-model#supply-and-the-cap) for the full accounting.
+   model](/reference/token-model#supply) for the full accounting.
 
 ## Where to start
 
