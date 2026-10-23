@@ -7,6 +7,12 @@
 >
 > - The 18B genesis mint is the **mainnet design only**. It lives in `mainnet_genesis_config`,
 >   which no `--chain` preset loads; the testnet presets mint 3.0B–10.0B CMN at genesis.
+> - **Since spec 306 the agent-count pool is a ceiling, not the emission.** `settle_era`
+>   mints `min(pool, qualifying_escrow_volume × emissionVolumeAlphaBps / 10_000)`, and the
+>   bound applies to governance overrides too (`pallets/emissions/src/lib.rs:427-462` in
+>   today's tree). `emissionVolumeAlphaBps` starts at 10,000 (1.0×) and Root can move it within
+>   0..100,000. An era with no qualifying volume mints nothing. See
+>   [the volume bound](reference/token-model.md#the-volume-bound-spec-306).
 
 > **Gate:** SC-E1 protocol §3 P0-1 / issue P0-1a. Satisfies finding **R-SC-0002**'s
 > precondition: *"the real formula must be transcribed (tab 03) before this number
@@ -157,6 +163,9 @@ emission = clamp( TargetEmissionPerAgent * agent_count,      # 10_000 CMN × age
 registered agent, floored at 100,000 CMN/era and hard-capped at 1,000,000 CMN/era.**
 (Fully expanded — era length, per-year totals, halving, and break-even comparison — in
 the [P0-1b section](#verified-constants--sc-e1-p0-1b--era-emission-schedule-and-per-era-pool-size).)
+
+> **Corrected (spec 306+):** this is the era's ceiling. The era mints at most
+> `alpha × qualifying escrow volume` — see the banner at the top of this file.
 
 ### 1.4 Distribution (MasterChef accumulator)
 
@@ -319,6 +328,10 @@ the real cap, those model break-evens are not reachable via the base pool — th
 `set_era_emission_override` (root-only, ≤ `SupplyCap`, `lib.rs:344-360`) can exceed it.
 (Quantified in the [P0-1b break-even comparison](#comparison-against-gaming-break-evens).)
 
+> **Corrected (spec 306+):** an override no longer escapes the volume bound. It replaces the
+> agent-count ceiling, but the era still mints at most `alpha × qualifying escrow volume` —
+> see the banner at the top of this file.
+
 **F-5 — Oracle accuracy bonus is inert at genesis.** The formula's oracle term (STEP 9) is
 real, but the runtime wires `type OracleScoreProvider = ()` (`runtime/src/lib.rs:1046`),
 whose `best_score` returns 0 (`pallets/emissions/src/lib.rs:48-50`). So the **+20%
@@ -467,6 +480,10 @@ matches in any pallet or in the runtime. The per-era pool depends **only** on th
 live agent count (§3), clamped between a fixed floor and a fixed ceiling. It does
 not shrink over time, and it does not grow beyond the ceiling.
 
+> **Corrected (spec 306+):** the pool no longer depends only on agent count. The agent-count
+> clamp is a ceiling, and each era mints at most `alpha × qualifying escrow volume` — see the
+> banner at the top of this file.
+
 Consequences:
 
 - Emission does **not** decrease as the chain ages. Bitcoin-style halving is not
@@ -478,6 +495,8 @@ Consequences:
 - The auto-params pallet tunes **weighting** (`alpha`, `beta`, `floor_bps`) used
   to split the pool among agents — it does **not** resize the pool. The pool
   formula in §3 is independent of auto-params.
+  **Corrected (spec 306+):** auto-params now also holds `emissionVolumeAlphaBps`, which does
+  resize the pool through the volume bound.
 
 ### 5. Per-era emission "by year"
 
@@ -494,6 +513,9 @@ count, not by calendar year; every year looks identical at the same agent count.
 ignore the agent-count ramp; they bound the fastest realistic issuance and are
 illustrative only.)
 
+> **Corrected (spec 306+):** these per-era figures are ceilings; the volume bound can only
+> lower them.
+
 ### 6. Emission override (only path above the ceiling)
 
 `set_era_emission_override` (`pallets/emissions/src/lib.rs:341-360`) lets a
@@ -502,6 +524,10 @@ illustrative only.)
 `MaxEmissionOverrideEras = 10` eras ahead (`runtime/src/lib.rs:1048`). This is
 the **only** code path that can push a single era's pool above the 1,000,000 CMN
 ceiling. It is root/governance-gated and not part of the steady-state schedule.
+
+> **Corrected (spec 306+):** an override lifts the ceiling only. The era still mints at most
+> `alpha × qualifying escrow volume`, so an override cannot push emission past the volume
+> bound — see the banner at the top of this file.
 
 ---
 

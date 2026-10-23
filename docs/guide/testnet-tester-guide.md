@@ -719,7 +719,8 @@ a long stretch nobody did, which is why the keeper exists at all
 
 ### What `settle_era` pays, and to whom
 
-The era's total emission is a clamp on the number of registered agents:
+On spec 305, when this section was written, the era's total emission was a clamp on the
+number of registered agents:
 
 ```text
 emission = clamp(TargetEmissionPerAgent × agent_count, FloorEmissionPerEra, InitialEmissionsPerEra)
@@ -727,9 +728,14 @@ emission = clamp(TargetEmissionPerAgent × agent_count, FloorEmissionPerEra, Ini
          = 110 000 CMN
 ```
 
-With 11 registered agents at the time of writing, `10 000 × 11 = 110 000` sits just above the
-100 000 CMN floor. **Note what this does not depend on: how much work was done.** The size of
-the pot tracks the agent count; only the *split* tracks work.
+With 11 registered agents at the time, `10 000 × 11 = 110 000` sat just above the 100 000 CMN
+floor. **Note what this did not depend on: how much work was done.** On spec 305 the size of
+the pot tracked the agent count; only the *split* tracked work.
+
+Since spec 306 (applied 2026-09-10, per `landing/runtime-history.json`) that clamp is only a
+ceiling. Each era mints at most `emissionVolumeAlphaBps / 10 000 × qualifying escrow volume`,
+governance overrides included, so an era with no qualifying volume mints nothing. See
+[the volume bound](/reference/token-model#the-volume-bound-spec-306).
 
 That split is weight-proportional, accumulated MasterChef-style:
 
@@ -840,7 +846,8 @@ Nothing was exploited and nothing overflowed: it all flowed through `pallet-emis
 and predicted and actual payouts match exactly. It happened because of how the two parts
 compose on a near-empty network:
 
-- the **pot is sized by agent count, not by work** — 110 000 CMN was minted for ~120 CMN of
+- the **pot was sized by agent count, not by work** (spec 305; bounded by qualifying volume
+  since 306) — 110 000 CMN was minted for ~120 CMN of
   total escrow volume chain-wide that era, about **917 CMN minted per CMN of real work**;
 - the **qualification gates concentrate rather than dilute** — of 11 registered agents,
   most did no escrow at all that era, and the one other agent that did (171 lifetime
@@ -1200,7 +1207,7 @@ Each is filed.
 | 1 | `agents::register` never sets `LastHeartbeat`, so a new agent is born failing the emissions activity gate (`hb = 63 < 90`) and earns **no floor emission** until it calls `heartbeat()` | Silently under-pays honest work; hit a live agent with 171 completions | [#161](https://github.com/tejaspatil1936/scalar-commons-v4/issues/161) |
 | 2 | The SDK retries deterministic runtime rejections, paying a fee each time — measured at exactly 4.0 fee-paying submissions for one `MinDeliveryBlocksNotElapsed`, with backoff (6 s) shorter than the guard (60 s) | Spends an agent's money on calls that cannot succeed | [#160](https://github.com/tejaspatil1936/scalar-commons-v4/issues/160) |
 | 3 | One faucet drip (1 100 CMN) clears agent registration (1 050.01 CMN) by **4.5 %**, and the escrow flow needs two registered agents; one ordinary demo transfer strands you behind a 60-minute cooldown | Blocks the flagship flow for a first-time tester | [#162](https://github.com/tejaspatil1936/scalar-commons-v4/issues/162) |
-| 4 | On a near-empty era, one two-account tester captured **81.88 % of the era's 110 000 CMN emission** for 60 CMN of self-directed escrow — the pot is sized by agent count, not work (~917 CMN minted per CMN of work), and the qualification gates concentrate rather than dilute | Testnet balances are not indicative of mainnet economics | [#164](https://github.com/tejaspatil1936/scalar-commons-v4/issues/164) |
+| 4 | On a near-empty era, one two-account tester captured **81.88 % of the era's 110 000 CMN emission** for 60 CMN of self-directed escrow — on spec 305 the pot was sized by agent count, not work, which spec 306 bounds by qualifying volume (~917 CMN minted per CMN of work), and the qualification gates concentrate rather than dilute | Testnet balances are not indicative of mainnet economics | [#164](https://github.com/tejaspatil1936/scalar-commons-v4/issues/164) |
 | 5 | Validator compensation is exactly zero (`EraPayout = ()`), `minValidatorBond` and `minNominatorBond` were both 0, and all 5 seats were operator-run. Bonds and seats were decided on 2026-09-24 (D11: 1 000 / 100 CMN, 7 seats); compensation is still zero | Third-party validation has negative expected value today | [#159](https://github.com/tejaspatil1936/scalar-commons-v4/issues/159), [#172](https://github.com/tejaspatil1936/scalar-commons-v4/issues/172) |
 
 And the smaller edges, documented in place above rather than filed:

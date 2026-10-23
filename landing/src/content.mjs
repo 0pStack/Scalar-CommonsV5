@@ -126,12 +126,14 @@ export const content = {
             'at {{constants.babe.expectedBlockTime|secs}}-second blocks.',
         },
         {
-          lead: 'The per-era pool tracks how many agents there are.',
+          lead: 'The per-era pool is bounded by work, under a ceiling set by agent count.',
           text:
-            'It is {{constants.emissions.targetEmissionPerAgent|cmn}} {{token.symbol}} per registered agent, floored at ' +
-            '{{constants.emissions.floorEmissionPerEra|cmn}} and capped at ' +
-            '{{constants.emissions.initialEmissionsPerEra|cmn}} {{token.symbol}} per era. It does not shrink as the chain ' +
-            'ages and there is no scheduled reduction: within that floor and ceiling it depends only on the live agent count.',
+            'The ceiling is {{constants.emissions.targetEmissionPerAgent|cmn}} {{token.symbol}} per registered agent, at ' +
+            'least {{constants.emissions.floorEmissionPerEra|cmn}} and at most ' +
+            '{{constants.emissions.initialEmissionsPerEra|cmn}} {{token.symbol}} per era. Under that ceiling an era mints ' +
+            'no more than a governance-set multiple of the qualifying escrow volume it settled, so an era with no ' +
+            'qualifying work mints nothing, and a governance override cannot lift it past that bound. Neither limit ' +
+            'shrinks as the chain ages, and there is no scheduled reduction.',
         },
         {
           lead: 'Participating costs something.',

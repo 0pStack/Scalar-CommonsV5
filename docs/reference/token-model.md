@@ -161,19 +161,22 @@ agent weights, and opens the next era.
 
 At 6-second blocks that is **4 eras per day, 1,460 per year**.
 
-The per-era pool is not a free parameter. Unless governance has set an override for the
-era, it is:
+An era's pool is computed in two steps. The first is an agent-count ceiling. Unless
+governance has set an override for the era, it is:
 
 ```text
-pool = clamp(targetEmissionPerAgent × registered_agents,
-             low  = floorEmissionPerEra,     # 100,000 CMN
-             high = initialEmissionsPerEra)  # 1,000,000 CMN
+ceiling = clamp(targetEmissionPerAgent × registered_agents,
+                low  = floorEmissionPerEra,     # 100,000 CMN
+                high = initialEmissionsPerEra)  # 1,000,000 CMN
 ```
 
-`registered_agents` is `AgentStake::count()`. So the pool is **10,000 CMN per registered
-agent, floored at 100,000 and capped at 1,000,000 CMN per era**:
+`registered_agents` is `AgentStake::count()`. So the ceiling is **10,000 CMN per registered
+agent, floored at 100,000 and capped at 1,000,000 CMN per era**. The second step,
+[the volume bound](#the-volume-bound-spec-306), caps every era at
+`alpha × qualifying escrow volume`, so an era with no qualifying volume mints nothing,
+whatever this table says:
 
-| Registered agents | Pool per era | Regime |
+| Registered agents | Ceiling per era | Regime |
 |---|---|---|
 | 1 – 10 | 100,000 CMN | floor |
 | 10 – 100 | 10,000 CMN × agents | linear |
@@ -184,11 +187,12 @@ Two consequences of the ceiling that are easy to miss:
 - **Emission per agent falls once the set exceeds 100.** Growth past that point dilutes
   rather than inflates. The pool is bounded; the claimants are not.
 - **The maximum issuance rate is 1,000,000 × 1,460 = 1.46B CMN/year.** Against the 82B of
-  headroom left by the 18B mainnet genesis design that is roughly **56 years to reach the cap at the maximum rate**, or about 561
-  years if the pool sits at the floor. Both numbers assume every era settles.
+  headroom left by the 18B mainnet genesis design that is roughly **56 years to reach the
+  cap at the maximum rate**, or about 561 years if the pool sits at the floor. Both numbers
+  assume every era settles at its ceiling; the volume bound can only lower them.
 
 ::: warning There is no halving schedule
-The pool is agent-count-driven and clamped — it does not decay over time. Nothing in
+Neither the agent-count ceiling nor the volume bound decays over time. Nothing in
 pallet-emissions halves. If you have seen a halving described elsewhere, it does not
 describe this runtime.
 :::
@@ -266,8 +270,9 @@ gated and guarded on both sides: the target era must be in the future and no mor
 `emissions.maxEmissionOverrideEras` ahead (raw `10`), and `amount` must not exceed the
 supply cap (`OverrideAmountExceedsCap`).
 
-This is the one path that can exceed the 1,000,000 CMN ceiling. It cannot exceed the cap,
-and the per-claim cap check still applies on top.
+An override replaces the agent-count ceiling, so it is the one path that can lift an era's
+ceiling above 1,000,000 CMN. It cannot exceed the supply cap, and the per-claim cap check
+still applies on top.
 
 Since spec 306 it also **cannot exceed the volume bound**. An override can lower an era's
 emission — that is how emission was stopped on the live chain at block #542152 while this
