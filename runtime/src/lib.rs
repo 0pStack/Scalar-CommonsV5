@@ -245,9 +245,13 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     // 314 -> 315 ships the #19 quick-fix bundle:
     // pallet-proxy appended at index 43, BABE/GRANDPA equivocation reports enabled,
     // sudo_as filtered, automatic rank-3 promotion paused, and a single-block
-    // migration that removes ranked-collective members with no agent stake.
+    // migration that removes ranked-collective members with no agent stake (removed in 316).
     // Existing pallet and call indices are unchanged, so transaction_version stays 1.
-    spec_version: 315,
+    // 315 -> 316: 315 was never enacted. The Governance proxy can no longer call
+    // set_key, remove_key or sudo_unchecked_weight directly (#125), and the
+    // ranked-member migration is gone: orphans are removed by the operator after
+    // review (#126). No storage or call encoding changes.
+    spec_version: 316,
     impl_version: 0,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -291,8 +295,9 @@ pub struct ConstitutionalFilter;
 impl frame_support::traits::Contains<RuntimeCall> for ConstitutionalFilter {
     fn contains(call: &RuntimeCall) -> bool {
         match call {
-            // Keep sudo for root recovery while preventing the sudo key from
-            // impersonating arbitrary signed accounts.
+            // Rejects sudo_as only as a top-level call. It is not an impersonation
+            // ban: `sudo` bypasses this filter for its inner call and sudo_as
+            // accepts Root, so the sudo key stays full Root (#125).
             RuntimeCall::Sudo(pallet_sudo::Call::sudo_as { .. }) => false,
             RuntimeCall::Staking(
                 pallet_staking::Call::payout_stakers { era, .. }
@@ -308,31 +313,6 @@ impl frame_support::traits::Contains<RuntimeCall> for ConstitutionalFilter {
             }
             _ => true,
         }
-    }
-}
-
-/// Remove collective members whose agent stake disappeared before the collective
-/// bridge learned to clean up unstaked and fully slashed agents.
-pub struct RemoveOrphanedRankedMembers;
-impl frame_support::traits::OnRuntimeUpgrade for RemoveOrphanedRankedMembers {
-    fn on_runtime_upgrade() -> Weight {
-        use frame_support::traits::RankedMembers;
-
-        let db = frame_support::weights::constants::RocksDbWeight::get();
-        let mut weight = Weight::zero();
-        for who in pallet_ranked_collective::Members::<Runtime>::iter_keys() {
-            // One iterator read plus AgentStake::contains_key.
-            weight = weight.saturating_add(db.reads(2));
-            if !pallet_agents::AgentStake::<Runtime>::contains_key(&who) {
-                if let Some(rank) = <RankedCollective as RankedMembers>::rank_of(&who) {
-                    // Charge the bridge's documented worst case (rank 3): the
-                    // rank lookup plus four collective levels unwound.
-                    weight = weight.saturating_add(db.reads_writes(13, 20));
-                    let _ = RankedCollective::do_remove_member_from_rank(&who, rank);
-                }
-            }
-        }
-        weight
     }
 }
 
@@ -365,7 +345,7 @@ impl frame_system::Config for Runtime {
     type OnSetCode = ();
     type MaxConsumers = ConstU32<16>;
     type ExtensionsWeightInfo = ();
-    type SingleBlockMigrations = RemoveOrphanedRankedMembers;
+    type SingleBlockMigrations = ();
     type MultiBlockMigrator = ();
     type PreInherents = ();
     type PostInherents = ();
@@ -534,9 +514,11 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                     | RuntimeCall::RankedPolls(..)
                     | RuntimeCall::Identity(..)
             ),
+            // Only the submitted call is checked: `sudo(set_key(..))` still runs
+            // as Root. The announcement delay protects the key, not this list.
             Self::Governance => matches!(
                 call,
-                RuntimeCall::Sudo(..)
+                RuntimeCall::Sudo(pallet_sudo::Call::sudo { .. })
                     | RuntimeCall::Treasury(..)
                     | RuntimeCall::Scheduler(..)
                     | RuntimeCall::Preimage(..)
@@ -2209,15 +2191,16 @@ mod tests {
     /// The version the upgrade is applied as. If this and `VERSION.spec_version`
     /// ever disagree the node will refuse the blob, so pin it.
     ///
-    /// 315 ships the quick-fix runtime bundle with its ranked-member repair (#19).
+    /// 316 narrows the Governance proxy and drops the ranked-member migration (#125, #126).
+    /// 315 ships the quick-fix bundle (#19); its ranked-member repair is removed in 316.
     /// 314 wires the live auto-param quorum into new dispute questions (#21).
     /// 313 moves the Polkadot SDK to stable2606-3 (#30).
     /// 312 makes escrow/oracle settlement atomic and checks reserve operations (#61).
     /// 311 enforces the emergency brakes and preserves over-cap recovery (#60).
     /// 310 shut down RankedPolls. Storage and call encodings remain unchanged.
     #[test]
-    fn spec_version_is_315() {
-        assert_eq!(VERSION.spec_version, 315);
+    fn spec_version_is_316() {
+        assert_eq!(VERSION.spec_version, 316);
     }
 
     /// No existing call moved, so transaction_version must not have moved either.
@@ -2465,29 +2448,49 @@ mod tests {
         })
     }
 
+    /// #125: a delay only binds the sudo key when no one holds a private key for
+    /// it. The documented procedure moves sudo to a keyless pure proxy whose only
+    /// controller is a delayed Governance delegate, so every Root call is announced
+    /// and waits out the delay. Nobody can veto an announcement: the delay is a
+    /// notice period, not a guard.
     #[test]
-    fn delayed_governance_proxy_can_protect_the_sudo_account() {
+    fn sudo_on_a_pure_proxy_makes_every_root_call_wait_out_the_delay() {
         gov_ext().execute_with(|| {
-            let real = account(1);
+            let old_key = account(1);
             let delegate = account(2);
             let delay = 2;
 
-            assert_ok!(Proxy::add_proxy(
-                RuntimeOrigin::signed(real.clone()),
-                Address::Id(delegate.clone()),
+            assert_ok!(Proxy::create_pure(
+                RuntimeOrigin::signed(delegate.clone()),
                 ProxyType::Governance,
                 delay,
+                0,
+            ));
+            let pure = System::events()
+                .into_iter()
+                .find_map(|record| match record.event {
+                    RuntimeEvent::Proxy(pallet_proxy::Event::PureCreated { pure, .. }) => {
+                        Some(pure)
+                    }
+                    _ => None,
+                })
+                .expect("create_pure emits PureCreated");
+            assert_ok!(Sudo::set_key(
+                RuntimeOrigin::signed(old_key.clone()),
+                Address::Id(pure.clone()),
             ));
 
             let call = RuntimeCall::Sudo(pallet_sudo::Call::sudo {
                 call: Box::new(root_only_call()),
             });
-            let call_hash = <Runtime as frame_system::Config>::Hashing::hash_of(&call);
-
+            assert_noop!(
+                Sudo::sudo(RuntimeOrigin::signed(old_key), Box::new(root_only_call())),
+                pallet_sudo::Error::<Runtime>::RequireSudo
+            );
             assert_noop!(
                 Proxy::proxy(
                     RuntimeOrigin::signed(delegate.clone()),
-                    Address::Id(real.clone()),
+                    Address::Id(pure.clone()),
                     Some(ProxyType::Governance),
                     Box::new(call.clone()),
                 ),
@@ -2495,8 +2498,8 @@ mod tests {
             );
             assert_ok!(Proxy::announce(
                 RuntimeOrigin::signed(delegate.clone()),
-                Address::Id(real.clone()),
-                call_hash,
+                Address::Id(pure.clone()),
+                <Runtime as frame_system::Config>::Hashing::hash_of(&call),
             ));
 
             System::set_block_number(2);
@@ -2504,7 +2507,7 @@ mod tests {
                 Proxy::proxy_announced(
                     RuntimeOrigin::signed(delegate.clone()),
                     Address::Id(delegate.clone()),
-                    Address::Id(real.clone()),
+                    Address::Id(pure.clone()),
                     Some(ProxyType::Governance),
                     Box::new(call.clone()),
                 ),
@@ -2515,7 +2518,7 @@ mod tests {
             assert_ok!(Proxy::proxy_announced(
                 RuntimeOrigin::signed(delegate.clone()),
                 Address::Id(delegate),
-                Address::Id(real),
+                Address::Id(pure),
                 Some(ProxyType::Governance),
                 Box::new(call),
             ));
@@ -2524,6 +2527,32 @@ mod tests {
                 Some(b"yes".to_vec())
             );
         });
+    }
+
+    /// #125: a Governance delegate may not move or drop the sudo key, or skip
+    /// weight accounting, in a single direct call. This only filters the outer
+    /// call: `sudo(set_key(..))` still runs as Root, so the announcement delay,
+    /// not this exclusion, is what protects the key.
+    #[test]
+    fn governance_proxy_cannot_directly_change_the_sudo_key() {
+        let excluded = [
+            RuntimeCall::Sudo(pallet_sudo::Call::set_key {
+                new: Address::Id(account(2)),
+            }),
+            RuntimeCall::Sudo(pallet_sudo::Call::remove_key {}),
+            RuntimeCall::Sudo(pallet_sudo::Call::sudo_unchecked_weight {
+                call: Box::new(root_only_call()),
+                weight: Weight::zero(),
+            }),
+        ];
+        for call in &excluded {
+            assert!(!ProxyType::Governance.filter(call), "{call:?}");
+        }
+        assert!(
+            ProxyType::Governance.filter(&RuntimeCall::Sudo(pallet_sudo::Call::sudo {
+                call: Box::new(root_only_call()),
+            }))
+        );
     }
 
     /// N2: one rank-2 account, acting alone, must not be able to whitelist a call
@@ -2728,45 +2757,24 @@ mod tests {
         });
     }
 
+    /// #126: on chain, an unstaked ex-agent and a member Root added on purpose look
+    /// the same, so no migration may guess between them. The upgrade leaves the
+    /// collective alone; the operator removes the reviewed orphans afterwards.
     #[test]
-    fn runtime_upgrade_removes_ranked_members_without_an_agent_stake() {
+    fn runtime_upgrade_leaves_ranked_membership_alone() {
         use frame_support::traits::OnRuntimeUpgrade;
 
         gov_ext().execute_with(|| {
-            let ghost = account(1);
-            let registered = account(2);
-            for who in [&ghost, &registered] {
-                assert_ok!(Agents::register(
-                    RuntimeOrigin::signed(who.clone()),
-                    AgentsMinStake::get(),
-                ));
-            }
-            assert_ok!(RankedCollective::do_promote_member(
-                ghost.clone(),
-                None,
-                true,
-            ));
-            assert_ok!(RankedCollective::do_promote_member(
-                ghost.clone(),
-                None,
-                true,
-            ));
-            assert_eq!(RankedCollective::rank_of(&ghost), Some(2));
-            pallet_agents::AgentStake::<Runtime>::remove(&ghost);
+            let root_added = account(1);
+            make_rank_2(&root_added);
+            assert!(!pallet_agents::AgentStake::<Runtime>::contains_key(&root_added));
 
-            <<Runtime as frame_system::Config>::SingleBlockMigrations as OnRuntimeUpgrade>::on_runtime_upgrade();
-            // The cleanup is safe to replay and must preserve registered members.
             <<Runtime as frame_system::Config>::SingleBlockMigrations as OnRuntimeUpgrade>::on_runtime_upgrade();
 
             assert_eq!(
-                <RankedCollective as RankedMembers>::rank_of(&ghost),
-                None,
-                "legacy unstaked or evicted agents must lose collective membership"
-            );
-            assert_eq!(
-                <RankedCollective as RankedMembers>::rank_of(&registered),
-                Some(0),
-                "registered agents must keep their collective membership"
+                <RankedCollective as RankedMembers>::rank_of(&root_added),
+                Some(2),
+                "a stakeless member may be intentional and must survive the upgrade"
             );
         });
     }

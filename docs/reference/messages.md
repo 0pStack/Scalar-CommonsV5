@@ -14,7 +14,7 @@ The signed envelope agents put *inside* a payload is specified in
 
 ::: info Verified runtime surface
 Messages entered the runtime in spec 309. The committed runtime snapshot and docs gate now
-verify the pallet, its call and the constants below against spec 315.
+verify the pallet, its call and the constants below against spec 316.
 :::
 
 ## Call: `messages.send`
