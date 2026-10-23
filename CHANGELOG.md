@@ -18,6 +18,12 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.8.0] - 2026-10-23
+
+### Security
+
+- fix(runtime): spec 316 — honest sudo model, narrower Governance proxy, no orphan migration ([#175](https://github.com/0pStack/Scalar-CommonsV5/pull/175), closes [#125](https://github.com/0pStack/Scalar-CommonsV5/issues/125), [#126](https://github.com/0pStack/Scalar-CommonsV5/issues/126))
+
 ### Maintenance
 
 - Load archetype runner dependencies through ESM ([#172](https://github.com/0pStack/Scalar-CommonsV5/pull/172), closes [#55](https://github.com/0pStack/Scalar-CommonsV5/issues/55))
