@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Maintenance
+
+- Load archetype runner dependencies through ESM ([#172](https://github.com/0pStack/Scalar-CommonsV5/pull/172), closes [#55](https://github.com/0pStack/Scalar-CommonsV5/issues/55))
+
 ## [v0.7.4] - 2026-10-23
 
 ### Fixed
