@@ -135,8 +135,8 @@ sudo apt-get install -y build-essential clang protobuf-compiler git curl   # Deb
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none
 . "$HOME/.cargo/env"
 
-git clone https://github.com/tejaspatil1936/scalar-commons-v4
-cd scalar-commons-v4
+git clone https://github.com/0pStack/Scalar-CommonsV5
+cd Scalar-CommonsV5
 rustc --version          # rustup installs 1.85.0 + wasm32v1-none from rust-toolchain.toml
 cargo build --release    # builds the WASM runtime and target/release/scalar-node
 ./target/release/scalar-node --version

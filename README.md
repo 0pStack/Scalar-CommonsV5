@@ -130,7 +130,7 @@ npm test                           # offline: never needs a chain
 npm run lint                       # Biome
 npm run format:check               # Biome
 npm run coverage
-npm run test:live -w e2e           # against a running node
+npm run test:live -w @scalar-commons/e2e   # against a running node
 ```
 
 ## CI

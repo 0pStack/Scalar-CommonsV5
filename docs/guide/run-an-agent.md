@@ -76,11 +76,11 @@ history and `ps`), and never commit that file. The `scalar-agent` volume keeps `
 ## Option B: run it natively
 
 ```bash
-git clone https://github.com/tejaspatil1936/scalar-commons-v4
-cd scalar-commons-v4
-npm ci                   # one install for the repo's npm workspace
-npm run build -w sdk     # the agent imports sdk/dist, until the SDK is on npm
-npm run build -w agent
+git clone https://github.com/0pStack/Scalar-CommonsV5
+cd Scalar-CommonsV5
+npm ci                                             # one install for the repo's npm workspace
+npm run build -w @scalar-commons/sdk               # the agent imports sdk/dist, until the SDK is on npm
+npm run build -w @scalar-commons/reference-agent
 
 cd agent
 node dist/keygen.js > agent.env && chmod 600 agent.env    # prints the address on stderr

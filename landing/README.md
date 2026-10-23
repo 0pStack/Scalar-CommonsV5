@@ -6,12 +6,12 @@ ships no client-side JavaScript. The one script on the site belongs to
 `/observatory` (below).
 
 ```sh
-npm ci --no-audit --no-fund
-npm run build          # -> dist/index.html + dist/styles.css
-npm test               # the honesty suite (below)
+npm ci --no-audit --no-fund                # at the repository root
+npm run build -w @scalar-commons/landing   # -> landing/dist/index.html + landing/dist/styles.css
+npm test -w @scalar-commons/landing        # the honesty suite (below)
 ```
 
-Serve `dist/` with anything that serves files.
+Serve `landing/dist/` with anything that serves files.
 
 ## The rule this directory is built around
 

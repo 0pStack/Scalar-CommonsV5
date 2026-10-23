@@ -52,8 +52,8 @@ round a real balance. `429` responses carry both `retryAfterMs` and a standard
 ## Running
 
 ```bash
-npm ci --no-audit --no-fund
-FAUCET_ALLOW_DEV_SEED=true npm start   # local devnet; otherwise set FAUCET_SEED
+npm ci --no-audit --no-fund                                  # at the repository root
+FAUCET_ALLOW_DEV_SEED=true npm start -w @scalar-commons/faucet   # local devnet; otherwise set FAUCET_SEED
 ```
 
 `npm start` compiles `src/` to `dist/` (`npm run build`) and then runs
@@ -94,7 +94,7 @@ npm test
 Every file in `tests/` is offline: `tests/rateLimiter.test.ts` and
 `tests/amount.test.ts` are pure unit tests with an injected clock. The live suite,
 [`e2e/faucet/faucet.live.test.ts`](../e2e/faucet/faucet.live.test.ts), runs against
-the **live devnet RPC** (`npm run test:live:faucet -w e2e` from the repository root)
+the **live devnet RPC** (`npm run test:live:faucet -w @scalar-commons/e2e` from the repository root)
 and is intentionally not mocked and not skippable — it asserts real balance
 changes, real rate-limit rejections that move no funds, and type shapes read from
 real runtime metadata. **If the node is not reachable the suite fails rather than

@@ -4,7 +4,7 @@ Re-runnable pallet lifecycle tests, run against any node.
 
 ```bash
 npm ci                                                           # at the repository root
-SCALAR_WS=ws://127.0.0.1:9955 npm run test:live:lifecycle -w e2e  # default is ws://127.0.0.1:9955
+SCALAR_WS=ws://127.0.0.1:9955 npm run test:live:lifecycle -w @scalar-commons/e2e  # default is ws://127.0.0.1:9955
 ```
 
 - The suite skips (with a console warning) if no node answers at `SCALAR_WS`.

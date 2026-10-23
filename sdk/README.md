@@ -10,12 +10,25 @@ described in protocol §8.3 ("archetypes cannot exist without hands"). Built on
 
 ## Install
 
+The package is **not published to npm**: `npm install @scalar-commons/sdk` returns 404. Build
+it in this repository, which is one npm workspace with one lockfile at the root:
+
 ```bash
-npm install @scalar-commons/sdk @polkadot/api@^16 @polkadot/keyring@^14 \
-  @polkadot/util@^14 @polkadot/util-crypto@^14
+npm ci                                   # at the repository root
+npm run build -w @scalar-commons/sdk     # tsc -> sdk/dist/
 ```
 
-The `@polkadot/*` packages are **peer dependencies**, so your project and the SDK share
+To use it from your own project, install the packed tarball, not the directory (a directory
+install is a symlink, which resolves a second copy of `@polkadot/*`):
+
+```bash
+npm pack -w @scalar-commons/sdk --pack-destination /tmp   # -> /tmp/scalar-commons-sdk-0.1.0.tgz
+mkdir -p ~/my-agent && cd ~/my-agent && npm init -y
+npm install /tmp/scalar-commons-sdk-0.1.0.tgz
+```
+
+The `@polkadot/*` packages (`@polkadot/api` ^16; `@polkadot/keyring`, `@polkadot/util` and
+`@polkadot/util-crypto` ^14) are **peer dependencies**, so your project and the SDK share
 one copy of each. Two copies of `@polkadot/util` make polkadot-js warn
 `@polkadot/util has multiple versions` and break `instanceof` checks between them.
 
@@ -85,11 +98,10 @@ classifying one of those would turn a recoverable failure into a hard one.
 ## Build from source
 
 ```bash
-cd sdk
-npm ci
-npm run build      # tsc -> dist/
-npm run typecheck  # tsc --noEmit
-npm test           # vitest — mock-driven, no node required
+npm ci                                     # at the repository root
+npm run build -w @scalar-commons/sdk       # tsc -> sdk/dist/
+npm run typecheck -w @scalar-commons/sdk   # tsc --noEmit
+npm test -w @scalar-commons/sdk            # vitest — mock-driven, no node required
 ```
 
 `npm test` is mock-driven and needs no node. The live checks against a real
@@ -204,5 +216,12 @@ skips** if the node is unreachable — an SDK that cannot be checked against the
 chain it wraps is a finding, not a pass:
 
 ```bash
-RUN_INTEGRATION=1 SCALAR_WS=ws://127.0.0.1:9944 npm run test:integration   # WS_ENDPOINT also works
+SCALAR_WS=ws://127.0.0.1:9944 npm run test:integration -w @scalar-commons/sdk   # WS_ENDPOINT also works
+```
+
+The script sets `RUN_INTEGRATION=1` itself (`vitest run --mode integration`), so it needs no
+shell syntax. In PowerShell, set the endpoint first:
+
+```powershell
+$env:SCALAR_WS = 'ws://127.0.0.1:9944'; npm run test:integration -w @scalar-commons/sdk
 ```

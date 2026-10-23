@@ -15,17 +15,17 @@ that every other package's `npm test` is offline. CI (`.github/workflows/ci-node
 ## Run
 
 Install once at the repository root (`npm ci`) and build the SDK the suites import
-(`npm run build -w sdk`), then, from the root:
+(`npm run build -w @scalar-commons/sdk`), then, from the root:
 
 ```bash
-npm run test:live -w e2e              # lifecycle + faucet + indexer + explorer
-npm run test:live:lifecycle -w e2e
-npm run test:live:faucet -w e2e
-npm run test:live:indexer -w e2e
-npm run test:live:explorer -w e2e
-npm run archetypes -w e2e -- --archetype wash --eras 1
-npm run typecheck -w e2e              # offline; CI runs it
-npm test -w e2e                       # offline; CI runs it: the archetype runner's own unit tests
+npm run test:live -w @scalar-commons/e2e     # lifecycle + faucet + indexer + explorer
+npm run test:live:lifecycle -w @scalar-commons/e2e
+npm run test:live:faucet -w @scalar-commons/e2e
+npm run test:live:indexer -w @scalar-commons/e2e
+npm run test:live:explorer -w @scalar-commons/e2e
+npm run archetypes -w @scalar-commons/e2e -- --archetype wash --eras 1
+npm run typecheck -w @scalar-commons/e2e     # offline; CI runs it
+npm test -w @scalar-commons/e2e              # offline; CI runs it: the archetype runner's own unit tests
 ```
 
 `npm test` here runs only the offline unit tests of the archetype runner (its money

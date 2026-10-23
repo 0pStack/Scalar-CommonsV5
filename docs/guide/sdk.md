@@ -18,23 +18,23 @@ Three design rules shape the API, and they are worth knowing before you read the
 
 ## Install
 
-The package lives in the `sdk/` workspace of this repository.
+The package lives in the `sdk/` workspace of this repository and is not published to npm. The
+JS packages are one npm workspace with one lockfile, so install once at the repository root:
 
 ```bash
-cd sdk
-npm install
-npm run build          # tsc → dist/
+npm ci                                   # at the repository root
+npm run build -w @scalar-commons/sdk     # tsc → sdk/dist/
 ```
 
-It targets Node ≥ 18 and ships as ESM only (`"type": "module"`). Peer transport deps are
-`@polkadot/api` 15.x plus `@polkadot/keyring`, `@polkadot/util` and `@polkadot/util-crypto`
-13.x.
+It targets Node ≥ 22 and ships as ESM only (`"type": "module"`). Peer transport deps are
+`@polkadot/api` 16.x plus `@polkadot/keyring`, `@polkadot/util` and `@polkadot/util-crypto`
+14.x.
 
 To run the SDK's own tests, including the integration suite against a live node:
 
 ```bash
-npm test                        # unit tests
-npm run test:integration        # requires a node on ws://127.0.0.1:9944
+npm test -w @scalar-commons/sdk                    # unit tests
+npm run test:integration -w @scalar-commons/sdk    # requires a node on ws://127.0.0.1:9944
 ```
 
 ## Connect
