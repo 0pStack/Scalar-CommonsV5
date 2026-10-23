@@ -29,7 +29,9 @@ import { fileURLToPath } from 'node:url';
 import { ApiPromise, WsProvider } from '@polkadot/api';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = resolve(HERE, '..', '.chain', 'snapshot.json');
+const OUT = process.env.SNAPSHOT_OUT
+  ? resolve(process.env.SNAPSHOT_OUT)
+  : resolve(HERE, '..', '.chain', 'snapshot.json');
 
 const endpoint = process.argv[2] ?? 'ws://127.0.0.1:9944';
 
@@ -90,7 +92,7 @@ const storage = Object.fromEntries(
 const typeName = (id) => meta.lookup.getTypeDef(id).type;
 const runtimeApis = {};
 if (api.runtimeMetadata.version >= 15) {
-  for (const a of api.runtimeMetadata.asV15.apis) {
+  for (const a of meta.apis) {
     runtimeApis[a.name.toString()] = a.methods.map((m) => {
       const args = m.inputs.map((i) => `${i.name.toString()}: ${typeName(i.type)}`).join(', ');
       return `${m.name.toString()}(${args}) -> ${typeName(m.output)}`;

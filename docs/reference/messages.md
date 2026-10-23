@@ -12,10 +12,9 @@ This page covers the chain surface: the call, the kinds, the fee, the event and 
 The signed envelope agents put *inside* a payload is specified in
 [Message envelope](./messaging).
 
-::: info Spec 309 is not yet live
-The values here come from the runtime source at spec 309. They are not yet re-checked
-against a live node by the docs gate, so they sit outside `chain-check` tables until the
-upgrade is applied and the snapshot is refreshed.
+::: info Verified runtime surface
+Messages entered the runtime in spec 309. The committed runtime snapshot and docs gate now
+verify the pallet, its call and the constants below against spec 315.
 :::
 
 ## Call: `messages.send`
@@ -67,6 +66,8 @@ fee that is withdrawn from the sender's free balance and **burned**:
 ```text
 message_fee = BaseFee + PerByteFee × payload_len
 ```
+
+<!-- chain-check:constants -->
 
 | Constant | Value | Raw (plancks) |
 |---|---|---|

@@ -35,8 +35,27 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
+const REPO_ROOT = resolve(ROOT, '..');
 
 const snapshot = JSON.parse(readFileSync(join(ROOT, '.chain', 'snapshot.json'), 'utf8'));
+const runtimeSource = readFileSync(join(REPO_ROOT, 'runtime', 'src', 'lib.rs'), 'utf8');
+
+const requiredSourceValue = (pattern, label) => {
+  const match = pattern.exec(runtimeSource);
+  if (!match) throw new Error(`runtime source no longer exposes ${label} in the expected form`);
+  return match[1].replaceAll('_', '');
+};
+
+const runtimeSpecVersion = Number(requiredSourceValue(/spec_version:\s*(\d+)/, 'spec_version'));
+const cmn = BigInt(requiredSourceValue(/pub const CMN: Balance = ([\d_]+);/, 'CMN'));
+const supplyCap =
+  BigInt(requiredSourceValue(/pub const SUPPLY_CAP: Balance = ([\d_]+) \* CMN;/, 'SUPPLY_CAP')) *
+  cmn;
+const genesisMint =
+  BigInt(
+    requiredSourceValue(/pub const GENESIS_MINT: Balance = ([\d_]+) \* CMN;/, 'GENESIS_MINT'),
+  ) * cmn;
+const emittableHeadroom = supplyCap - genesisMint;
 
 /** Pallets this repo owns; their whole extrinsic surface must be documented. */
 const CUSTOM_PALLETS = [
@@ -47,6 +66,7 @@ const CUSTOM_PALLETS = [
   'autoParams',
   'orchestrator',
   'constitution',
+  'messages',
 ];
 
 /**
@@ -77,6 +97,10 @@ const REQUIRED_CONSTANTS = [
   'autoParams.initialFloorBps',
   'autoParams.initialCompletionFeeBps',
   'constitution.supplyCap',
+  'messages.baseFee',
+  'messages.perByteFee',
+  'messages.maxPerBlock',
+  'messages.maxPayloadLen',
 ];
 
 /**
@@ -105,6 +129,8 @@ const PROSE_FACTS = [
   ['guide/run-a-node.md', 'chain name', snapshot.chain.name],
   ['guide/run-a-node.md', 'ss58 format', `${snapshot.properties.ss58Format}`],
   ['guide/sdk.md', 'token decimals', `10^${snapshot.properties.tokenDecimals}`],
+  ['reference/token-model.md', 'genesis mint', genesisMint.toString()],
+  ['reference/token-model.md', 'emittable headroom', emittableHeadroom.toString()],
 ];
 
 /** Every markdown page under `dir`, as a ROOT-relative slash-separated path. */
@@ -121,6 +147,16 @@ function pagesUnder(dir) {
 const PAGES = ['index.md', ...pagesUnder('guide'), ...pagesUnder('reference')].sort();
 
 const errors = [];
+if (snapshot.runtime.specVersion !== runtimeSpecVersion) {
+  errors.push(
+    `snapshot: spec ${snapshot.runtime.specVersion} is stale; runtime/src/lib.rs is spec ${runtimeSpecVersion}`,
+  );
+}
+if (snapshot.consts.emissions?.supplyCap !== supplyCap.toString()) {
+  errors.push(
+    `snapshot: emissions.supplyCap does not match runtime SUPPLY_CAP (${supplyCap.toString()})`,
+  );
+}
 const stats = { consts: 0, indices: 0, prose: 0, extrinsics: 0, apiMethods: 0, invariants: 0 };
 /** `pallet.constant` names that were checked against their raw value. */
 const covered = new Set();

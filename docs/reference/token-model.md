@@ -40,7 +40,7 @@ realistic stake. See [amounts and plancks](/guide/sdk#amounts-and-plancks).
 |---|---|---|
 | Hard supply cap (`emissions.supplyCap`) | 100,000,000,000 CMN | `100000000000000000000000` |
 | Genesis mint | 18,000,000,000 CMN | `18000000000000000000000` |
-| Emittable headroom | 82,000,000,000 CMN | |
+| Emittable headroom | 82,000,000,000 CMN | `82000000000000000000000` |
 | Independent cap copy (`constitution.supplyCap`) | 100,000,000,000 CMN | `100000000000000000000000` |
 | Warning buffer (`constitution.capWarningBuffer`) | 1,000,000,000 CMN | `1000000000000000000000` |
 
@@ -391,7 +391,7 @@ score and account age:
 | Constant | Value | Raw |
 |---|---|---|
 | `agents.rank3MinCompletions` | 50 | `50` |
-| `agents.minRank3OracleScore` | 1,000 | `1000` |
+| `agents.minRank3OracleScore` | Disabled until F03 is fixed (`u32::MAX`) | `4294967295` |
 | `agents.rank3SpanGate` | 432,000 blocks = 30 days | `432000` |
 
 **Heartbeat** multiplies the whole base weight by `hb / 100`, where `hb` holds at 100 during
@@ -551,11 +551,10 @@ Every raw value on this page is read from a live node and mechanically re-checke
 
 | Field | Value |
 |---|---|
-| Chain | Scalar Commons Local Testnet |
-| Runtime | `scalar-commons` spec 306 |
-| Metadata | v15 |
+| Chain | Scalar Commons Development |
+| Runtime | `scalar-commons` spec 315 |
+| Metadata | v16 |
 | Token | CMN, 12 decimals, SS58 42 |
-| Validators | 5 |
 
 The mechanism, in order:
 

@@ -96,6 +96,13 @@ jobs:
       - name: docs — build under /docs
         run: npm run build -w docs
 
+      - name: docs — verify compiled base path
+        run: |
+          set -euo pipefail
+          test -n "$DOCS_BASE"
+          grep -Fq "href=\"${DOCS_BASE}assets/" docs/.vitepress/dist/index.html
+          grep -Fq "src=\"${DOCS_BASE}assets/" docs/.vitepress/dist/index.html
+
       - name: Assemble single Pages artifact
         run: |
           set -euo pipefail
@@ -103,6 +110,7 @@ jobs:
           # build output here would deploy a 404 over a working page.
           test -f _site/index.html
           test -f docs/.vitepress/dist/index.html
+          test -d docs/.vitepress/dist/assets
           mkdir -p _site/docs
           cp -R docs/.vitepress/dist/. _site/docs/
           echo "── _site ──"
