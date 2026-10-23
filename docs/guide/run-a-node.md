@@ -127,9 +127,11 @@ receives `1,000,000,000 CMN`, and validators receive the same stash and controll
 | `staging` | 10 | 7 | 10,014,350,000 CMN |
 
 The first three endowed accounts are pre-registered as agents with `10,000 CMN` of agent
-stake — the minimum that qualifies for floor emissions from era 1. On `dev` and `sc-e1` those
-are the three validators; on `local` they are three of the five (Alice, Bob and Charlie); on
-`staging` they are `User1`–`User3`, which are not validators.
+stake — the minimum that qualifies for floor emissions from era 1. On `dev` and `sc-e1`
+they are the three validators' controller accounts, not their stashes
+(`node/src/chain_spec.rs:73`); on `local` they are the controllers of three of the five
+validators (Alice, Bob and Charlie); on `staging` they are `User1`–`User3`, which are not
+validator accounts at all.
 See [the token model](/reference/token-model) for what that stake does and does not earn.
 
 ## Generate the raw chainspec
