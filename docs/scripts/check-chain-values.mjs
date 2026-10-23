@@ -55,7 +55,7 @@ const genesisMint =
   BigInt(
     requiredSourceValue(/pub const GENESIS_MINT: Balance = ([\d_]+) \* CMN;/, 'GENESIS_MINT'),
   ) * cmn;
-const emittableHeadroom = supplyCap - genesisMint;
+const designEmittableHeadroom = supplyCap - genesisMint;
 
 /** Pallets this repo owns; their whole extrinsic surface must be documented. */
 const CUSTOM_PALLETS = [
@@ -130,7 +130,12 @@ const PROSE_FACTS = [
   ['guide/run-a-node.md', 'ss58 format', `${snapshot.properties.ss58Format}`],
   ['guide/sdk.md', 'token decimals', `10^${snapshot.properties.tokenDecimals}`],
   ['reference/token-model.md', 'genesis mint', genesisMint.toString()],
-  ['reference/token-model.md', 'emittable headroom', emittableHeadroom.toString()],
+  [
+    'reference/token-model.md',
+    'emittable headroom',
+    designEmittableHeadroom.toString(),
+    'design (SUPPLY_CAP − GENESIS_MINT)',
+  ],
 ];
 
 /** Every markdown page under `dir`, as a ROOT-relative slash-separated path. */
@@ -292,14 +297,14 @@ for (const [left, op, right] of INVARIANTS) {
 }
 
 // ── 3: prose facts ───────────────────────────────────────────────────────────
-for (const [page, label, value] of PROSE_FACTS) {
+for (const [page, label, value, source = 'live'] of PROSE_FACTS) {
   const text = sourceText.get(page);
   if (text === undefined) {
     errors.push(`${page}: page is missing but is required to document the ${label}`);
     continue;
   }
   if (!text.includes(value)) {
-    errors.push(`${page}: does not mention the live ${label} ("${value}")`);
+    errors.push(`${page}: does not mention the ${source} ${label} ("${value}")`);
   } else {
     stats.prose++;
   }

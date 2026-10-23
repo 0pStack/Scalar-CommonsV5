@@ -10,8 +10,8 @@ file. Use the repository sources that are checked with the code:
 
 - [`Cargo.toml`](Cargo.toml), [`Cargo.lock`](Cargo.lock), and
   [`rust-toolchain.toml`](rust-toolchain.toml) define the SDK and Rust toolchain.
-- [`docs/reference/token-model.md`](docs/reference/token-model.md) contains token constants and the
-  reward formula checked against [`docs/.chain/snapshot.json`](docs/.chain/snapshot.json).
+- [`docs/reference/token-model.md`](docs/reference/token-model.md) contains the reward formula and
+  token constants checked against [`docs/.chain/snapshot.json`](docs/.chain/snapshot.json).
 - [`docs/reference/rpc.md`](docs/reference/rpc.md) documents the runtime and RPC surface.
 - [`package.json`](package.json) defines the npm workspaces and root scripts.
 - [`deploy/nodes.env`](deploy/nodes.env) defines the persistent devnet topology.
