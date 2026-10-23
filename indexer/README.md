@@ -29,8 +29,8 @@ report an agreement or a settlement that a re-org later erased.
 Needs a reachable node. For the local devnet see [`../deploy/README.md`](../deploy/README.md).
 
 ```bash
-npm ci
-INDEXER_RPC_URL=ws://127.0.0.1:9944 INDEXER_PORT=8080 npm start
+npm ci                                    # at the repository root
+INDEXER_RPC_URL=ws://127.0.0.1:9944 INDEXER_PORT=8080 npm start -w @scalar-commons/indexer
 ```
 
 | Variable | Default | Meaning |
@@ -140,7 +140,7 @@ a shape change here means a new prefix, not a quiet edit.
 ## Tests
 
 ```bash
-npm ci && npm test
+npm ci && npm test -w @scalar-commons/indexer   # npm ci at the repository root
 ```
 
 Seven suites are chain-free (the agent-activity classifier and feed query, paging rules, identifier and account extraction,

@@ -88,9 +88,9 @@ only stable on-chain coordinate.
 ## Run it
 
 ```
-npm ci
-npm run build
-npm start                       # http://127.0.0.1:8081
+npm ci                                       # at the repository root
+npm run build -w @scalar-commons/explorer
+npm start -w @scalar-commons/explorer        # http://127.0.0.1:8081
 ```
 
 | Env | Default | Meaning |

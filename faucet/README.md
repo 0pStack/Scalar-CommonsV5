@@ -52,8 +52,8 @@ round a real balance. `429` responses carry both `retryAfterMs` and a standard
 ## Running
 
 ```bash
-npm ci --no-audit --no-fund
-FAUCET_ALLOW_DEV_SEED=true npm start   # local devnet; otherwise set FAUCET_SEED
+npm ci --no-audit --no-fund                                  # at the repository root
+FAUCET_ALLOW_DEV_SEED=true npm start -w @scalar-commons/faucet   # local devnet; otherwise set FAUCET_SEED
 ```
 
 `npm start` compiles `src/` to `dist/` (`npm run build`) and then runs

@@ -380,37 +380,29 @@ spec 306 — see **[Run an agent on the public testnet](./run-an-agent-public-te
 
 ::: warning The SDK is not published to npm
 `npm install @scalar-commons/sdk` returns **404**. So does `@scalar-commons/faucet`. You
-must build it from the repository:
+must build it from the repository and install the packed tarball:
 
 ```bash
-git clone https://github.com/tejaspatil1936/scalar-commons-v4
-cd scalar-commons-v4/sdk
-npm ci
-npm run build          # tsc -> dist/
+git clone https://github.com/0pStack/Scalar-CommonsV5
+cd Scalar-CommonsV5
+npm ci                                                    # one install for the repo's npm workspace
+npm run build -w @scalar-commons/sdk                      # tsc -> sdk/dist/
+npm pack -w @scalar-commons/sdk --pack-destination /tmp   # -> /tmp/scalar-commons-sdk-0.1.0.tgz
 ```
 
 Then, from your tester workspace:
 
 ```bash
 cd /tmp/scalar-tester
-npm install /path/to/scalar-commons-v4/sdk
-npm install @polkadot/api@16.5.6     # <- required, see below
+npm install /tmp/scalar-commons-sdk-0.1.0.tgz
 ```
 
-The second line is **not optional**. `npm install <local-path>` creates a *symlink* and
-installs nothing else ("added 1 package"), so your own code cannot import
-`@polkadot/keyring` at all:
-
-```text
-Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@polkadot/keyring'
-  imported from /tmp/scalar-tester/05-agentflow.mjs
-```
-
-You will also see `@polkadot/util has multiple versions` warnings, because the SDK pins
-`@polkadot/api ^15` (resolving to 15.10.2) while a current workspace resolves 16.5.6. Both
-copies load and the flow below works end to end regardless — signing, submission and event
-decoding were all verified against the live chain — but it is noise a published package
-would not produce.
+Install the tarball, not the directory. `npm install <local-path>` creates a *symlink*, so the
+SDK resolves `@polkadot/*` from the repository while your code resolves its own copy, and
+polkadot-js warns `@polkadot/util has multiple versions`. The SDK declares `@polkadot/api` ^16
+and `@polkadot/keyring`/`util`/`util-crypto` ^14 as peer dependencies, so the tarball install
+puts one copy of each into your project, and `import { Keyring } from '@polkadot/keyring'`
+works without installing anything else.
 :::
 
 ### What registration actually costs
