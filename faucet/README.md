@@ -12,9 +12,10 @@ chain spec and is *not* a validator, so spending from it touches no staked
 balance. Any `//Name` dev seed, or the published dev phrase itself, is refused without
 that opt-in (I-6, #123).
 
-There is **no mint path in this component, and there must never be one.** All
-minting on this chain flows through the emissions pallet; a faucet that could
-mint would be a hole in the 100B supply cap. The faucet only ever calls
+There is **no mint path in this component, and there must never be one.** New
+CMN on this chain comes from era-emission claims in the `emissions` and
+`orchestrator` pallets, both paid from one per-era pool and capped at claim
+time; a faucet that could mint would be a hole in the 100B supply cap. The faucet only ever calls
 `balances.transferKeepAlive` — `transferKeepAlive` specifically, so a drip can
 never reap the funding account itself.
 
