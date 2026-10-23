@@ -25,6 +25,7 @@ chain. That still takes `system.setCode` from root.
 ### Documentation
 
 - fix(docs): verify runtime snapshot and docs base ([#163](https://github.com/0pStack/Scalar-CommonsV5/pull/163), closes [#100](https://github.com/0pStack/Scalar-CommonsV5/issues/100))
+- docs: correct genesis supply, equivocation, era-pool, treasury and minting claims ([#165](https://github.com/0pStack/Scalar-CommonsV5/pull/165), closes [#96](https://github.com/0pStack/Scalar-CommonsV5/issues/96))
 
 ### Maintenance
 
