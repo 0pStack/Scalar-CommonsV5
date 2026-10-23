@@ -148,7 +148,7 @@ value translation, the SQLite store, path routing and era-event shaping, and the
 one decode guard no live chain can trigger — an `AgreementStatus` variant this
 build does not know). The end-to-end suite lives in
 [`e2e/indexer/live.test.ts`](../e2e/indexer/live.test.ts) and runs against the node at
-`INDEXER_RPC_URL` (`npm run test:live:indexer -w e2e` from the repository root):
+`INDEXER_RPC_URL` (`npm run test:live:indexer -w @scalar-commons/e2e` from the repository root):
 
 1. submits real extrinsics (`agents.heartbeat`, `balances.transferKeepAlive`,
    `escrow.createAgreement`) from devnet dev accounts;

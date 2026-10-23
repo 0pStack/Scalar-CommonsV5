@@ -107,7 +107,7 @@ npm test
 
 `npm test` runs the offline suites. The live suite,
 [`e2e/explorer/explorer.live.test.ts`](../e2e/explorer/explorer.live.test.ts)
-(`npm run test:live:explorer -w e2e` from the repository root), talks to the devnet
+(`npm run test:live:explorer -w @scalar-commons/e2e` from the repository root), talks to the devnet
 RPC and is **not** skippable: it submits one
 real transfer, then asserts the explorer renders that block, that extrinsic and
 the accounts it named, cross-checked against direct node reads. An unreachable node
