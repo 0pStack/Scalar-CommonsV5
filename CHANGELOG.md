@@ -31,6 +31,7 @@ chain. That still takes `system.setCode` from root.
 ### Maintenance
 
 - fix(ts): validate tests and workspace SDK setup ([#162](https://github.com/0pStack/Scalar-CommonsV5/pull/162), closes [#102](https://github.com/0pStack/Scalar-CommonsV5/issues/102))
+- fix(e2e): make live suites fail fast ([#169](https://github.com/0pStack/Scalar-CommonsV5/pull/169), closes [#101](https://github.com/0pStack/Scalar-CommonsV5/issues/101))
 
 ## [v0.7.3] - 2026-10-22
 
