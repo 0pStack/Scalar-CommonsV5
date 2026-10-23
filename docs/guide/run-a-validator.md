@@ -20,9 +20,10 @@ finalized blocks **#766 726, #766 737, #766 742 and #766 743** — see [§7](./r
   are ever paid is an open decision:
   [#172](https://github.com/tejaspatil1936/scalar-commons-v4/issues/172) (`tier:T0`).
 - **Slashing arrives with spec 315; the live testnet does not slash yet.** The live testnet
-  runs spec 309 (per [#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), which
-  does not process equivocation reports. Spec 315, merged on main and awaiting enactment,
-  reports BABE and GRANDPA equivocation (double-signing) to staking; the offender is slashed to
+  runs spec 309 (per `landing/runtime-history.json` and
+  [#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), which does not process
+  equivocation reports. Spec 315, merged on main (`runtime/src/lib.rs:240-250`) and awaiting
+  enactment, reports BABE and GRANDPA equivocation (double-signing) to staking; the offender is slashed to
   Treasury after a 27-era deferral (about 20 days), during which Root can cancel the slash.
   Genesis validators are exempt: `dev_genesis` marks them invulnerable
   (`node/src/chain_spec.rs:368`), and pallet-staking skips invulnerables when it handles an
