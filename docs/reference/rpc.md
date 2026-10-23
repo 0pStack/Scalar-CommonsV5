@@ -274,8 +274,8 @@ chain's own.
 | `TaggedTransactionQueue` | 1 | `validate_transaction` |
 | `OffchainWorkerApi` | 1 | |
 | `SessionKeys` | 2 | `generate_session_keys`, `decode_session_keys` |
-| `BabeApi` | 6 | Includes equivocation reporting |
-| `GrandpaApi` | 4 | Includes equivocation reporting |
+| `BabeApi` | 6 | Includes equivocation report submission; the runtime processes reports from spec 315 |
+| `GrandpaApi` | 4 | Includes equivocation report submission; the runtime processes reports from spec 315 |
 | `AuthorityDiscoveryApi` | 1 | Current and next authority set |
 | `AccountNonceApi` | 1 | `account_nonce` |
 | `TransactionPaymentApi` | 4 | Fee estimation |
