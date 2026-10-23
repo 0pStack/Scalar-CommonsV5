@@ -6,7 +6,7 @@ archive node (the reference devnet's alice) also serves the ten `archive_v1_*` m
 total. On top of the standard Substrate surface, the
 runtime declares one custom runtime API, `ScalarCommonsApi`, reachable through `state_call`.
 
-Verified against `scalar-commons` spec 315, metadata v16.
+Verified against `scalar-commons` spec 316, metadata v16.
 
 ## Endpoints and transports
 
@@ -274,8 +274,8 @@ chain's own.
 | `TaggedTransactionQueue` | 1 | `validate_transaction` |
 | `OffchainWorkerApi` | 1 | |
 | `SessionKeys` | 2 | `generate_session_keys`, `decode_session_keys` |
-| `BabeApi` | 6 | Includes equivocation report submission; the runtime processes reports from spec 315 |
-| `GrandpaApi` | 4 | Includes equivocation report submission; the runtime processes reports from spec 315 |
+| `BabeApi` | 6 | Includes equivocation report submission; the runtime processes reports from spec 316 |
+| `GrandpaApi` | 4 | Includes equivocation report submission; the runtime processes reports from spec 316 |
 | `AuthorityDiscoveryApi` | 1 | Current and next authority set |
 | `AccountNonceApi` | 1 | `account_nonce` |
 | `TransactionPaymentApi` | 4 | Fee estimation |

@@ -595,14 +595,14 @@ Every raw value on this page is read from a node running this repository's runti
 mechanically re-checked. The snapshot's endpoint, block and genesis hash are recorded in
 `docs/.chain/snapshot.json`; it is a local development node, not the public testnet. The
 public testnet runs spec 309 (per `landing/runtime-history.json` and
-[#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), while spec 315 is merged on
-main (`runtime/src/lib.rs:240-250`) and not yet enacted, so a value introduced after spec 309
+[#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), while spec 316 is merged on
+main (`VERSION` in `runtime/src/lib.rs`) and not yet enacted, so a value introduced after spec 309
 is on main but not yet live.
 
 | Field | Value |
 |---|---|
 | Chain | Scalar Commons Development |
-| Runtime | `scalar-commons` spec 315 |
+| Runtime | `scalar-commons` spec 316 |
 | Metadata | v16 |
 | Token | CMN, 12 decimals, SS58 42 |
 

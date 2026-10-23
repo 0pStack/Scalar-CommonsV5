@@ -15,7 +15,7 @@
  "runtime": {
   "specName": "scalar-commons",
   "implName": "scalar-commons",
-  "specVersion": 315,
+  "specVersion": 316,
   "transactionVersion": 1,
   "metadataVersion": 16
  },
@@ -250,7 +250,7 @@
    "blockWeights": "{\"baseBlock\":{\"refTime\":431614000,\"proofSize\":0},\"maxBlock\":{\"refTime\":2000000000000,\"proofSize\":\"0xffffffffffffffff\"},\"perClass\":{\"normal\":{\"baseExtrinsic\":{\"refTime\":108157000,\"proofSize\":0},\"maxExtrinsic\":{\"refTime\":1299891843000,\"proofSize\":\"0xa666666666666666\"},\"maxTotal\":{\"refTime\":1500000000000,\"proofSize\":\"0xbfffffffffffffff\"},\"reserved\":{\"refTime\":0,\"proofSize\":0}},\"operational\":{\"baseExtrinsic\":{\"refTime\":108157000,\"proofSize\":0},\"maxExtrinsic\":{\"refTime\":1799891843000,\"proofSize\":\"0xe666666666666666\"},\"maxTotal\":{\"refTime\":2000000000000,\"proofSize\":\"0xffffffffffffffff\"},\"reserved\":{\"refTime\":500000000000,\"proofSize\":\"0x4000000000000000\"}},\"mandatory\":{\"baseExtrinsic\":{\"refTime\":108157000,\"proofSize\":0},\"maxExtrinsic\":null,\"maxTotal\":null,\"reserved\":null}}}",
    "dbWeight": "{\"read\":25000000,\"write\":100000000}",
    "ss58Prefix": "42",
-   "version": "{\"specName\":\"scalar-commons\",\"implName\":\"scalar-commons\",\"authoringVersion\":1,\"specVersion\":315,\"implVersion\":0,\"apis\":[[\"0xdf6acb689907609b\",5],[\"0x37e397fc7c91f5e4\",2],[\"0x40fe3ad401f8959a\",6],[\"0xd2bc9897eed08f15\",3],[\"0xf78b278be53f454c\",2],[\"0xab3c0572291feb8b\",2],[\"0xcbca25e39f142387\",2],[\"0xed99c5acb25eedf5\",3],[\"0x687ad44ad37f03c2\",1],[\"0xbc9d89904f5b923f\",1],[\"0x37c8bb1350a9a2a8\",4],[\"0x12e7cb752ec4c389\",1],[\"0xfbc577b9d747efd6\",1]],\"transactionVersion\":1,\"systemVersion\":1}"
+   "version": "{\"specName\":\"scalar-commons\",\"implName\":\"scalar-commons\",\"authoringVersion\":1,\"specVersion\":316,\"implVersion\":0,\"apis\":[[\"0xdf6acb689907609b\",5],[\"0x37e397fc7c91f5e4\",2],[\"0x40fe3ad401f8959a\",6],[\"0xd2bc9897eed08f15\",3],[\"0xf78b278be53f454c\",2],[\"0xab3c0572291feb8b\",2],[\"0xcbca25e39f142387\",2],[\"0xed99c5acb25eedf5\",3],[\"0x687ad44ad37f03c2\",1],[\"0xbc9d89904f5b923f\",1],[\"0x37c8bb1350a9a2a8\",4],[\"0x12e7cb752ec4c389\",1],[\"0xfbc577b9d747efd6\",1]],\"transactionVersion\":1,\"systemVersion\":1}"
   },
   "timestamp": {
    "minimumPeriod": "3000"

@@ -216,6 +216,34 @@ fn sudo_as_is_rejected_before_it_can_impersonate_an_account() {
     });
 }
 
+/// #125: the sudo_as filter is not an impersonation ban. `sudo` dispatches its
+/// inner call with `dispatch_bypass_filter` and `sudo_as` accepts Root, so the
+/// sudo key can still act as any account. This pins that the docs say so.
+#[test]
+fn sudo_key_remains_full_root_through_a_nested_sudo_as() {
+    externalities().execute_with(|| {
+        apply_ok(timestamp());
+        let impersonated = Balances::free_balance(account(2));
+        let call = RuntimeCall::Sudo(pallet_sudo::Call::sudo {
+            call: Box::new(RuntimeCall::Sudo(pallet_sudo::Call::sudo_as {
+                who: Address::Id(account(2)),
+                call: Box::new(RuntimeCall::Balances(
+                    pallet_balances::Call::transfer_allow_death {
+                        dest: Address::Id(account(3)),
+                        value: CMN,
+                    },
+                )),
+            })),
+        });
+
+        apply_ok(signed(call, 1, 0));
+        assert_eq!(
+            Balances::free_balance(account(2)),
+            impersonated.saturating_sub(CMN)
+        );
+    });
+}
+
 #[test]
 fn emergency_controls_inherents_and_economic_liveness_are_unpausable() {
     externalities().execute_with(|| {
