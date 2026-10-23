@@ -88,9 +88,9 @@ The gate must pass WITHOUT a live chain, because there may be no node running at
 ws://127.0.0.1:9944 when the gate runs. So:
   - Unit/route/decoder tests: run against fixtures and an injected/in-memory
     store. These are the gate.
-  - Live-chain tests: gate them behind an env var (e.g. RUN_INTEGRATION=1), the
-    way sdk/ already does with test:integration. They must be skipped by
-    default, and skipping them must be visible in the output, not silent.
+  - Live-chain tests belong under e2e/, outside this package's offline gate.
+    When invoked they fail on an unavailable node unless E2E_ALLOW_SKIP=1 is
+    explicitly set, and any intentional skip remains visible in the output.
 This is NOT permission to fake the API. Fixtures stand in for the chain; the
 decoding and serving logic under test must be the real logic.
 

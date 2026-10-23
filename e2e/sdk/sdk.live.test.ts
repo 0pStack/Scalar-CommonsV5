@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { ApiPromise, WsProvider } from '@polkadot/api';
+import type { ApiPromise } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
 import type { KeyringPair } from '@polkadot/keyring/types';
 
-import { ScalarCommonsClient, submitAndWatch } from '../src/index.js';
+import { ScalarCommonsClient, submitAndWatch } from '@scalar-commons/sdk';
+import { connectLiveSuite, devAccounts } from '../support/chain.js';
 
 /**
  * Live-node conformance: every shape asserted here is read from the running
@@ -14,14 +14,10 @@ import { ScalarCommonsClient, submitAndWatch } from '../src/index.js';
  * `None`, a balance lock that lives *inside* `free`), and this suite is what
  * proves it rather than trusting a hand-rolled mock.
  *
- * Opt-in, like the live block in `integration.test.ts`: `npm test` stays the
- * mock-driven, node-free suite it has always been, and this file runs under
- * `RUN_INTEGRATION=1` (`npm run test:integration`). When it *is* enabled it
- * still fails rather than skips on an unreachable node — "cannot reach the
- * chain" is a finding, not a pass — it simply no longer forces a devnet on
- * every `npm test`.
+ * This lives under e2e so the SDK's default test command remains entirely
+ * offline. An unreachable node fails the live suite unless the caller has
+ * explicitly opted into the repository-wide E2E_ALLOW_SKIP policy.
  */
-const RUN_LIVE = process.env.RUN_INTEGRATION === '1';
 const ENDPOINT = process.env.SCALAR_WS ?? process.env.WS_ENDPOINT ?? 'ws://127.0.0.1:9944';
 
 /** First spec version carrying the ROUND14 `record_gov_vote(agent, poll_index)` signature. */
@@ -33,15 +29,18 @@ let alice: KeyringPair;
 /** An account the chain actually reports as a registered agent. */
 let agentAddress: string;
 
+const availabilityApi = await connectLiveSuite('SDK live suite', ENDPOINT);
+const nodeAvailable = Boolean(availabilityApi);
+const liveDescribe = nodeAvailable ? describe : describe.skip;
+await availabilityApi?.disconnect();
+
 beforeAll(async () => {
-  if (!RUN_LIVE) return;
-  await cryptoWaitReady();
-  // `throwOnConnect` turns an unreachable node into an immediate rejection
-  // instead of an invisible reconnect loop — no silent retries, ever.
-  api = await ApiPromise.create({ provider: new WsProvider(ENDPOINT), throwOnConnect: true });
+  if (!nodeAvailable) return;
+  api = (await connectLiveSuite('SDK live suite setup', ENDPOINT))!;
   // Runtime rejections here are information, not transient faults: never retry them.
   client = new ScalarCommonsClient(api, { maxRetries: 0 });
-  alice = new Keyring({ type: 'sr25519' }).addFromUri('//Alice');
+  const accounts = await devAccounts(['Alice']);
+  alice = accounts.Alice!;
 
   const staked = await api.query.agents!.agentStake!.entries();
   const first = staked.find(([, value]) => !(value as unknown as { isNone: boolean }).isNone);
@@ -53,7 +52,7 @@ afterAll(async () => {
   if (api) await api.disconnect();
 });
 
-describe.skipIf(!RUN_LIVE)('live devnet — runtime metadata matches the SDK surface', () => {
+liveDescribe('live devnet — runtime metadata matches the SDK surface', () => {
   it('is running the spec the SDK targets', () => {
     expect(api.runtimeVersion.specName.toString()).toBe('scalar-commons');
     expect(api.runtimeVersion.specVersion.toNumber()).toBeGreaterThanOrEqual(MIN_SPEC_VERSION);
@@ -76,7 +75,7 @@ describe.skipIf(!RUN_LIVE)('live devnet — runtime metadata matches the SDK sur
   });
 });
 
-describe.skipIf(!RUN_LIVE)('live devnet — read methods decode real storage', () => {
+liveDescribe('live devnet — read methods decode real storage', () => {
   it('eraInfo decodes lastSettledEra whether it is Some or None', async () => {
     // Read the head first: block numbers only ever grow, so a head sampled before
     // the call can never claim "due" for an era the call itself saw as not-yet-due.
@@ -135,7 +134,7 @@ describe.skipIf(!RUN_LIVE)('live devnet — read methods decode real storage', (
   });
 });
 
-describe.skipIf(!RUN_LIVE)('live devnet — recordGovVote encodes against real metadata', () => {
+liveDescribe('live devnet — recordGovVote encodes against real metadata', () => {
   it('is rejected by the runtime guard, not by an encoding mismatch', async () => {
     // A poll Alice provably holds no live vote on. Reaching `NotActivelyVoting`
     // proves the call encoded with the right arity and types: a stale one-argument
@@ -163,3 +162,16 @@ async function currentBlock(): Promise<bigint> {
   const now = await api.query.system!.number!();
   return BigInt(now.toString());
 }
+
+liveDescribe('ScalarCommonsClient — real dev node', () => {
+  it('connects and reads era info from a live node', async () => {
+    const connected = await ScalarCommonsClient.connect(ENDPOINT);
+    try {
+      const info = await connected.eraInfo();
+      expect(typeof info.era).toBe('number');
+      expect(info.eraDuration).toBeGreaterThan(0n);
+    } finally {
+      await connected.disconnect();
+    }
+  });
+});
