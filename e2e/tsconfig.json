@@ -13,5 +13,12 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["faucet/**/*.ts", "indexer/**/*.ts", "explorer/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "faucet/**/*.ts",
+    "indexer/**/*.ts",
+    "explorer/**/*.ts",
+    "support/**/*.ts",
+    "vitest.config.ts",
+    "vitest.live.config.ts"
+  ]
 }

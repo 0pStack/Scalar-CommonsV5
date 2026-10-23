@@ -4,9 +4,9 @@
  * Everything here reads its type shapes from the runtime metadata the node
  * serves — nothing about the balances pallet is hand-written. The faucet spends
  * from an ordinary pre-funded devnet account via `balances.transferKeepAlive`;
- * there is deliberately **no mint path**. All minting on this chain flows
- * through the emissions pallet, and a faucet that could mint would be a hole in
- * the supply cap.
+ * there is deliberately **no mint path**. Ongoing reward minting is capped and
+ * happens in the emissions and orchestrator pallets; a faucet that could mint
+ * would be a hole in the supply cap.
  */
 
 import { ApiPromise, WsProvider } from '@polkadot/api';

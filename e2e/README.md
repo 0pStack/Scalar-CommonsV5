@@ -1,43 +1,46 @@
-# e2e — tests that need a live chain
+# e2e  tests that need a live chain
 
-Every test in this repository that talks to a real Scalar Commons node lives here, so
-that every other package's `npm test` is offline. CI (`.github/workflows/ci-node.yml`)
-**typechecks** this package and never runs its live suites: a hosted runner has no chain.
+Every test in this repository that talks to a Scalar Commons node lives here. Other
+workspaces keep their default test commands offline. CI typechecks this package and
+runs the archetype runner's offline unit tests; live suites are deliberate devnet runs.
 
 | Folder | What it checks | Needs |
 |---|---|---|
-| `lifecycle/` | pallet lifecycles (agents, auto-params, emissions, escrow, oracle, orchestrator), asserted on events and read-back storage | a **dev** chain: throwaway accounts are funded from `//Alice` |
-| `faucet/` | the faucet's real drips, rate limits and metadata shapes | a devnet with `//Ferdie` endowed |
-| `indexer/` | the indexer against finalized blocks, cross-checked against RPC on all 25 v1 endpoints | a devnet with dev accounts |
-| `explorer/` | explorer pages rendered from a node, after one real transfer | a devnet with `//Eve` endowed (the suite does not exercise `/activity`, the one page that reads the indexer) |
-| `archetypes/` | the ENDGOAL §3.4 attacker archetypes, with net CMN per archetype ([README](./archetypes/README.md)) | a dev chain, funded from `//Alice` |
+| `lifecycle/` | Pallet lifecycles, asserted through events and storage | A development chain with funded development accounts |
+| `faucet/` | Real drips, limits and response metadata | A devnet with the configured faucet seed endowed |
+| `indexer/` | The indexer API cross-checked against direct RPC reads | A devnet with development accounts |
+| `explorer/` | Node-backed pages after a real transfer | A devnet with the configured test seed endowed |
+| `archetypes/` | Attacker-archetype accounting and reports | Offline for unit tests; a development chain for the runner |
+
+All live test files use the `*.live.test.ts` suffix. Shared connection, account,
+submission and deadline behavior lives in `support/chain.ts`.
 
 ## Run
 
-Install once at the repository root (`npm ci`) and build the SDK the suites import
-(`npm run build -w @scalar-commons/sdk`), then, from the root:
+Install and build the SDK once from the repository root:
 
 ```bash
-npm run test:live -w @scalar-commons/e2e     # lifecycle + faucet + indexer + explorer
+npm ci
+npm run build -w @scalar-commons/sdk
+```
+
+Then run all or one group:
+
+```bash
+npm run test:live -w @scalar-commons/e2e
 npm run test:live:lifecycle -w @scalar-commons/e2e
 npm run test:live:faucet -w @scalar-commons/e2e
 npm run test:live:indexer -w @scalar-commons/e2e
 npm run test:live:explorer -w @scalar-commons/e2e
 npm run archetypes -w @scalar-commons/e2e -- --archetype wash --eras 1
-npm run typecheck -w @scalar-commons/e2e     # offline; CI runs it
-npm test -w @scalar-commons/e2e              # offline; CI runs it: the archetype runner's own unit tests
+npm run typecheck -w @scalar-commons/e2e
+npm test -w @scalar-commons/e2e
 ```
 
-`npm test` here runs only the offline unit tests of the archetype runner (its money
-maths, ledger and report table), so the root `npm test` stays offline. The live suites
-are the `test:live*` scripts.
+Live files run one at a time because they sign with shared development accounts and
+must not race their nonce streams.
 
-Files run one at a time (`fileParallelism: false` in `vitest.config.ts`): every suite
-signs with genesis dev accounts, and parallel files would race their nonces.
-
-## Endpoints
-
-Each suite keeps the variable it always had:
+## Endpoints and accounts
 
 | Suite | Variable | Default |
 |---|---|---|
@@ -45,20 +48,23 @@ Each suite keeps the variable it always had:
 | faucet | `FAUCET_RPC_ENDPOINT`, `FAUCET_SEED` | `ws://127.0.0.1:9944`, `//Ferdie` |
 | indexer | `INDEXER_RPC_URL` | `ws://127.0.0.1:9944` |
 | explorer | `EXPLORER_RPC_ENDPOINT`, `EXPLORER_TEST_SEED`, `EXPLORER_INDEXER_URL` | `ws://127.0.0.1:9944`, `//Eve`, `http://127.0.0.1:8080` |
-| archetypes | `--endpoint` | `ws://127.0.0.1:9944` (`node archetypes/run.mjs --help`) |
+| archetypes | `--endpoint` | `ws://127.0.0.1:9944` |
 
-## When no node answers
+Lifecycle tests use fresh throwaway accounts funded from `//Alice`. They are for a
+development chain and must never target the public testnet.
 
-- `lifecycle/` **skips**, with a console warning naming the endpoint.
-- `faucet/`, `indexer/` and `explorer/` **fail**. An unreachable node is a finding for
-  them, not a reason to assert nothing.
+## Failure and skip policy
 
-## Why one package
+A missing or stalled node fails quickly. Extrinsic submission has a deadline and always
+unsubscribes after success, rejection or timeout. Each live test file must execute at
+least one test.
 
-The suites share their dependencies (`@polkadot/*`, the workspace SDK for the chain
-constants, and vitest) and one vitest config, so they are one workspace package. The faucet, indexer and explorer suites
-import their app's `src/` by relative path. The apps export no library entry point,
-and `tsconfig.json` here typechecks those sources together with the tests. The
-lifecycles have their own `lifecycle/tsconfig.json` only to relax
-`noUncheckedIndexedAccess`, which they predate. The package is on vitest 3: the
-lifecycles call `ctx.skip(reason)`, which takes a reason only from vitest 3.
+Set `E2E_ALLOW_SKIP=1` only when intentionally running a command in an environment
+without the required node or runtime capability. Without that explicit opt-in, a skipped
+suite or capability is a test failure. This prevents a green result that asserted
+nothing.
+
+Time-gated behavior that cannot finish under the production runtime constants belongs
+in pallet unit tests or a dedicated compressed-timing runtime. The former E7 live test
+was removed because the repository has no compressed-timing node and the runtime's
+challenge window made that test unreachable.
