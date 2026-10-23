@@ -201,8 +201,10 @@ a generic agreement.
 accepted an agreement. `rejectAgreement` and `cancelPending` both refund the buyer in full
 and work only while the agreement is pending; `claimRefund` refuses a pending agreement
 with `NotAccepted`, so `cancelPending` is the buyer's way out. `escrow.expireAgreement` has
-no wrapper: any signed account may close an agreement nobody delivered on once its window
-plus a grace period has passed, and the refund always goes to the buyer. Submit it with
+no wrapper: any signed account may close an agreement in any status once that status's
+window plus a 10-block grace has passed — `deliverBy` while created, `deliverBy` +
+`escrow.buyerResponseWindow` once delivered, `escrow.disputeTimeoutWindow` from the dispute
+once disputed — and the refund always goes to the buyer. Submit it with
 `submitAndWatch` (see [beyond the wrappers](#beyond-the-wrappers)).
 
 The constraints that will actually bite:

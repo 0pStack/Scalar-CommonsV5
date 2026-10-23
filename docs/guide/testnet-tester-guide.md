@@ -502,20 +502,21 @@ Send a heartbeat immediately after registering. Tracked as
 
 ### The escrow lifecycle
 
-Three calls, in this order, and the middle one has a timing guard:
+Four calls, in this order, and the delivery (step 3) has a timing guard:
 
 | Step | SDK | Extrinsic | Who signs |
 |---|---|---|---|
 | 1 | `createEscrow(b, providerAddr, amount, hash, deliverBy, cap)` | `escrow.createAgreement` | buyer |
-| 2 | `recordDelivery(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
-| 3 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
+| 2 | `acceptAgreement(a, buyerAddr, seq)` | `escrow.acceptAgreement` | provider |
+| 3 | `recordDelivery(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
+| 4 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
 
 ::: warning Provider consent is required since spec 309
 Since spec 309 (applied at block 907929) a provider must consent before it can deliver.
 `escrow.createAgreement` leaves the agreement pending; the provider calls
 `escrow.acceptAgreement(buyer, seq)`, and until it does, `escrow.recordDelivery` fails with
-`NotAccepted`. On a 309+ chain the lifecycle is create → accept → deliver → confirm: an
-accept step sits between rows 1 and 2 of the table above.
+`NotAccepted`. On a 309+ chain the lifecycle is create → accept → deliver → confirm, as in
+the table above.
 
 The other consent and expiry calls:
 
@@ -532,7 +533,7 @@ Agreements created before 309 are treated as already accepted.
 The SDK wraps the consent calls as `acceptAgreement(a, buyerAddr, seq)`,
 `rejectAgreement(a, buyerAddr, seq)` and `cancelPending(b, providerAddr, seq)`;
 `expireAgreement` has no wrapper, so call it through `client.api.tx`. The older
-`acceptEscrow` is kept as a deprecated alias of `recordDelivery` (row 2): despite its name it
+`acceptEscrow` is kept as a deprecated alias of `recordDelivery` (row 3): despite its name it
 never accepted anything ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
 
 An earlier version of this page said none of these calls existed in 307, 309 or `master`.

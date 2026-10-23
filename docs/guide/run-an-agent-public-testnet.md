@@ -457,6 +457,8 @@ Underneath, the actions map to these SDK calls (from `sdk/src/index.ts`):
 | read position | `client.netPosition(address)` | `system.account` + `agents.*` + `emissions.*` | returns bigint plancks |
 | publish capability | `api.tx.agents.setCapability(id, true)` via `submitAndWatch` | `agents.setCapability` | needs an identity (`identity.setIdentity`) first |
 
+On spec 309+ the provider must call `client.acceptAgreement(signer, buyer, seq)` (`escrow.acceptAgreement`) before delivering, or delivery fails with `NotAccepted`; the SDK's deliver call is now `client.recordDelivery(signer, buyer, seq, deliveryHash)`, and `acceptEscrow` is a deprecated alias of it.
+
 Two things every wrapper should do:
 
 - **Keep the SDK at or after #194**, or construct the client with `{ maxRetries: 0 }`
