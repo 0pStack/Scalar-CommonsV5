@@ -4,12 +4,15 @@ import { afterAll, beforeAll, describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import type { ApiPromise } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
-import { cmn, connect, findEvent, freshPair, fund, send, waitForBlock } from './helpers.js';
+import { cmn, findEvent, freshPair, fund, send, waitForBlock, WS } from './helpers.js';
+import { connectLiveSuite } from '../../support/chain.js';
 
 const HASH = '0x' + '11'.repeat(32);
 const PROOF = '0x' + '22'.repeat(32);
+const liveApi = await connectLiveSuite('escrow lifecycle', WS);
+const liveDescribe = liveApi ? describe : describe.skip;
 
-describe('escrow lifecycle', () => {
+liveDescribe('escrow lifecycle', () => {
   let api: ApiPromise;
   let buyer: KeyringPair;
   let provider: KeyringPair;
@@ -22,7 +25,7 @@ describe('escrow lifecycle', () => {
     (await api.query.escrow.agreements(buyer.address, provider.address)) as any;
 
   beforeAll(async () => {
-    api = await connect();
+    api = liveApi!;
     buyer = await freshPair();
     provider = await freshPair();
     // Registration needs MinStake + fee; 20_000 CMN each covers it with headroom.
@@ -31,7 +34,7 @@ describe('escrow lifecycle', () => {
     for (const p of [buyer, provider]) await send(api, api.tx.agents.register(minStake), p);
   });
   afterAll(async () => {
-    await api.disconnect();
+    await liveApi?.disconnect();
   });
 
   it('rejects a self-deal and leaves no agreement or reserve (E19)', async () => {
@@ -110,11 +113,9 @@ describe('escrow lifecycle', () => {
     assert.equal((await agreements()).length, 0);
     assert.equal(await reserved(buyer), reservedBefore);
 
-    // Provider receives the amount minus the 25 bps completion fee, which the pallet routes to
-    // Treasury (E6). `CompletionFeeProvider` is not a metadata constant, so 25 bps is fixed here.
-    // The provider also paid the recordDelivery tx fee; that is far smaller than the 0.5 CMN slack,
-    // while the fee itself (1.25 CMN on 500 CMN) is larger, so a missing fee would fail the upper bound.
-    const net = amount - (amount * 25n) / 10_000n;
+    // Auto-params can change this fee while a shared node is running, so read the live value.
+    const feeBps = BigInt((await api.query.autoParams.completionFeeBps()).toString());
+    const net = amount - (amount * feeBps) / 10_000n;
     const gained = (await free(provider)) - providerFreeBefore;
     assert.ok(gained <= net, `provider gained ${gained}, expected at most ${net}`);
     assert.ok(gained >= net - cmn(1) / 2n, `provider gained ${gained}, expected about ${net}`);
