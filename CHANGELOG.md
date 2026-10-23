@@ -18,6 +18,8 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.7.4] - 2026-10-23
+
 ### Fixed
 
 - SDK: add escrow consent calls; acceptEscrow becomes recordDelivery ([#164](https://github.com/0pStack/Scalar-CommonsV5/pull/164), closes [#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64))
@@ -32,6 +34,7 @@ chain. That still takes `system.setCode` from root.
 
 - fix(ts): validate tests and workspace SDK setup ([#162](https://github.com/0pStack/Scalar-CommonsV5/pull/162), closes [#102](https://github.com/0pStack/Scalar-CommonsV5/issues/102))
 - fix(e2e): make live suites fail fast ([#169](https://github.com/0pStack/Scalar-CommonsV5/pull/169), closes [#101](https://github.com/0pStack/Scalar-CommonsV5/issues/101))
+- docs: correct stale code comments ([#170](https://github.com/0pStack/Scalar-CommonsV5/pull/170), closes [#168](https://github.com/0pStack/Scalar-CommonsV5/issues/168))
 
 ## [v0.7.3] - 2026-10-22
 
