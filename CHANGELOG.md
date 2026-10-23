@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Documentation
+
+- fix(docs): verify runtime snapshot and docs base ([#163](https://github.com/0pStack/Scalar-CommonsV5/pull/163), closes [#100](https://github.com/0pStack/Scalar-CommonsV5/issues/100))
+
 ### Maintenance
 
 - fix(ts): validate tests and workspace SDK setup ([#162](https://github.com/0pStack/Scalar-CommonsV5/pull/162), closes [#102](https://github.com/0pStack/Scalar-CommonsV5/issues/102))
