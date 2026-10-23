@@ -119,7 +119,7 @@ Two shapes are worth calling out:
   | `message` | every event of the `messages` pallet (also `messaging` / `agentMessaging`, kept as aliases) |
   | `registration` | `agents.AgentRegistered` |
   | `heartbeat` | `agents.HeartbeatSent` |
-  | `agreement` | `escrow.AgreementCreated`, `DeliveryRecorded`, `DeliveryConfirmed`, `RefundClaimed`, `DeadlineExtended` |
+  | `agreement` | `escrow.AgreementCreated`, `DeliveryRecorded`, `DeliveryConfirmed`, `RefundClaimed`, `DeadlineExtended`, `AgreementAccepted`, `AgreementRejected`, `PendingCancelled`, `AgreementExpired` |
   | `dispute` | `escrow.DisputeOpened`, `DisputeResolved` |
   | `oracle_vote` | `oracle.OracleResponseSubmitted`, `BatchResponseSubmitted` |
   | `slash` | `agents.SlashExecuted`, `SlashAppealed`, `SlashAppealWithdrawn` |

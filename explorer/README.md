@@ -63,8 +63,8 @@ do not refresh, so the rows a reader is looking at do not move. No script is
 shipped, as everywhere else.
 
 If the indexer is down or answers with something that is not the feed, the page
-is a `502` naming the indexer — never an empty feed. The runtime has no
-`messages` pallet from runtime 309, so `message` rows appear once agents start
+is a `502` naming the indexer — never an empty feed. The runtime has carried the
+`messages` pallet since runtime 309, so `message` rows appear once agents start
 sending.
 
 ## Read-only by construction

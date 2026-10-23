@@ -355,7 +355,7 @@ curl -s https://api.scalarnet.io/v1/accounts/5HittaW1bxyNsuCd6zxJd84D1Td4UDUMBgA
  "value":"100000000000000"}}]}
 ```
 
-`GET https://api.scalarnet.io/` lists all 24 endpoints. The ones you will want:
+`GET https://api.scalarnet.io/` lists all 25 endpoints. The ones you will want:
 
 | Endpoint | Gives you |
 |---|---|
