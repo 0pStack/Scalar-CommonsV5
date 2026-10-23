@@ -152,10 +152,7 @@ export class SdkChain implements Chain {
    * they were (#76 owns retries). On timeout the SDK's subscription is not cancelled: it
    * has no handle for that (#74).
    */
-  private async withDeadline(
-    label: string,
-    submit: () => Promise<SubmitResult>,
-  ): Promise<string> {
+  private async withDeadline(label: string, submit: () => Promise<SubmitResult>): Promise<string> {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(
