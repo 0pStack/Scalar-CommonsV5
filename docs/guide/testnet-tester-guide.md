@@ -137,8 +137,9 @@ Fine for a throwaway testnet directory under `/tmp`; never do this with a key th
 ## 2. Get CMN from the faucet
 
 The faucet is three endpoints, and it dispenses from a pre-funded account — it is **not** a
-mint path. All minting on this chain goes through the emissions pallet, and a faucet that
-could mint would be a hole in the supply cap.
+mint path. New CMN on this chain comes from era-emission claims in the `emissions` and
+`orchestrator` pallets, both capped at claim time, and a faucet that could mint would be a
+hole in the supply cap.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -873,8 +874,9 @@ preset uses ([genesis distribution](/reference/token-model#genesis-distribution)
 
 The bulk of issuance growth to date was **not** emissions: spec 305 removed staking
 inflation after `TotalIssuance` grew by 43.58 M CMN from `pallet-staking` while
-`pallet-emissions` minted exactly zero (`docs/history/TESTNETAUDIT.md` §6 I-2). Emissions are now the
-only mint path.
+`pallet-emissions` minted exactly zero (`docs/history/TESTNETAUDIT.md` §6 I-2). New issuance now comes from era-emission claims
+through `emissions` and `orchestrator`, both paid from the same per-era pool, plus the bounded
+pre-305 staking bookings described in [the token model](/reference/token-model#supply).
 :::
 
 ## 6. Run your own full node
