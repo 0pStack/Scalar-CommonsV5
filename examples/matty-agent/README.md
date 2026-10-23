@@ -53,7 +53,7 @@ bash examples/matty-agent/setup-matty-agent.sh
 ```
 
 🟩 **AUTOMATIC ACTION.** It downloads what the agent needs, builds it, and runs its self-tests.
-This takes one or two minutes; you'll see the tests pass (`Tests  … passed`). It then creates your agent's key
+This takes a few minutes; you'll see the tests pass (`Tests  … passed`). It then creates your agent's key
 and shows it **once**, like this:
 
 ```text

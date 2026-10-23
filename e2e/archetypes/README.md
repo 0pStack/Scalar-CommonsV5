@@ -18,7 +18,7 @@ This directory replaces that with something that actually touches the chain.
 
 ```bash
 npm ci                                     # at the repository root: one install for the workspace
-npm test -w e2e                            # offline: money maths, accounting, report
+npm test -w @scalar-commons/e2e            # offline: money maths, accounting, report
 cd e2e/archetypes
 node run.mjs --archetype wash --eras 1     # live: real extrinsics, real fees
 node run.mjs --archetype all --eras 2 --json out.json

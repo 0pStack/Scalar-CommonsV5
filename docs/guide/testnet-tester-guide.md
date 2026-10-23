@@ -1209,9 +1209,9 @@ Each is filed.
 
 And the smaller edges, documented in place above rather than filed:
 
-- **The SDK is not on npm** (`@scalar-commons/sdk` → 404). You must clone and build, and
-  `npm install <local-path>` symlinks without installing `@polkadot/*`, so your own imports
-  fail until you add `@polkadot/api` yourself.
+- **The SDK is not on npm** (`@scalar-commons/sdk` → 404). You must clone and build it, then
+  install the packed tarball (`npm pack`) rather than the directory: a directory install is a
+  symlink, so your code resolves a second copy of `@polkadot/*`.
 - **`https://scalarnet.io/docs/<anything>` returns 200.** The SPA fallback makes status
   codes useless for checking whether an asset exists; check `content-type`.
 - **`protocolId` is `None`**, so nodes fall back to the default protocol id `"sup"` rather
