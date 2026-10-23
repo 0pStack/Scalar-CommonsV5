@@ -17,6 +17,7 @@
     "faucet/**/*.ts",
     "indexer/**/*.ts",
     "explorer/**/*.ts",
+    "sdk/**/*.ts",
     "support/**/*.ts",
     "vitest.config.ts",
     "vitest.live.config.ts"

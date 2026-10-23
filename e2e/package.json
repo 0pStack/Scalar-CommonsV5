@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Every test that needs a live Scalar Commons chain: pallet lifecycles, the faucet, indexer and explorer against a node, and the attacker-archetype runner. CI typechecks the package and runs only the archetype runner's offline unit tests.",
+  "description": "Every test that needs a live Scalar Commons chain: pallet lifecycles, SDK conformance, faucet, indexer and explorer against a node, and the attacker-archetype runner. CI typechecks the package and runs only its offline unit tests.",
   "license": "Apache-2.0",
   "scripts": {
     "setup:sdk": "npm --prefix ../sdk run build",
@@ -11,11 +11,12 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p lifecycle/tsconfig.json",
     "pretest": "npm run setup:sdk",
     "test": "vitest run archetypes/ support/",
-    "test:live": "vitest run --config vitest.live.config.ts lifecycle/ faucet/ indexer/ explorer/",
+    "test:live": "vitest run --config vitest.live.config.ts lifecycle/ faucet/ indexer/ explorer/ sdk/",
     "test:live:lifecycle": "vitest run --config vitest.live.config.ts lifecycle/",
     "test:live:faucet": "vitest run --config vitest.live.config.ts faucet/",
     "test:live:indexer": "vitest run --config vitest.live.config.ts indexer/",
     "test:live:explorer": "vitest run --config vitest.live.config.ts explorer/",
+    "test:live:sdk": "vitest run --config vitest.live.config.ts sdk/",
     "prearchetypes": "npm run setup:sdk",
     "archetypes": "node archetypes/run.mjs"
   },

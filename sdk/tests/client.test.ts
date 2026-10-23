@@ -5,9 +5,8 @@ import type { Logger } from '../src/logger.js';
 
 /**
  * These tests exercise the SDK against a mock polkadot-js `ApiPromise` by
- * default so they run green in CI without a node. When `RUN_INTEGRATION=1` and
- * `WS_ENDPOINT` are set (e.g. a `--dev` node in CI), the final block also runs
- * the read path against the real chain.
+ * default so they run green in CI without a node. Live-chain coverage belongs
+ * to `e2e/sdk/`, keeping this package's default test command fully offline.
  */
 
 // ─── Mock ApiPromise ─────────────────────────────────────────────────────────
@@ -164,7 +163,6 @@ describe('ScalarCommonsClient — write method → extrinsic mapping', () => {
     expect(calls[8]?.args).toEqual([SIGNER, 9]);
   });
 });
-
 describe('ScalarCommonsClient — escrow consent (spec 309)', () => {
   const BUYER = '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy';
 
@@ -338,23 +336,5 @@ describe('ScalarCommonsClient — submit retries are logged, never silent', () =
     expect(res.blockHash).toBe('0xblock2');
     // The retry was surfaced (not silent).
     expect(logged.some((l) => l.startsWith('warn:') && l.includes('attempt 1/4'))).toBe(true);
-  });
-});
-
-// ─── Optional: real dev node ────────────────────────────────────────────────
-
-const runReal = process.env.RUN_INTEGRATION === '1';
-const endpoint = process.env.SCALAR_WS ?? process.env.WS_ENDPOINT ?? 'ws://127.0.0.1:9944';
-
-describe.skipIf(!runReal)('ScalarCommonsClient — real dev node', () => {
-  it('connects and reads era info from a live node', async () => {
-    const client = await ScalarCommonsClient.connect(endpoint);
-    try {
-      const info = await client.eraInfo();
-      expect(typeof info.era).toBe('number');
-      expect(info.eraDuration).toBeGreaterThan(0n);
-    } finally {
-      await client.disconnect();
-    }
   });
 });
