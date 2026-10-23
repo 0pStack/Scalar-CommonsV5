@@ -5,12 +5,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ApiPromise } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
-import { SCALAR_WS, connect, eventsOf, freshAccount, fund, nodeIsUp, send } from './helpers.js';
+import { SCALAR_WS, eventsOf, freshAccount, fund, send } from './helpers.js';
+import { connectLiveSuite, skipOrFail } from '../../support/chain.js';
 
-const up = await nodeIsUp();
-if (!up) console.warn(`[testkit] no node at ${SCALAR_WS}: agents lifecycle suite SKIPPED`);
+const liveApi = await connectLiveSuite('agents lifecycle', SCALAR_WS);
 
-describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
+describe.skipIf(!liveApi)(`agents lifecycle @ ${SCALAR_WS}`, () => {
   let api: ApiPromise;
   let minStake: bigint;
   let agent: KeyringPair;
@@ -18,7 +18,7 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
   let delegate: KeyringPair;
 
   beforeAll(async () => {
-    api = await connect();
+    api = liveApi!;
     minStake = (api.consts.agents.minStake as unknown as { toBigInt(): bigint }).toBigInt();
     agent = freshAccount('agent');
     outsider = freshAccount('outsider');
@@ -150,8 +150,7 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
     // `NoSuchSlash` error and accepts the appeal, so skip loudly rather than assert a fix that
     // node does not contain. Against a 307+ node this test is live.
     if (!api.errors.agents?.NoSuchSlash) {
-      console.warn('[testkit] E22 SKIPPED: runtime has no agents.NoSuchSlash (pre-307)');
-      ctx.skip();
+      skipOrFail(ctx, 'runtime has no agents.NoSuchSlash (pre-307)');
     }
     const o = await send(api, api.tx.agents.slashAppeal(0, `0x${'11'.repeat(32)}`), agent);
     expect(o.ok).toBe(false);

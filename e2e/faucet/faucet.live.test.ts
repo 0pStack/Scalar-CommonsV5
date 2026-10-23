@@ -4,12 +4,13 @@ import type { Server } from 'node:http';
 
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
-import { PLANCKS_PER_CMN, SS58_PREFIX } from '@scalar-commons/sdk';
+import { CMN_DECIMALS, PLANCKS_PER_CMN, SS58_PREFIX } from '@scalar-commons/sdk';
 
 import { connectChain, type ChainClient } from '../../faucet/src/chain.js';
 import { FaucetService } from '../../faucet/src/faucet.js';
 import { SlidingWindowRateLimiter } from '../../faucet/src/rateLimiter.js';
 import { createFaucetServer } from '../../faucet/src/server.js';
+import { connectLiveSuite } from '../support/chain.js';
 
 /**
  * These tests run against the LIVE devnet RPC. They are not mocked and they are
@@ -22,6 +23,10 @@ import { createFaucetServer } from '../../faucet/src/server.js';
  */
 
 const RPC_ENDPOINT = process.env.FAUCET_RPC_ENDPOINT ?? 'ws://127.0.0.1:9944';
+const availabilityApi = await connectLiveSuite('faucet live suite', RPC_ENDPOINT);
+const nodeAvailable = Boolean(availabilityApi);
+const liveDescribe = nodeAvailable ? describe : describe.skip;
+await availabilityApi?.disconnect();
 
 /** Genesis-endowed, non-validator devnet account. Pre-funded — never minted. */
 const FAUCET_SEED = process.env.FAUCET_SEED ?? '//Ferdie';
@@ -107,7 +112,7 @@ async function postDrip(h: Harness, address: unknown, ip = '203.0.113.1') {
 
 // ─── Live chain wiring ───────────────────────────────────────────────────────
 
-describe('live devnet connection', () => {
+liveDescribe('live devnet connection', () => {
   it('reads real runtime metadata from the node', () => {
     const info = chain.chainInfo();
     expect(info.chain).toMatch(/Scalar Commons/);
@@ -115,12 +120,12 @@ describe('live devnet connection', () => {
     // Issue #75 targets spec 304; a later runtime is fine, an earlier one is not.
     expect(info.specVersion).toBeGreaterThanOrEqual(304);
     expect(info.tokenSymbol).toBe('CMN');
-    expect(info.tokenDecimals).toBe(12);
-    expect(info.ss58Format).toBe(42);
+    expect(info.tokenDecimals).toBe(CMN_DECIMALS);
+    expect(info.ss58Format).toBe(SS58_PREFIX);
   });
 
   it('resolves the pre-funded faucet account and finds it solvent', async () => {
-    expect(chain.faucetAddress).toBe('5CiPPseXPECbkjWCa6MnjNokrgYjMqmKndv2rSnekmSK2DjL');
+    expect(chain.faucetAddress).toBe(keyring.addFromUri(FAUCET_SEED).address);
     const free = await chain.freeBalance(chain.faucetAddress);
     expect(free).toBeGreaterThan(DRIP * 1000n);
   });
@@ -138,7 +143,7 @@ describe('live devnet connection', () => {
 
 // ─── The drip actually moves tokens ──────────────────────────────────────────
 
-describe('POST /drip — real balance change on chain', () => {
+liveDescribe('POST /drip — real balance change on chain', () => {
   it('credits the requested address by exactly the drip amount', async () => {
     const h = await harness();
     try {
@@ -212,7 +217,7 @@ describe('POST /drip — real balance change on chain', () => {
 
 // ─── Rate limiting, end to end, with no funds moved ──────────────────────────
 
-describe('POST /drip — per-address rate limiting', () => {
+liveDescribe('POST /drip — per-address rate limiting', () => {
   it('refuses a second drip to the same address and moves no funds', async () => {
     const h = await harness({ ipMax: 50 });
     try {
@@ -256,7 +261,7 @@ describe('POST /drip — per-address rate limiting', () => {
   });
 });
 
-describe('POST /drip — per-IP rate limiting', () => {
+liveDescribe('POST /drip — per-IP rate limiting', () => {
   it('caps how many fresh addresses one IP can fund', async () => {
     const h = await harness({ ipMax: 2 });
     try {
@@ -317,7 +322,7 @@ describe('POST /drip — per-IP rate limiting', () => {
 
 // ─── Drain protection ────────────────────────────────────────────────────────
 
-describe('POST /drip — reserve floor keeps the faucet from being drained', () => {
+liveDescribe('POST /drip — reserve floor keeps the faucet from being drained', () => {
   it('refuses to dip into the configured reserve, and moves no funds', async () => {
     const faucetFree = await chain.freeBalance(chain.faucetAddress);
     // Reserve the entire current balance: any drip would breach it.
@@ -376,7 +381,7 @@ describe('POST /drip — reserve floor keeps the faucet from being drained', () 
 
 // ─── Input validation: guards fire before funds move ─────────────────────────
 
-describe('POST /drip — input validation', () => {
+liveDescribe('POST /drip — input validation', () => {
   it('rejects a malformed address without touching the chain', async () => {
     const h = await harness();
     try {
@@ -457,7 +462,7 @@ describe('POST /drip — input validation', () => {
 
 // ─── Read endpoints reflect live chain state ─────────────────────────────────
 
-describe('GET /balance/:address', () => {
+liveDescribe('GET /balance/:address', () => {
   it('matches a direct chain query', async () => {
     const h = await harness();
     try {
@@ -504,7 +509,7 @@ describe('GET /balance/:address', () => {
   });
 });
 
-describe('GET /health', () => {
+liveDescribe('GET /health', () => {
   it('reports live chain and faucet state', async () => {
     const h = await harness();
     try {

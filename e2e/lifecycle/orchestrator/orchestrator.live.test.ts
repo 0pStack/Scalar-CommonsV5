@@ -5,10 +5,13 @@ import { test, beforeAll as before, afterAll as after, assert } from 'vitest';
 import type { ApiPromise } from '@polkadot/api';
 import { Keyring } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
-import { connect, devAccounts, send, trySend, findEvent } from './helpers.js';
+import { devAccounts, send, trySend, findEvent, WS } from './helpers.js';
+import { connectLiveSuite, skipOrFail } from '../../support/chain.js';
 
-let api: ApiPromise;
-const acc = devAccounts();
+const liveApi = await connectLiveSuite('orchestrator lifecycle', WS);
+const liveTest = liveApi ? test : test.skip;
+let api = liveApi as ApiPromise;
+const acc = await devAccounts(['Alice', 'Bob', 'Charlie']);
 // Fresh, unranked agent: proves the Rank-2 gate (E11) from the outside.
 const newbie: KeyringPair = new Keyring({ type: 'sr25519' }).addFromUri('//TestkitOrchNewbie');
 // Sub-agent used for link lifecycles.
@@ -25,10 +28,10 @@ async function ensureAgent(a: KeyringPair) {
   const min = (api.consts.agents.minStake as any).toBigInt();
   const bal = (await api.query.system.account(a.address)) as any;
   if (bal.data.free.toBigInt() < min * 3n) {
-    await send(api.tx.balances.transferKeepAlive(a.address, min * 3n), acc.Alice);
+    await send(api, api.tx.balances.transferKeepAlive(a.address, min * 3n), acc.Alice);
   }
   const stake = (await api.query.agents.agentStake(a.address)) as any;
-  if (stake.isNone || stake.toString() === '0') await send(api.tx.agents.register(min), a);
+  if (stake.isNone || stake.toString() === '0') await send(api, api.tx.agents.register(min), a);
 }
 
 /** Alice as orchestrator, or undefined if she cannot reach Rank 2 on this node. */
@@ -39,13 +42,14 @@ async function ensureOrchestrator(): Promise<boolean> {
 }
 
 before(async () => {
-  api = await connect();
+  if (!liveApi) return;
+  api = liveApi;
   await ensureAgent(newbie);
   await ensureAgent(sub);
 });
-after(async () => api?.disconnect());
+after(async () => liveApi?.disconnect());
 
-test('E11: an unranked agent cannot register as orchestrator (event + storage)', async () => {
+liveTest('E11: an unranked agent cannot register as orchestrator (event + storage)', async () => {
   const r = await trySend(api, api.tx.orchestrator.registerOrchestrator(10, 100), newbie);
   assert.strictEqual(r.error, 'orchestrator.AgentMustBeRank2');
   assert.strictEqual(findEvent(r.events, 'orchestrator', 'OrchestratorRegistered'), undefined);
@@ -55,7 +59,7 @@ test('E11: an unranked agent cannot register as orchestrator (event + storage)',
   );
 });
 
-test('cap: registering above MaxSubAgentsPerOrchestrator is rejected', async () => {
+liveTest('cap: registering above MaxSubAgentsPerOrchestrator is rejected', async () => {
   const max = (api.consts.orchestrator.maxSubAgentsPerOrchestrator as any).toNumber();
   assert.strictEqual(max, 50);
   const r = await trySend(api, api.tx.orchestrator.registerOrchestrator(max + 1, 100), newbie);
@@ -67,8 +71,8 @@ test('cap: registering above MaxSubAgentsPerOrchestrator is rejected', async () 
   );
 });
 
-test('self-link is rejected with no proposal stored', async (ctx) => {
-  if (!(await ensureOrchestrator())) return ctx.skip('Alice cannot reach Rank 2 on this node');
+liveTest('self-link is rejected with no proposal stored', async (ctx) => {
+  if (!(await ensureOrchestrator())) skipOrFail(ctx, 'Alice cannot reach Rank 2 on this node');
   const r = await trySend(
     api,
     api.tx.orchestrator.proposeSubAgentLink(acc.Alice.address),
@@ -84,11 +88,12 @@ test('self-link is rejected with no proposal stored', async (ctx) => {
   assert.strictEqual(((await linkOf(acc.Alice)) as any).isNone, true);
 });
 
-test('lifecycle: propose → accept → remove (events + both link maps + count)', async (ctx) => {
-  if (!(await ensureOrchestrator())) return ctx.skip('Alice cannot reach Rank 2 on this node');
+liveTest('lifecycle: propose → accept → remove (events + both link maps + count)', async (ctx) => {
+  if (!(await ensureOrchestrator())) skipOrFail(ctx, 'Alice cannot reach Rank 2 on this node');
   // Leave a clean slate if a previous run aborted midway.
   if (((await linkOf(sub)) as any).isSome) {
     await send(
+      api,
       api.tx.orchestrator.removeSubAgentLink(((await linkOf(sub)) as any).unwrap().toString()),
       sub,
     );

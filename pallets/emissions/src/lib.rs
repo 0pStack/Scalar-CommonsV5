@@ -117,7 +117,7 @@ pub mod pallet {
         /// Agents below this threshold earn zero — not even floor weight.
         /// Set >= UnitVolume to ensure any ring deal is also large enough to qualify.
         /// Governance can raise this to increase the cost of sybil floor farming.
-        /// At launch: set to 5 × UnitVolume (5,000 CMN) to require meaningful work.
+        /// At launch: set to 5 × UnitVolume (50 CMN) to require meaningful work.
         #[pallet::constant]
         type MinQualifyingVol: Get<BalanceOf<Self>>;
         /// Maximum additional weight an agent earns by deploying their full staked
@@ -736,7 +736,7 @@ pub mod pallet {
             let is_active = did_work_this_era && has_heartbeat;
             // MinQualifyingVol gate: floor emission requires meaningful work, not just
             // the presence of any volume. This raises the cost of sybil ring farming —
-            // agents must do at least 5× UnitVolume (5,000 CMN) in real escrow per era
+            // agents must do at least 5× UnitVolume (50 CMN) in real escrow per era
             // to earn the floor share. Pure micro-ring deals below this threshold earn
             // nothing from floor, though they may still earn small work_score rewards.
             let min_qual: u128 =

@@ -504,8 +504,8 @@ pub fn mainnet_genesis_config(
             (researcher_multisig.clone(), RESEARCHERS_ALLOC),
             (bootstrap_multisig.clone(), BOOTSTRAP_ALLOC),
             // V4: Treasury pre-funded at genesis — 5B CMN for early governance operations.
-            // Intended to be accessed only via Track 1 spend proposals once sudo is
-            // removed at mainnet. Until then root can still reach it.
+            // Spending requires Root. A Root-origin referendum routes through track 2;
+            // track 1 is not a treasury spend origin in this runtime.
             (
                 scalar_commons_runtime::treasury_account_id(),
                 TREASURY_ALLOC,
