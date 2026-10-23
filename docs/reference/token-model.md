@@ -525,8 +525,12 @@ The escrow completion fee is a percentage of agreement value, not a flat charge:
 
 It is storage-backed and auto-params-adjustable within those bounds, so read
 `autoParams.completionFeeBps` rather than assuming 25. Completion fees and the treasury half
-of any slash accrue to the treasury, which starts with 5B CMN from genesis and is spent
-through OpenGov Track 1 proposals.
+of any slash accrue to the treasury. Every testnet preset starts it empty; only the mainnet
+genesis design pre-funds it, with 5B CMN ([Genesis distribution](#genesis-distribution)). On
+the public testnet it also holds the pre-305 staking remainder described under
+[Supply](#supply). Spending needs Root: the treasury's `SpendOrigin` accepts only Root, so a
+spend goes through sudo or a referendum on the root track (track 2). No origin routes to
+track 1.
 
 Slashes split between burn and treasury. A slashed agent may appeal within
 `agents.slashAppealWindow` (raw `10`).
