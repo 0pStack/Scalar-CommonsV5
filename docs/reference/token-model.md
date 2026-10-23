@@ -4,7 +4,8 @@ CMN is the native token of Scalar Commons. This page covers the unit, the supply
 emission schedule, and — the part that actually matters — how the weight formula pays for
 verifiable work rather than for holding tokens.
 
-Every raw value below is the value read from the live runtime. See
+Every raw value below is checked against a snapshot of this repository's runtime, taken from
+a local node — not from the public testnet, which can run an older runtime. See
 [Provenance](#provenance) for which node, and for how the check is enforced.
 
 ::: danger Economic gate: FAILED on spec 305 — fix in spec 306, re-measurement pending
@@ -566,7 +567,13 @@ cannot start the clock at all. The registration burn has more headroom, at 50 CM
 
 ## Provenance
 
-Every raw value on this page is read from a live node and mechanically re-checked.
+Every raw value on this page is read from a node running this repository's runtime and
+mechanically re-checked. The snapshot's endpoint, block and genesis hash are recorded in
+`docs/.chain/snapshot.json`; it is a local development node, not the public testnet. The
+public testnet runs spec 309 until spec 315 is enacted (per
+[#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123) and
+`landing/runtime-history.json`), so a value introduced after spec 309 is on main but not yet
+live.
 
 | Field | Value |
 |---|---|
