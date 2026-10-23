@@ -215,5 +215,12 @@ skips** if the node is unreachable — an SDK that cannot be checked against the
 chain it wraps is a finding, not a pass:
 
 ```bash
-RUN_INTEGRATION=1 SCALAR_WS=ws://127.0.0.1:9944 npm run test:integration   # WS_ENDPOINT also works
+SCALAR_WS=ws://127.0.0.1:9944 npm run test:integration -w @scalar-commons/sdk   # WS_ENDPOINT also works
+```
+
+The script sets `RUN_INTEGRATION=1` itself (`vitest run --mode integration`), so it needs no
+shell syntax. In PowerShell, set the endpoint first:
+
+```powershell
+$env:SCALAR_WS = 'ws://127.0.0.1:9944'; npm run test:integration -w @scalar-commons/sdk
 ```
