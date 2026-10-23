@@ -27,7 +27,8 @@ skeleton), vitest + polkadot-js, roughly:
   sdk/src/retry.ts    (~66)  retry with explicit logging
   sdk/src/logger.ts   (~31)
   sdk/tests/retry.test.ts        (~82)  unit tests
-  sdk/tests/integration.test.ts  (~248) gated behind RUN_INTEGRATION=1
+  sdk/tests/client.test.ts       offline mock-based SDK tests
+  e2e/sdk/sdk.live.test.ts       live-chain SDK conformance tests
 
 Read sdk/README.md and sdk/src/index.ts first and inventory precisely which
 declared operations are real and which are skeletal. Work from that inventory.
@@ -73,16 +74,15 @@ The gate must pass with NO chain running at ws://127.0.0.1:9944. So:
     bugs, which are the actual failure mode of an SDK.
   - Add tests for: bigint handling above 2^53, dispatch-error decoding, retry
     logging (already partly covered), and the permissionless settle_era path.
-  - Integration tests stay behind RUN_INTEGRATION=1, must be SKIPPED VISIBLY
-    when the env var is absent (a skipped test must be reported as skipped, not
-    silently passed), and must be runnable against a live node when it is set.
+  - Live-chain tests belong in e2e/sdk and run through test:live:sdk. They fail
+    when the node is unavailable unless E2E_ALLOW_SKIP=1 is explicitly set.
 
 Mocking the transport is allowed and expected. Mocking YOUR OWN SDK logic is
 not: the code under test must be the real code path.
 
 ## THE GATE (the only definition of success)
 
-    cd sdk && npm ci --no-audit --no-fund && npm run typecheck && npm test
+    npm ci --no-audit --no-fund && npm run typecheck -w @scalar-commons/sdk && npm test -w @scalar-commons/sdk
 
 Exit 0 is the only success. Run it yourself before finishing. typecheck must be
 clean — do not reach for `any`, `as unknown as`, or @ts-ignore to get there; if

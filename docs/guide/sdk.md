@@ -30,11 +30,11 @@ It targets Node ≥ 22 and ships as ESM only (`"type": "module"`). Peer transpor
 `@polkadot/api` 16.x plus `@polkadot/keyring`, `@polkadot/util` and `@polkadot/util-crypto`
 14.x.
 
-To run the SDK's own tests, including the integration suite against a live node:
+Run the SDK's offline tests and its separate live E2E suite from the repository root:
 
 ```bash
 npm test -w @scalar-commons/sdk                    # unit tests
-npm run test:integration -w @scalar-commons/sdk    # requires a node on ws://127.0.0.1:9944
+npm run test:live:sdk -w @scalar-commons/e2e       # requires a node on ws://127.0.0.1:9944
 ```
 
 ## Connect

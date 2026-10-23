@@ -202,7 +202,7 @@ and re-verified by `npm test`.
 
 ## Integration tests against a real node
 
-`tests/live.test.ts` asserts, against the node's own metadata: the runtime spec
+`../e2e/sdk/sdk.live.test.ts` asserts, against the node's own metadata: the runtime spec
 version, that `agents.recordGovVote` takes `(agent, pollIndex)`, that
 `emissions.lastSettledEra` is `Option<u32>`, that `balances.totalIssuance` is a
 `u128`, and that `netPosition` does not double-count the stake lock. It also
@@ -211,17 +211,16 @@ submits two real `recordGovVote` calls — one that the runtime must reject on a
 a stale signature could not manage, and one with `agent != signer` that must be
 rejected with `Unauthorized`, proof of the self-only rule the docs claim.
 
-It is opt-in, so `npm test` stays node-free. When enabled it **fails rather than
-skips** if the node is unreachable — an SDK that cannot be checked against the
-chain it wraps is a finding, not a pass:
+It lives in the E2E workspace, so `npm test -w @scalar-commons/sdk` stays node-free
+and skips nothing. The live command **fails rather than skips** if the node is
+unreachable unless `E2E_ALLOW_SKIP=1` is explicitly set:
 
 ```bash
-SCALAR_WS=ws://127.0.0.1:9944 npm run test:integration -w @scalar-commons/sdk   # WS_ENDPOINT also works
+SCALAR_WS=ws://127.0.0.1:9944 npm run test:live:sdk -w @scalar-commons/e2e   # WS_ENDPOINT also works
 ```
 
-The script sets `RUN_INTEGRATION=1` itself (`vitest run --mode integration`), so it needs no
-shell syntax. In PowerShell, set the endpoint first:
+In PowerShell, set the endpoint first:
 
 ```powershell
-$env:SCALAR_WS = 'ws://127.0.0.1:9944'; npm run test:integration -w @scalar-commons/sdk
+$env:SCALAR_WS = 'ws://127.0.0.1:9944'; npm run test:live:sdk -w @scalar-commons/e2e
 ```

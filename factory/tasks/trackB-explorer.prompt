@@ -73,8 +73,9 @@ BEFORE the implementation:
     above from fixture data.
   - The disconnected-node state, asserted explicitly.
   - Balance formatting, including the >2^53 case.
-  - Any live-node test must sit behind an env var (e.g. RUN_INTEGRATION=1) and be
-    visibly skipped when unset, matching the pattern in sdk/tests.
+  - Any live-node test must live under e2e/, outside this package's offline
+    gate. It fails on an unavailable node unless E2E_ALLOW_SKIP=1 is explicitly
+    set, and any intentional skip remains visible.
 
 Mocking the RPC transport is expected. Mocking your own decode/render logic is
 not — the code under test must be the real path.
