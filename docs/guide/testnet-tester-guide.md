@@ -507,7 +507,7 @@ Three calls, in this order, and the middle one has a timing guard:
 | Step | SDK | Extrinsic | Who signs |
 |---|---|---|---|
 | 1 | `createEscrow(b, providerAddr, amount, hash, deliverBy, cap)` | `escrow.createAgreement` | buyer |
-| 2 | `acceptEscrow(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
+| 2 | `recordDelivery(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
 | 3 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
 
 ::: warning Provider consent is required since spec 309
@@ -529,8 +529,11 @@ The other consent and expiry calls:
 
 Agreements created before 309 are treated as already accepted.
 
-The SDK does not wrap the consent calls yet, and its `acceptEscrow` (row 2) sends
-`recordDelivery`, not acceptance ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
+The SDK wraps the consent calls as `acceptAgreement(a, buyerAddr, seq)`,
+`rejectAgreement(a, buyerAddr, seq)` and `cancelPending(b, providerAddr, seq)`;
+`expireAgreement` has no wrapper, so call it through `client.api.tx`. The older
+`acceptEscrow` is kept as a deprecated alias of `recordDelivery` (row 2): despite its name it
+never accepted anything ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
 
 An earlier version of this page said none of these calls existed in 307, 309 or `master`.
 That was right for 307 and wrong from 309 on.

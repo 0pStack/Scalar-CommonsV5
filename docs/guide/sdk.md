@@ -115,7 +115,7 @@ const { txHash, blockHash, attempts } = await client.register(alice, MIN_STAKE);
 
 | Step | SDK | Extrinsic | Notes |
 |---|---|---|---|
-| Register | `register(signer, stake)` | `agents.register` | Locks `stake` ≥ `agents.minStake`; burns `agents.baseRegistrationFee`. Requires an on-chain identity. |
+| Register | `register(signer, stake)` | `agents.register` | Locks `stake` ≥ `agents.minStake`; burns `agents.baseRegistrationFee`. No on-chain identity is needed. |
 | Add stake | `stake(signer, amount)` | `agents.addStake` | Total must stay ≤ `agents.maxStakePerAgent`. |
 | Prove liveness | `heartbeat(signer)` | `agents.heartbeat` | Feeds the heartbeat multiplier. |
 | Begin exit | — | `agents.requestUnstake` | Starts the `agents.unstakeCooldown` timer. Fails with `HasActiveAgreements`. |
@@ -147,7 +147,7 @@ These have no SDK wrapper yet; call them through `client.api.tx`:
 | Extrinsic | Purpose |
 |---|---|
 | `agents.updateMetadata(uri, name)` | Discovery metadata, bounded by `agents.maxUriLen` / `agents.maxNameLen`. |
-| `agents.setCapability(capabilityId, active)` | Advertise what you can do, up to `agents.maxCapabilitiesPerAgent`. Escrow agreements and oracle requests can require a capability. |
+| `agents.setCapability(capabilityId, active)` | Advertise what you can do, up to `agents.maxCapabilitiesPerAgent`. Escrow agreements and oracle requests can require a capability. Needs an on-chain identity (`identity.setIdentity`) first, or fails with `IdentityRequired`. |
 | `agents.delegateVoting(to, until)` | Delegate governance participation, bounded by `agents.maxDelegationPeriod`. |
 | `agents.recordGovVote(agent, pollIndex)` | Credit an OpenGov vote toward the era's governance score. Verified against `convictionVoting.votingFor` — it cannot be self-asserted. |
 | `agents.slashAppeal(slashEra, reasonHash)` | Appeal within `agents.slashAppealWindow`. |
@@ -158,18 +158,26 @@ These have no SDK wrapper yet; call them through `client.api.tx`:
 An agreement is bilateral and sequenced per buyer/provider pair. The buyer's funds are
 locked on creation and released on confirmation.
 
+Since spec 309 an agreement binds the provider only once the provider accepts it. Until
+then it is pending: it does not count against the provider's active agreements or block
+its unstake, and `recordDelivery` fails with `NotAccepted`. That stops a buyer pinning an
+agent's stake with agreements the agent never agreed to.
+
 ```ts
 const provider = '5FHneW46…';
 const amount   = 100n * PLANCKS_PER_CMN;
 const deadline = 20_000;                    // absolute block number
 
-// 1. Buyer opens the agreement, locking `amount`.
+// 1. Buyer opens the agreement, locking `amount`. It starts pending.
 await client.createEscrow(buyer, provider, amount, deliverableHash, deadline);
 
-// 2. Provider posts the delivery proof (seq comes from the AgreementCreated event).
-await client.acceptEscrow(providerPair, buyerAddress, seq, deliveryHash);
+// 2. Provider consents (seq comes from the AgreementCreated event).
+await client.acceptAgreement(providerPair, buyerAddress, seq);
 
-// 3. Buyer confirms; funds move, the completion fee is taken, volume is credited.
+// 3. Provider posts the delivery proof, once escrow.minDeliveryBlocks have passed since creation.
+await client.recordDelivery(providerPair, buyerAddress, seq, deliveryHash);
+
+// 4. Buyer confirms; funds move, the completion fee is taken, volume is credited.
 await client.completeEscrow(buyer, provider, seq);
 ```
 
@@ -179,11 +187,23 @@ a generic agreement.
 | Step | SDK | Extrinsic |
 |---|---|---|
 | Open | `createEscrow(signer, provider, amount, deliverableHash, deliverBy, capabilityId?)` | `escrow.createAgreement` |
-| Deliver | `acceptEscrow(signer, buyer, seq, deliveryHash)` | `escrow.recordDelivery` |
+| Accept (provider) | `acceptAgreement(signer, buyer, seq)` | `escrow.acceptAgreement` |
+| Decline (provider, pending only) | `rejectAgreement(signer, buyer, seq)` | `escrow.rejectAgreement` |
+| Withdraw (buyer, pending only) | `cancelPending(signer, provider, seq)` | `escrow.cancelPending` |
+| Deliver | `recordDelivery(signer, buyer, seq, deliveryHash)` | `escrow.recordDelivery` |
 | Confirm | `completeEscrow(signer, provider, seq)` | `escrow.confirmDelivery` |
 | Dispute | — | `escrow.disputeDelivery` |
 | Refund | — | `escrow.claimRefund` |
 | Extend | — | `escrow.extendDeadline` |
+| Expire | — | `escrow.expireAgreement(buyer, provider, seq)` |
+
+`acceptEscrow` is kept as a deprecated alias of `recordDelivery`: despite its name it never
+accepted an agreement. `rejectAgreement` and `cancelPending` both refund the buyer in full
+and work only while the agreement is pending; `claimRefund` refuses a pending agreement
+with `NotAccepted`, so `cancelPending` is the buyer's way out. `escrow.expireAgreement` has
+no wrapper: any signed account may close an agreement nobody delivered on once its window
+plus a grace period has passed, and the refund always goes to the buyer. Submit it with
+`submitAndWatch` (see [beyond the wrappers](#beyond-the-wrappers)).
 
 The constraints that will actually bite:
 
@@ -305,7 +325,7 @@ const era = await client.eraInfo();
 // { era, eraDuration, eraStartBlock, lastSettledEra, lastEraEmission, settleable }
 
 const pos = await client.netPosition(address);
-// { free, stake, eraEscrowVolume, pendingEmissions, total }
+// { free, reserved, frozen, stake, eraEscrowVolume, pendingEmissions, total }
 
 const weight = await client.weightOf(address);   // bigint
 ```
@@ -323,7 +343,9 @@ own `EraNotDue` guard. `pendingEmissions` reproduces `do_claim`:
 pending = (accRewardPerStake - agentRewardDebt) * agentWeightSnapshot / ACC_SCALE
 ```
 
-`total` is `free + stake + pendingEmissions` — a convenience roll-up, not a chain quantity.
+`total` is `free + pendingEmissions` — a convenience roll-up, not a chain quantity. `stake`
+is not added: it is a lock held inside `free` (it shows up in `frozen`), so adding it would
+count the same tokens twice.
 
 ::: tip One round trip instead of six
 `netPosition` issues six storage reads. The runtime exposes
