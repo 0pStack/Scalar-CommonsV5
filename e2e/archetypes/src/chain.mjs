@@ -8,18 +8,10 @@
  * docs/history/TESTNETAUDIT.md §6 I-7.
  */
 
-import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, resolve as pathResolve } from 'node:path';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-function load(pkg) {
-  const req = createRequire(pathResolve(HERE, '../../package.json'));
-  return import(pathToFileURL(req.resolve(pkg)).href);
-}
-const { ApiPromise, WsProvider } = await load('@polkadot/api');
-const { Keyring } = await load('@polkadot/keyring');
-const { cryptoWaitReady, mnemonicGenerate, blake2AsU8a } = await load('@polkadot/util-crypto');
+import { ApiPromise, WsProvider } from '@polkadot/api';
+import { Keyring } from '@polkadot/keyring';
+import { blake2AsU8a, cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
+import { SS58_PREFIX } from '@scalar-commons/sdk';
 
 export async function connect(endpoint) {
   await cryptoWaitReady();
@@ -28,7 +20,7 @@ export async function connect(endpoint) {
 }
 
 export function keyringFor(api) {
-  return new Keyring({ type: 'sr25519', ss58Format: api.registry.chainSS58 ?? 42 });
+  return new Keyring({ type: 'sr25519', ss58Format: api.registry.chainSS58 ?? SS58_PREFIX });
 }
 
 /**

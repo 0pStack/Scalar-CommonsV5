@@ -16,6 +16,7 @@
     "test:live:faucet": "vitest run --config vitest.live.config.ts faucet/",
     "test:live:indexer": "vitest run --config vitest.live.config.ts indexer/",
     "test:live:explorer": "vitest run --config vitest.live.config.ts explorer/",
+    "prearchetypes": "npm run setup:sdk",
     "archetypes": "node archetypes/run.mjs"
   },
   "devDependencies": {
