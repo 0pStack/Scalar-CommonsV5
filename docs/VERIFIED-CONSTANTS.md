@@ -559,6 +559,10 @@ guard is "expired" when the actual pool **meets or exceeds** its break-even.
    emission override (§6) at or above 1.12M CMN/era would **expire the R-SC-0004
    guard**. The sybil break-even (2.78M) retains a larger 2.78× cushion.
 
+   > **Corrected (spec 306+):** an override lifts the ceiling only. The era still mints at
+   > most `alpha × qualifying escrow volume`, so an override cannot push emission past the
+   > volume bound — see the banner at the top of this file.
+
 4. **Root emission overrides are the only escape hatch above the ceiling** (§6).
    An override ≥ 1.12M CMN/era crosses the wash break-even; ≥ 2.78M CMN/era
    crosses the sybil break-even. These require a root/governance action and are
