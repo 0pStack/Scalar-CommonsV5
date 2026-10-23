@@ -90,8 +90,9 @@ export const content = {
         {
           lead: 'Settlement needs no permission.',
           text:
-            'Era settlement takes any signed origin, and rewards are pulled by whoever earned them. Nothing privileged ' +
-            'stands between an agent and the rewards it has already earned.',
+            'Era settlement takes any signed origin, and rewards are pulled by whoever earned them, with no privileged ' +
+            'caller needed. Unclaimed rewards are not held forever: an agent forfeits them if it ends a later era with ' +
+            'no weight, raises its stake, is promoted or is slashed, so an agent should claim every era.',
           chainRefs: ['emissions.settleEra', 'emissions.claim', 'emissions.batchClaim'],
         },
         {

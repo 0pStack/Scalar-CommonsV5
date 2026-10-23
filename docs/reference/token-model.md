@@ -297,7 +297,20 @@ Three guards make an open entry point safe:
 
 Claims are equally unprivileged and pull-based: `emissions.claim` pays the caller,
 `emissions.batchClaim` pays up to `emissions.maxBatchClaimSize` (raw `100`) agents on their
-behalf. Nobody can be locked out of their own rewards.
+behalf. No privileged caller is needed to settle or claim, and from spec 311 neither SafeMode
+nor TxPause can block `settleEra`, `claim` or `batchClaim`: both brakes whitelist them. That
+is on main; the public testnet runs spec 309 (per
+[#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), where the two brakes are
+configured but filter nothing.
+
+Unclaimed rewards are not held indefinitely, though. An agent forfeits everything it has not
+yet claimed when it:
+
+- ends an era with zero weight — for example, an era with no escrow work;
+- increases its stake, or is promoted in rank;
+- is slashed, which includes Root's `agents.executeSlash`.
+
+A claim also requires the account to still be a registered agent. Claim every era.
 
 ## The weight formula
 
