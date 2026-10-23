@@ -179,9 +179,17 @@ jobs:
             echo "landing=false" >> "$GITHUB_OUTPUT"
           fi
 
-          for p in faucet docs sdk indexer explorer; do
+          for p in faucet sdk indexer explorer; do
             if selected "^$p/"; then echo "$p=true" >> "$GITHUB_OUTPUT"; else echo "$p=false" >> "$GITHUB_OUTPUT"; fi
           done
+
+          # The docs snapshot describes the node and runtime surface. Any node,
+          # runtime or pallet change can stale it even when docs/ is untouched.
+          if selected '^docs/' || selected '^(node|runtime|pallets)/'; then
+            echo "docs=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs=false" >> "$GITHUB_OUTPUT"
+          fi
 
           # agent/ imports the workspace sdk/ (its built dist/), so an SDK
           # change can break it; both paths select it.
@@ -348,11 +356,11 @@ jobs:
   # which cross-checks every documented constant, pallet index, invariant and
   # extrinsic against docs/.chain/snapshot.json.
   #
-  # EXCLUDED: `snapshot:chain`, the only docs script that opens a WS connection.
-  # It REGENERATES the snapshot from a live node, so running it in CI would
-  # overwrite the very fixture the lint asserts against — a gate that rewrites
-  # its own expected values checks nothing. Refreshing the snapshot stays a
-  # deliberate, reviewable commit.
+  # EXCLUDED HERE: `snapshot:chain`, the only docs script that opens a WS
+  # connection. This offline job checks the committed fixture and its spec
+  # against runtime/src/lib.rs. ci-full separately starts the release node built
+  # from its runtime WASM, generates a temporary candidate and compares the full
+  # runtime surface without overwriting the committed expected values.
   docs:
     name: docs
     needs: changes
@@ -375,6 +383,8 @@ jobs:
         run: npm run lint -w docs
       - name: npm run build
         if: needs.changes.outputs.docs == 'true'
+        env:
+          DOCS_BASE: /docs/
         run: npm run build -w docs
       - name: Not selected
         if: needs.changes.outputs.docs != 'true'
