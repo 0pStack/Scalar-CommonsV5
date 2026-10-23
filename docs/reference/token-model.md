@@ -247,8 +247,10 @@ impossible, and this page will not claim otherwise — the residual is
 than described away.
 :::
 
-The alpha is `autoParams.emissionVolumeAlphaBps`, stored on chain and settable by sudo or
-Track 2 governance inside bounds `0..100000` — **no runtime upgrade needed to change it,
+This alpha is `autoParams.emissionVolumeAlphaBps`. It is not the `alpha` in
+[the weight formula](#the-weight-formula), which is `autoParams.alpha`, the weight on
+governance participation. `emissionVolumeAlphaBps` is stored on chain and settable by sudo
+or Track 2 governance inside bounds `0..100000` — **no runtime upgrade needed to change it,
 including to 0**, which is a real emission stop that leaves `settleEra` and `claim`
 permissionless.
 

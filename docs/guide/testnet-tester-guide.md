@@ -748,15 +748,18 @@ AccRewardPerStake::mutate(|acc| *acc += delta);
 so nothing is pushed to anyone — each agent's share accrues against the accumulator and is
 pulled later with `emissions.claim()`.
 
-Per-agent weight is where the thesis lives. It is **not** stake-proportional:
+Per-agent weight is where the thesis lives. It is **not** stake-proportional. The full
+formula is defined once, in [the token model](/reference/token-model#the-weight-formula);
+this table summarises its inputs:
 
 | Input | Effect |
 |---|---|
 | `sqrt(stake)` | square root, so capital has decreasing returns |
 | rank | 1.0× / 1.2× / 1.5× by collective rank |
+| heartbeat | multiplies the whole base weight, decaying to 10 % for a silent agent |
 | era escrow volume × buyer diversity | the `work_score` — the dominant term |
-| oracle accuracy | bonus, `OracleBonusBps` = 2 000 (+20 %) |
-| governance participation | **multiplies** work; cannot substitute for it (zero work ⇒ zero gov reward) |
+| oracle accuracy | bonus, `OracleBonusBps` = 2 000 (+20 %); contributes zero today (`OracleScoreProvider = ()`) |
+| governance participation | adds to activity only when `work_score > 0`; cannot substitute for work (zero work ⇒ zero gov reward) |
 | velocity (`era_vol / stake`) | up to `VelocityBonusBps` = 3 000 (+30 %) at full capital deployment |
 | onboarding boost | +10 000 bps on completion 1, decaying to +1 000 bps by completion 10 |
 | floor share | `floorBps` = 1 000, **gated** — see below |

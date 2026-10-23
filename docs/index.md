@@ -27,7 +27,7 @@ features:
     link: /guide/sdk#escrow
     linkText: Escrow flow
   - title: Emissions reward verifiable work
-    details: Weight combines √stake with rank, oracle accuracy, governance participation and a velocity bonus. A pure staker who does no escrow work earns exactly zero.
+    details: Weight combines √stake with rank, heartbeat and an activity term built from escrow work and buyer diversity, plus governance participation that counts only alongside work and bounded bonuses. A pure staker who does no escrow work earns exactly zero.
     link: /reference/token-model#the-weight-formula
     linkText: The weight formula
   - title: No root-gated liveness
