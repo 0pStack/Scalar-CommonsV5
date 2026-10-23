@@ -29,8 +29,8 @@ report an agreement or a settlement that a re-org later erased.
 Needs a reachable node. For the local devnet see [`../deploy/README.md`](../deploy/README.md).
 
 ```bash
-npm ci
-INDEXER_RPC_URL=ws://127.0.0.1:9944 INDEXER_PORT=8080 npm start
+npm ci                                    # at the repository root
+INDEXER_RPC_URL=ws://127.0.0.1:9944 INDEXER_PORT=8080 npm start -w @scalar-commons/indexer
 ```
 
 | Variable | Default | Meaning |
@@ -119,7 +119,7 @@ Two shapes are worth calling out:
   | `message` | every event of the `messages` pallet (also `messaging` / `agentMessaging`, kept as aliases) |
   | `registration` | `agents.AgentRegistered` |
   | `heartbeat` | `agents.HeartbeatSent` |
-  | `agreement` | `escrow.AgreementCreated`, `DeliveryRecorded`, `DeliveryConfirmed`, `RefundClaimed`, `DeadlineExtended` |
+  | `agreement` | `escrow.AgreementCreated`, `DeliveryRecorded`, `DeliveryConfirmed`, `RefundClaimed`, `DeadlineExtended`, `AgreementAccepted`, `AgreementRejected`, `PendingCancelled`, `AgreementExpired` |
   | `dispute` | `escrow.DisputeOpened`, `DisputeResolved` |
   | `oracle_vote` | `oracle.OracleResponseSubmitted`, `BatchResponseSubmitted` |
   | `slash` | `agents.SlashExecuted`, `SlashAppealed`, `SlashAppealWithdrawn` |
@@ -140,7 +140,7 @@ a shape change here means a new prefix, not a quiet edit.
 ## Tests
 
 ```bash
-npm ci && npm test
+npm ci && npm test -w @scalar-commons/indexer   # npm ci at the repository root
 ```
 
 Seven suites are chain-free (the agent-activity classifier and feed query, paging rules, identifier and account extraction,
@@ -148,7 +148,7 @@ value translation, the SQLite store, path routing and era-event shaping, and the
 one decode guard no live chain can trigger — an `AgreementStatus` variant this
 build does not know). The end-to-end suite lives in
 [`e2e/indexer/live.test.ts`](../e2e/indexer/live.test.ts) and runs against the node at
-`INDEXER_RPC_URL` (`npm run test:live:indexer -w e2e` from the repository root):
+`INDEXER_RPC_URL` (`npm run test:live:indexer -w @scalar-commons/e2e` from the repository root):
 
 1. submits real extrinsics (`agents.heartbeat`, `balances.transferKeepAlive`,
    `escrow.createAgreement`) from devnet dev accounts;

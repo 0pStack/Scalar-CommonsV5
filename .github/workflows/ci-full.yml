@@ -1,12 +1,14 @@
 # Full Rust gate for main: release build, node smoke test, benchmarks feature
 # graph, workspace tests.
 #
-# Runs only when something that can change the Rust build changes. The build
-# reads nothing outside these paths (no include_str!/include_bytes! of outside
-# files; build.rs only builds the node and the Wasm runtime), and Cargo.lock and
-# rust-toolchain.toml pin everything, so a commit outside them would rebuild
-# exactly what the last run built. Pull requests are gated by ci-fast; this runs
-# once the change is on main. Run it by hand from the Actions tab at any time.
+# Runs only when something that can change the Rust build changes. The Rust
+# build reads nothing outside these paths (no include_str!/include_bytes! of
+# outside files; build.rs only builds the node and the Wasm runtime), and
+# Cargo.lock and rust-toolchain.toml pin everything, so a commit outside them
+# would rebuild exactly what the last run built. After the build, the workflow
+# also checks the committed docs snapshot against that exact runtime. Pull
+# requests are gated by ci-fast; this runs once the change is on main. Run it by
+# hand from the Actions tab at any time.
 #
 # The build step is the anti-stub gate: `node/src/main.rs` was `fn main() {}`
 # for a long time and no check noticed. A binary that compiles, answers
@@ -25,6 +27,12 @@ on:
       - runtime/**
       - pallets/**
       - tests/**
+      - package.json
+      - package-lock.json
+      - docs/package.json
+      - docs/.chain/snapshot.json
+      - docs/scripts/snapshot-chain.mjs
+      - docs/scripts/check-snapshot-match.mjs
       - .github/workflows/ci-full.yml
       - .github/actions/setup-rust/**
   workflow_dispatch:
@@ -48,6 +56,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-rust
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Build release (runtime WASM + node binary)
         run: cargo build --release
@@ -59,6 +72,45 @@ jobs:
           # GenesisBuilder::build_state runs inside the runtime to produce this,
           # so a runtime that does not execute cannot produce a raw chain spec.
           ./target/release/scalar-node build-spec --chain dev --raw > /dev/null
+
+      - name: Install snapshot tooling
+        run: npm ci
+
+      - name: Committed docs snapshot matches the built runtime WASM
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/scalar-snapshot-node.log"
+          ./target/release/scalar-node \
+            --dev \
+            --tmp \
+            --rpc-port 9944 \
+            --rpc-methods safe \
+            --port 30339 \
+            --no-telemetry \
+            --no-prometheus \
+            --no-hardware-benchmarks >"$log" 2>&1 &
+          node_pid=$!
+          trap 'kill "$node_pid" 2>/dev/null || true' EXIT
+
+          ready=false
+          for _ in {1..60}; do
+            if curl --fail --silent \
+              --header 'content-type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"system_health","params":[]}' \
+              http://127.0.0.1:9944 >/dev/null; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != true ]; then
+            cat "$log"
+            exit 1
+          fi
+
+          candidate="$RUNNER_TEMP/runtime-snapshot.json"
+          SNAPSHOT_OUT="$candidate" npm run snapshot:chain -w docs -- ws://127.0.0.1:9944
+          SNAPSHOT_CANDIDATE="$candidate" npm run snapshot:check -w docs
 
       # The feature was once half-wired (frame-support's flag on, the pallets'
       # off), a compile error nothing caught because it was never built.

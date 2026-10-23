@@ -63,8 +63,8 @@ do not refresh, so the rows a reader is looking at do not move. No script is
 shipped, as everywhere else.
 
 If the indexer is down or answers with something that is not the feed, the page
-is a `502` naming the indexer — never an empty feed. The runtime has no
-`messages` pallet from runtime 309, so `message` rows appear once agents start
+is a `502` naming the indexer — never an empty feed. The runtime has carried the
+`messages` pallet since runtime 309, so `message` rows appear once agents start
 sending.
 
 ## Read-only by construction
@@ -88,9 +88,9 @@ only stable on-chain coordinate.
 ## Run it
 
 ```
-npm ci
-npm run build
-npm start                       # http://127.0.0.1:8081
+npm ci                                       # at the repository root
+npm run build -w @scalar-commons/explorer
+npm start -w @scalar-commons/explorer        # http://127.0.0.1:8081
 ```
 
 | Env | Default | Meaning |
@@ -107,7 +107,7 @@ npm test
 
 `npm test` runs the offline suites. The live suite,
 [`e2e/explorer/explorer.live.test.ts`](../e2e/explorer/explorer.live.test.ts)
-(`npm run test:live:explorer -w e2e` from the repository root), talks to the devnet
+(`npm run test:live:explorer -w @scalar-commons/e2e` from the repository root), talks to the devnet
 RPC and is **not** skippable: it submits one
 real transfer, then asserts the explorer renders that block, that extrinsic and
 the accounts it named, cross-checked against direct node reads. An unreachable node

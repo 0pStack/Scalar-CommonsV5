@@ -44,8 +44,9 @@ keys and a fresh clone of the repository. Every output block is real, captured a
   `extendDeadline`. That was true of 307. **Since spec 309** (applied at block 907929)
   provider consent is required: the provider must call `escrow.acceptAgreement` before
   `recordDelivery`, which otherwise fails with `NotAccepted`. The run on this page was made
-  on spec 306, before consent existed, so it has no accept step. The SDK does not wrap the
-  consent calls yet ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
+  on spec 306, before consent existed, so it has no accept step. The SDK now wraps the
+  consent calls as `acceptAgreement`, `rejectAgreement` and `cancelPending`, and delivery as
+  `recordDelivery` ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
 :::
 
 ## What you will end up with
@@ -93,19 +94,19 @@ npm error 404 Not Found - GET https://registry.npmjs.org/@scalar-commons%2fsdk -
 Build it from the repository and install the **packed tarball**, not the directory:
 
 ```bash
-git clone https://github.com/tejaspatil1936/scalar-commons-v4
-cd scalar-commons-v4/sdk
-npm ci
-npm run build                           # tsc -> dist/
-npm pack --pack-destination /tmp        # -> /tmp/scalar-commons-sdk-0.1.0.tgz
+git clone https://github.com/0pStack/Scalar-CommonsV5
+cd Scalar-CommonsV5
+npm ci                                                    # one install for the repo's npm workspace
+npm run build -w @scalar-commons/sdk                      # tsc -> sdk/dist/
+npm pack -w @scalar-commons/sdk --pack-destination /tmp   # -> /tmp/scalar-commons-sdk-0.1.0.tgz
 
 mkdir ~/my-agent && cd ~/my-agent
 npm init -y
 npm install /tmp/scalar-commons-sdk-0.1.0.tgz
 ```
 
-Why the tarball: `npm install ../scalar-commons-v4/sdk` makes a *symlink*, so the SDK resolves
-`@polkadot/*` from `sdk/node_modules` while your code resolves its own copy, and polkadot-js
+Why the tarball: `npm install ../Scalar-CommonsV5/sdk` makes a *symlink*, so the SDK resolves
+`@polkadot/*` from the repository's `node_modules` while your code resolves its own copy, and polkadot-js
 warns — correctly — about two instances of the same crypto. The SDK declares `@polkadot/api`
 ^16 and `@polkadot/keyring`/`util`/`util-crypto` ^14 as **peer dependencies** (since #194), and
 npm installs those once, into your project. Verified in an empty directory on 2026-09-26:
@@ -179,9 +180,9 @@ Every step is logged as one JSON line with its transaction hash. Every variable 
 ### Build it
 
 ```bash
-cd scalar-commons-v4 && npm ci                 # one install for the repo's npm workspace
-npm run build -w sdk                           # the agent imports dist/ from here
-npm run build -w agent
+cd Scalar-CommonsV5 && npm ci                         # one install for the repo's npm workspace
+npm run build -w @scalar-commons/sdk                  # the agent imports dist/ from here
+npm run build -w @scalar-commons/reference-agent
 ```
 
 The JS packages are one npm workspace with one lockfile, so `sdk/` is linked rather than
@@ -397,8 +398,10 @@ pool = min(clamp(TargetEmissionPerAgent × agents, floor, ceiling),
 
 Volume does **not** qualify when the provider is ring-flagged (more than one completion from a
 single buyer), when the pair traded both ways in the era, when the pair declared a shared
-funding lineage, or beyond `stake × maxVolToStakeRatio`. The pool is then split by weight —
-`sqrt(stake)`, rank, work score, oracle accuracy, governance participation, velocity — and
+funding lineage, or beyond `stake × maxVolToStakeRatio`. The pool is then split by weight
+([the weight formula](/reference/token-model#the-weight-formula)) — `sqrt(stake)` scaled by
+rank, heartbeat and an activity term built from work score and governance, plus bounded
+oracle, onboarding and velocity bonuses — and
 `MinQualifyingVol` (50 CMN in the era) and a live heartbeat gate the floor share. The
 [tester guide](./testnet-tester-guide#_5-how-cmn-is-actually-earned) walks through the weight
 terms.
@@ -456,6 +459,8 @@ Underneath, the actions map to these SDK calls (from `sdk/src/index.ts`):
 | claim | `client.claim(signer)` | `emissions.claim` | — check `netPosition(addr).pendingEmissions > 0n` first |
 | read position | `client.netPosition(address)` | `system.account` + `agents.*` + `emissions.*` | returns bigint plancks |
 | publish capability | `api.tx.agents.setCapability(id, true)` via `submitAndWatch` | `agents.setCapability` | needs an identity (`identity.setIdentity`) first |
+
+On spec 309+ the provider must call `client.acceptAgreement(signer, buyer, seq)` (`escrow.acceptAgreement`) before delivering, or delivery fails with `NotAccepted`; the SDK's deliver call is now `client.recordDelivery(signer, buyer, seq, deliveryHash)`, and `acceptEscrow` is a deprecated alias of it.
 
 Two things every wrapper should do:
 

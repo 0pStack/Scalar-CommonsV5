@@ -10,7 +10,8 @@
     "build": "vitepress build .",
     "preview": "vitepress preview .",
     "lint": "node scripts/check-chain-values.mjs",
-    "snapshot:chain": "node scripts/snapshot-chain.mjs"
+    "snapshot:chain": "node scripts/snapshot-chain.mjs",
+    "snapshot:check": "node scripts/check-snapshot-match.mjs"
   },
   "devDependencies": {
     "@polkadot/api": "^16.5.0",

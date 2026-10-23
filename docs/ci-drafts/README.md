@@ -6,7 +6,7 @@ changing CI. Nothing in this directory is required by branch protection.
 
 | Draft | What it does |
 |---|---|
-| `ci-devnode.yml` | Builds `scalar-node` (pinned toolchain, rust-cache), starts `--dev --tmp`, waits for RPC, runs `npm run test:live:lifecycle -w e2e` with `SCALAR_WS=ws://127.0.0.1:9944`. Uploads the node log. |
+| `ci-devnode.yml` | Builds `scalar-node` (pinned toolchain, rust-cache), starts `--dev --tmp`, waits for RPC, runs `npm run test:live:lifecycle -w @scalar-commons/e2e` with `SCALAR_WS=ws://127.0.0.1:9944`. Uploads the node log. |
 | `test-guard.yml` | Fails a PR if the `#[test]` count falls or the `#[ignore]` count rises in `pallets/**` or `e2e/lifecycle/**` (TS `it(`/`test(` and `.skip(`/`.todo(` are counted in `e2e/lifecycle/**/*.ts`), unless the PR carries the label `tests-intentionally-changed`. |
 
 ## Enabling

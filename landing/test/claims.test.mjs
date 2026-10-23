@@ -78,8 +78,9 @@ test('every pallet and extrinsic named in the content exists in live metadata', 
 
 test('the page makes no claim the runtime does not implement', () => {
   // Each pattern is an affirmative claim this runtime cannot back. Sources:
-  // no halving/decay logic exists (the per-era pool depends only on agent
-  // count); there is no yield product, no sale, no audit, and no mainnet.
+  // no halving/decay logic exists (neither the agent-count ceiling nor the
+  // volume bound changes with time); there is no yield product, no sale, no
+  // audit, and no mainnet.
   const forbidden = [
     /halving/i,
     /\bAPY\b/i,

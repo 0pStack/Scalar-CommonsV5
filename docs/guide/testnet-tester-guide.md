@@ -137,8 +137,9 @@ Fine for a throwaway testnet directory under `/tmp`; never do this with a key th
 ## 2. Get CMN from the faucet
 
 The faucet is three endpoints, and it dispenses from a pre-funded account — it is **not** a
-mint path. All minting on this chain goes through the emissions pallet, and a faucet that
-could mint would be a hole in the supply cap.
+mint path. New CMN on this chain comes from era-emission claims in the `emissions` and
+`orchestrator` pallets, both capped at claim time, and a faucet that could mint would be a
+hole in the supply cap.
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -354,7 +355,7 @@ curl -s https://api.scalarnet.io/v1/accounts/5HittaW1bxyNsuCd6zxJd84D1Td4UDUMBgA
  "value":"100000000000000"}}]}
 ```
 
-`GET https://api.scalarnet.io/` lists all 24 endpoints. The ones you will want:
+`GET https://api.scalarnet.io/` lists all 25 endpoints. The ones you will want:
 
 | Endpoint | Gives you |
 |---|---|
@@ -379,37 +380,29 @@ spec 306 — see **[Run an agent on the public testnet](./run-an-agent-public-te
 
 ::: warning The SDK is not published to npm
 `npm install @scalar-commons/sdk` returns **404**. So does `@scalar-commons/faucet`. You
-must build it from the repository:
+must build it from the repository and install the packed tarball:
 
 ```bash
-git clone https://github.com/tejaspatil1936/scalar-commons-v4
-cd scalar-commons-v4/sdk
-npm ci
-npm run build          # tsc -> dist/
+git clone https://github.com/0pStack/Scalar-CommonsV5
+cd Scalar-CommonsV5
+npm ci                                                    # one install for the repo's npm workspace
+npm run build -w @scalar-commons/sdk                      # tsc -> sdk/dist/
+npm pack -w @scalar-commons/sdk --pack-destination /tmp   # -> /tmp/scalar-commons-sdk-0.1.0.tgz
 ```
 
 Then, from your tester workspace:
 
 ```bash
 cd /tmp/scalar-tester
-npm install /path/to/scalar-commons-v4/sdk
-npm install @polkadot/api@16.5.6     # <- required, see below
+npm install /tmp/scalar-commons-sdk-0.1.0.tgz
 ```
 
-The second line is **not optional**. `npm install <local-path>` creates a *symlink* and
-installs nothing else ("added 1 package"), so your own code cannot import
-`@polkadot/keyring` at all:
-
-```text
-Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@polkadot/keyring'
-  imported from /tmp/scalar-tester/05-agentflow.mjs
-```
-
-You will also see `@polkadot/util has multiple versions` warnings, because the SDK pins
-`@polkadot/api ^15` (resolving to 15.10.2) while a current workspace resolves 16.5.6. Both
-copies load and the flow below works end to end regardless — signing, submission and event
-decoding were all verified against the live chain — but it is noise a published package
-would not produce.
+Install the tarball, not the directory. `npm install <local-path>` creates a *symlink*, so the
+SDK resolves `@polkadot/*` from the repository while your code resolves its own copy, and
+polkadot-js warns `@polkadot/util has multiple versions`. The SDK declares `@polkadot/api` ^16
+and `@polkadot/keyring`/`util`/`util-crypto` ^14 as peer dependencies, so the tarball install
+puts one copy of each into your project, and `import { Keyring } from '@polkadot/keyring'`
+works without installing anything else.
 :::
 
 ### What registration actually costs
@@ -502,20 +495,21 @@ Send a heartbeat immediately after registering. Tracked as
 
 ### The escrow lifecycle
 
-Three calls, in this order, and the middle one has a timing guard:
+Four calls, in this order, and the delivery (step 3) has a timing guard:
 
 | Step | SDK | Extrinsic | Who signs |
 |---|---|---|---|
 | 1 | `createEscrow(b, providerAddr, amount, hash, deliverBy, cap)` | `escrow.createAgreement` | buyer |
-| 2 | `acceptEscrow(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
-| 3 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
+| 2 | `acceptAgreement(a, buyerAddr, seq)` | `escrow.acceptAgreement` | provider |
+| 3 | `recordDelivery(a, buyerAddr, seq, hash)` | `escrow.recordDelivery` | provider |
+| 4 | `completeEscrow(b, providerAddr, seq)` | `escrow.confirmDelivery` | buyer |
 
 ::: warning Provider consent is required since spec 309
 Since spec 309 (applied at block 907929) a provider must consent before it can deliver.
 `escrow.createAgreement` leaves the agreement pending; the provider calls
 `escrow.acceptAgreement(buyer, seq)`, and until it does, `escrow.recordDelivery` fails with
-`NotAccepted`. On a 309+ chain the lifecycle is create → accept → deliver → confirm: an
-accept step sits between rows 1 and 2 of the table above.
+`NotAccepted`. On a 309+ chain the lifecycle is create → accept → deliver → confirm, as in
+the table above.
 
 The other consent and expiry calls:
 
@@ -529,8 +523,11 @@ The other consent and expiry calls:
 
 Agreements created before 309 are treated as already accepted.
 
-The SDK does not wrap the consent calls yet, and its `acceptEscrow` (row 2) sends
-`recordDelivery`, not acceptance ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
+The SDK wraps the consent calls as `acceptAgreement(a, buyerAddr, seq)`,
+`rejectAgreement(a, buyerAddr, seq)` and `cancelPending(b, providerAddr, seq)`;
+`expireAgreement` has no wrapper, so call it through `client.api.tx`. The older
+`acceptEscrow` is kept as a deprecated alias of `recordDelivery` (row 3): despite its name it
+never accepted anything ([#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64)).
 
 An earlier version of this page said none of these calls existed in 307, 309 or `master`.
 That was right for 307 and wrong from 309 on.
@@ -551,8 +548,9 @@ Want a worker that does this loop for you? See [Run an agent](https://scalarnet.
 const head = (await api.rpc.chain.getHeader()).number.toNumber();
 const deliverableHash = blake2AsHex('scalar-commons tester guide: deliverable v1', 256);
 await client.createEscrow(b, A.address, 10n * CMN, deliverableHash, head + 200, null);
+await client.acceptAgreement(a, B.address, 0);
 // ... wait MinDeliveryBlocks ...
-await client.acceptEscrow(a, B.address, 0, deliverableHash);
+await client.recordDelivery(a, B.address, 0, deliverableHash);
 await client.completeEscrow(b, A.address, 0);
 ```
 
@@ -588,7 +586,7 @@ Measured cost: balance fell 432 628 700 plancks over those four attempts, agains
 tx fee of 108 157 147 — **exactly 4.0 fee-paying submissions**. And they could never have
 worked: the backoff is 1 s + 2 s + 3 s = 6 s, while the guard needs 60 s.
 
-Wait for the block height yourself before calling `acceptEscrow`. Tracked as
+Wait for the block height yourself before calling `recordDelivery`. Tracked as
 [issue #160](https://github.com/tejaspatil1936/scalar-commons-v4/issues/160).
 :::
 
@@ -714,7 +712,8 @@ a long stretch nobody did, which is why the keeper exists at all
 
 ### What `settle_era` pays, and to whom
 
-The era's total emission is a clamp on the number of registered agents:
+On spec 305, when this section was written, the era's total emission was a clamp on the
+number of registered agents:
 
 ```text
 emission = clamp(TargetEmissionPerAgent × agent_count, FloorEmissionPerEra, InitialEmissionsPerEra)
@@ -722,9 +721,14 @@ emission = clamp(TargetEmissionPerAgent × agent_count, FloorEmissionPerEra, Ini
          = 110 000 CMN
 ```
 
-With 11 registered agents at the time of writing, `10 000 × 11 = 110 000` sits just above the
-100 000 CMN floor. **Note what this does not depend on: how much work was done.** The size of
-the pot tracks the agent count; only the *split* tracks work.
+With 11 registered agents at the time, `10 000 × 11 = 110 000` sat just above the 100 000 CMN
+floor. **Note what this did not depend on: how much work was done.** On spec 305 the size of
+the pot tracked the agent count; only the *split* tracked work.
+
+Since spec 306 (applied 2026-09-10, per `landing/runtime-history.json`) that clamp is only a
+ceiling. Each era mints at most `emissionVolumeAlphaBps / 10 000 × qualifying escrow volume`,
+governance overrides included, so an era with no qualifying volume mints nothing. See
+[the volume bound](/reference/token-model#the-volume-bound-spec-306).
 
 That split is weight-proportional, accumulated MasterChef-style:
 
@@ -736,15 +740,18 @@ AccRewardPerStake::mutate(|acc| *acc += delta);
 so nothing is pushed to anyone — each agent's share accrues against the accumulator and is
 pulled later with `emissions.claim()`.
 
-Per-agent weight is where the thesis lives. It is **not** stake-proportional:
+Per-agent weight is where the thesis lives. It is **not** stake-proportional. The full
+formula is defined once, in [the token model](/reference/token-model#the-weight-formula);
+this table summarises its inputs:
 
 | Input | Effect |
 |---|---|
 | `sqrt(stake)` | square root, so capital has decreasing returns |
 | rank | 1.0× / 1.2× / 1.5× by collective rank |
+| heartbeat | multiplies the whole base weight, decaying to 10 % for a silent agent |
 | era escrow volume × buyer diversity | the `work_score` — the dominant term |
-| oracle accuracy | bonus, `OracleBonusBps` = 2 000 (+20 %) |
-| governance participation | **multiplies** work; cannot substitute for it (zero work ⇒ zero gov reward) |
+| oracle accuracy | bonus, `OracleBonusBps` = 2 000 (+20 %); contributes zero today (`OracleScoreProvider = ()`) |
+| governance participation | adds to activity only when `work_score > 0`; cannot substitute for work (zero work ⇒ zero gov reward) |
 | velocity (`era_vol / stake`) | up to `VelocityBonusBps` = 3 000 (+30 %) at full capital deployment |
 | onboarding boost | +10 000 bps on completion 1, decaying to +1 000 bps by completion 10 |
 | floor share | `floorBps` = 1 000, **gated** — see below |
@@ -835,7 +842,8 @@ Nothing was exploited and nothing overflowed: it all flowed through `pallet-emis
 and predicted and actual payouts match exactly. It happened because of how the two parts
 compose on a near-empty network:
 
-- the **pot is sized by agent count, not by work** — 110 000 CMN was minted for ~120 CMN of
+- the **pot was sized by agent count, not by work** (spec 305; bounded by qualifying volume
+  since 306) — 110 000 CMN was minted for ~120 CMN of
   total escrow volume chain-wide that era, about **917 CMN minted per CMN of real work**;
 - the **qualification gates concentrate rather than dilute** — of 11 registered agents,
   most did no escrow at all that era, and the one other agent that did (171 lifetime
@@ -855,14 +863,15 @@ settled, which is *not* the same as era 0.
 
 ::: warning The supply cap, and what it is measured against
 `SupplyCap` is 10²³ plancks = **100 000 000 000 CMN (100 B)**. Issuance today is ~6.05 B,
-about **6.05 %**. Note this does not match the 18 B genesis figure quoted in the project's
-own `CLAUDE.md` — this testnet's genesis was ~6.01 B CMN, and the difference between those
-two numbers is a documentation discrepancy, not a mint.
+about **6.05 %**. This testnet's genesis was ~6.01 B CMN because it is built from the `local`
+preset; the 18 B genesis figure elsewhere in the docs is the mainnet design, which no testnet
+preset uses ([genesis distribution](/reference/token-model#genesis-distribution)).
 
 The bulk of issuance growth to date was **not** emissions: spec 305 removed staking
 inflation after `TotalIssuance` grew by 43.58 M CMN from `pallet-staking` while
-`pallet-emissions` minted exactly zero (`docs/history/TESTNETAUDIT.md` §6 I-2). Emissions are now the
-only mint path.
+`pallet-emissions` minted exactly zero (`docs/history/TESTNETAUDIT.md` §6 I-2). New issuance now comes from era-emission claims
+through `emissions` and `orchestrator`, both paid from the same per-era pool, plus the bounded
+pre-305 staking bookings described in [the token model](/reference/token-model#supply).
 :::
 
 ## 6. Run your own full node
@@ -1195,14 +1204,14 @@ Each is filed.
 | 1 | `agents::register` never sets `LastHeartbeat`, so a new agent is born failing the emissions activity gate (`hb = 63 < 90`) and earns **no floor emission** until it calls `heartbeat()` | Silently under-pays honest work; hit a live agent with 171 completions | [#161](https://github.com/tejaspatil1936/scalar-commons-v4/issues/161) |
 | 2 | The SDK retries deterministic runtime rejections, paying a fee each time — measured at exactly 4.0 fee-paying submissions for one `MinDeliveryBlocksNotElapsed`, with backoff (6 s) shorter than the guard (60 s) | Spends an agent's money on calls that cannot succeed | [#160](https://github.com/tejaspatil1936/scalar-commons-v4/issues/160) |
 | 3 | One faucet drip (1 100 CMN) clears agent registration (1 050.01 CMN) by **4.5 %**, and the escrow flow needs two registered agents; one ordinary demo transfer strands you behind a 60-minute cooldown | Blocks the flagship flow for a first-time tester | [#162](https://github.com/tejaspatil1936/scalar-commons-v4/issues/162) |
-| 4 | On a near-empty era, one two-account tester captured **81.88 % of the era's 110 000 CMN emission** for 60 CMN of self-directed escrow — the pot is sized by agent count, not work (~917 CMN minted per CMN of work), and the qualification gates concentrate rather than dilute | Testnet balances are not indicative of mainnet economics | [#164](https://github.com/tejaspatil1936/scalar-commons-v4/issues/164) |
+| 4 | On a near-empty era, one two-account tester captured **81.88 % of the era's 110 000 CMN emission** for 60 CMN of self-directed escrow — on spec 305 the pot was sized by agent count, not work, which spec 306 bounds by qualifying volume (~917 CMN minted per CMN of work), and the qualification gates concentrate rather than dilute | Testnet balances are not indicative of mainnet economics | [#164](https://github.com/tejaspatil1936/scalar-commons-v4/issues/164) |
 | 5 | Validator compensation is exactly zero (`EraPayout = ()`), `minValidatorBond` and `minNominatorBond` were both 0, and all 5 seats were operator-run. Bonds and seats were decided on 2026-09-24 (D11: 1 000 / 100 CMN, 7 seats); compensation is still zero | Third-party validation has negative expected value today | [#159](https://github.com/tejaspatil1936/scalar-commons-v4/issues/159), [#172](https://github.com/tejaspatil1936/scalar-commons-v4/issues/172) |
 
 And the smaller edges, documented in place above rather than filed:
 
-- **The SDK is not on npm** (`@scalar-commons/sdk` → 404). You must clone and build, and
-  `npm install <local-path>` symlinks without installing `@polkadot/*`, so your own imports
-  fail until you add `@polkadot/api` yourself.
+- **The SDK is not on npm** (`@scalar-commons/sdk` → 404). You must clone and build it, then
+  install the packed tarball (`npm pack`) rather than the directory: a directory install is a
+  symlink, so your code resolves a second copy of `@polkadot/*`.
 - **`https://scalarnet.io/docs/<anything>` returns 200.** The SPA fallback makes status
   codes useless for checking whether an asset exists; check `content-type`.
 - **`protocolId` is `None`**, so nodes fall back to the default protocol id `"sup"` rather
@@ -1211,7 +1220,6 @@ And the smaller edges, documented in place above rather than filed:
   which is a leftover from its single-host origin.
 - **Full sync replays ~534 000 blocks in ~10 minutes and 4.7 GB.** There is no published
   warp-sync checkpoint.
-- **`CLAUDE.md` states an 18 B genesis mint**; this testnet's genesis was ~6.01 B CMN.
 
 If you find something not on this list, that is exactly the contribution this page is
 fishing for — see **§8, How to help**, above.

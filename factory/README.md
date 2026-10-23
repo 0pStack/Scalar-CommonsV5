@@ -139,6 +139,10 @@ tmux attach -t loops                # watch (ctrl-b n / ctrl-b w to navigate)
 | `trackB-explorer` | `cd explorer && npm ci && npm run build && npm test` |
 | `trackC-od4` | `python3 -m pytest docs/history/sc-e1/tests -q` |
 
+The stage-0 gates still `cd` into the package and run `npm ci` there, which prunes the
+shared `node_modules` to that package; `run-stage0.sh` is left as-is until #89. Outside the
+factory, install once at the root (`npm ci`) and use `-w @scalar-commons/<name>`.
+
 Each prompt requires the agent to **write its test suite first, from the spec**,
 then implement. Three of these components largely don't exist yet, so the tests
 are a deliverable, not an afterthought.

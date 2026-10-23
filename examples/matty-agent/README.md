@@ -36,9 +36,9 @@ How to read this guide:
 
 1. Open <https://replit.com/import> and choose **GitHub**.
 2. Paste this address and import it:
-   `https://github.com/tejaspatil1936/scalar-commons-v4`
-3. If Replit asks which language to use, choose **Node.js**. The project also contains other
-   code (Rust); you can ignore it.
+   `https://github.com/0pStack/Scalar-CommonsV5`
+3. If Replit asks which language to use, choose **Node.js**, version **22** or newer (the
+   setup stops on an older one). The project also contains other code (Rust); you can ignore it.
 
 When the project opens, find the **Shell** tab. It's in the tools list in the sidebar,
 next to *Console* and *Secrets*. The Shell is where you type the commands below: click inside
@@ -53,7 +53,7 @@ bash examples/matty-agent/setup-matty-agent.sh
 ```
 
 🟩 **AUTOMATIC ACTION.** It downloads what the agent needs, builds it, and runs its self-tests.
-This takes one or two minutes; you'll see `Tests  63 passed`. It then creates your agent's key
+This takes a few minutes; you'll see the tests pass (`Tests  … passed`). It then creates your agent's key
 and shows it **once**, like this:
 
 ```text
@@ -216,7 +216,7 @@ picks up any job that is still open; a job whose deadline passed while it was of
   tested it**. If you try it, use the run command
   `bash examples/matty-agent/setup-matty-agent.sh && examples/matty-agent/run-matty-agent.sh start` and add the same two
   secrets to the deployment.
-- **Any always-on Linux computer or server with Node.js 18+.** The same two commands work
+- **Any always-on Linux computer or server with Node.js 22 or newer.** The same two commands work
   there; this setup was tested on Linux. Set `AGENT_MNEMONIC` and `APPROVED_AGENT_ADDRESS` as
   environment variables instead of Replit Secrets.
 

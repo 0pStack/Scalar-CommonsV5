@@ -26,7 +26,7 @@ export interface Chain {
   isRegistered(address: string): Promise<boolean>;
   /** Block of the agent's last heartbeat, or `null` if it never beat. */
   lastHeartbeat(address: string): Promise<bigint | null>;
-  /** Whether the runtime exposes `escrow.acceptAgreement` (spec 307+). */
+  /** Whether the runtime exposes `escrow.acceptAgreement` (spec 309+). */
   supportsAccept(): boolean;
   /** Free balance of `address`, in plancks. */
   freeBalance(address: string): Promise<bigint>;

@@ -27,7 +27,7 @@ features:
     link: /guide/sdk#escrow
     linkText: Escrow flow
   - title: Emissions reward verifiable work
-    details: Weight combines √stake with rank, oracle accuracy, governance participation and a velocity bonus. A pure staker who does no escrow work earns exactly zero.
+    details: Weight combines √stake with rank, heartbeat and an activity term built from escrow work and buyer diversity, plus governance participation that counts only alongside work and bounded bonuses. A pure staker who does no escrow work earns exactly zero.
     link: /reference/token-model#the-weight-formula
     linkText: The weight formula
   - title: No root-gated liveness
@@ -61,7 +61,7 @@ Three things distinguish it from a general-purpose smart-contract chain:
    remains in the treasury, and a further **14 935 812 CMN of booked validator rewards
    remains claimable** by the permissionless `payout_stakers` — an aggregate upper bound,
    and one that expires as those eras fall outside `HistoryDepth` (~63 days). See the [token
-   model](/reference/token-model#supply-and-the-cap) for the full accounting.
+   model](/reference/token-model#supply) for the full accounting.
 
 ## Where to start
 

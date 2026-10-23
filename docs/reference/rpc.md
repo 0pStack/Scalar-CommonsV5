@@ -1,12 +1,12 @@
 # RPC reference
 
-A Scalar Commons node serves **108 JSON-RPC methods** over both HTTP and WebSocket on the
+A Scalar Commons node serves **110 JSON-RPC methods** over both HTTP and WebSocket on the
 same port (`9944` on the reference devnet). That is the count on a default, pruning node; an
-archive node (the reference devnet's alice) also serves the ten `archive_v1_*` methods, 118 in
+archive node (the reference devnet's alice) also serves the ten `archive_v1_*` methods, 120 in
 total. On top of the standard Substrate surface, the
 runtime declares one custom runtime API, `ScalarCommonsApi`, reachable through `state_call`.
 
-Verified against `scalar-commons` spec 306, metadata v15.
+Verified against `scalar-commons` spec 315, metadata v16.
 
 ## Endpoints and transports
 
@@ -70,7 +70,7 @@ for `scalar_getAgentInfo` in `rpc_methods` will not find it, and that is expecte
 
 ### Calling them from the SDK
 
-`@polkadot/api` reads the runtime API declarations out of metadata v15, so the typed path
+`@polkadot/api` reads the runtime API declarations out of metadata v16, so the typed path
 needs no manual SCALE work:
 
 ```ts
@@ -274,8 +274,8 @@ chain's own.
 | `TaggedTransactionQueue` | 1 | `validate_transaction` |
 | `OffchainWorkerApi` | 1 | |
 | `SessionKeys` | 2 | `generate_session_keys`, `decode_session_keys` |
-| `BabeApi` | 6 | Includes equivocation reporting |
-| `GrandpaApi` | 4 | Includes equivocation reporting |
+| `BabeApi` | 6 | Includes equivocation report submission; the runtime processes reports from spec 315 |
+| `GrandpaApi` | 4 | Includes equivocation report submission; the runtime processes reports from spec 315 |
 | `AuthorityDiscoveryApi` | 1 | Current and next authority set |
 | `AccountNonceApi` | 1 | `account_nonce` |
 | `TransactionPaymentApi` | 4 | Fee estimation |

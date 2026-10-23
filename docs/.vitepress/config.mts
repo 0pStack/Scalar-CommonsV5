@@ -16,9 +16,9 @@ export default defineConfig({
   // Pages site is itself served under `/<repo>/`. VitePress bakes the base
   // prefix into every asset and router URL it emits, so it has to be known at
   // build time — the Pages workflow composes the two segments and passes the
-  // result in DOCS_BASE. Everything else (local `npm run build`, the ci-node
-  // docs job) sets nothing and keeps the root-relative default it always had.
-  base: process.env.DOCS_BASE ?? '/',
+  // result in DOCS_BASE. Local builds default to the production `/docs/`
+  // mount, and ci-node passes that same value explicitly.
+  base: process.env.DOCS_BASE ?? '/docs/',
 
   // The site lives in `docs/` alongside pre-existing engineering records that
   // are not part of the published documentation. They stay where they are.

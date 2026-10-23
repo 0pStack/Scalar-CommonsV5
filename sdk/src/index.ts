@@ -260,8 +260,60 @@ export class ScalarCommonsClient {
     );
   }
 
-  /** Record delivery as the provider on a buyer's agreement. → `escrow.recordDelivery`. */
-  acceptEscrow(
+  /**
+   * Consent to a buyer's pending agreement as its provider. → `escrow.acceptAgreement(buyer, seq)`.
+   *
+   * Economic why: since spec 309 an agreement binds the provider only once it accepts.
+   * Acceptance is what enters the agreement into the provider's `ActiveEscrowCount` (and so
+   * blocks its unstake), so a buyer cannot pin an agent's stake with agreements it never
+   * agreed to. `recordDelivery` on an agreement that was not accepted fails with
+   * `NotAccepted`. The runtime re-checks the capability here and refuses after `deliverBy`.
+   */
+  acceptAgreement(signer: AddressOrPair, buyer: string, seq: number): Promise<SubmitResult> {
+    return this.submit(
+      txEntry(this.api, 'escrow', 'acceptAgreement')(buyer, seq),
+      signer,
+      'acceptAgreement',
+    );
+  }
+
+  /**
+   * Decline a buyer's pending agreement as its provider. → `escrow.rejectAgreement(buyer, seq)`.
+   *
+   * The buyer's reserve is released in full. Valid only while pending, so it can never be
+   * used to walk away from an agreement already accepted.
+   */
+  rejectAgreement(signer: AddressOrPair, buyer: string, seq: number): Promise<SubmitResult> {
+    return this.submit(
+      txEntry(this.api, 'escrow', 'rejectAgreement')(buyer, seq),
+      signer,
+      'rejectAgreement',
+    );
+  }
+
+  /**
+   * Withdraw a pending agreement as its buyer. → `escrow.cancelPending(provider, seq)`.
+   *
+   * Note the argument is the **provider**: the signer is the buyer. Refunds the full amount
+   * immediately, with no deadline to wait out — the buyer's counterpart to
+   * {@link ScalarCommonsClient.rejectAgreement}.
+   */
+  cancelPending(signer: AddressOrPair, provider: string, seq: number): Promise<SubmitResult> {
+    return this.submit(
+      txEntry(this.api, 'escrow', 'cancelPending')(provider, seq),
+      signer,
+      'cancelPending',
+    );
+  }
+
+  /**
+   * Record delivery as the provider on a buyer's agreement. → `escrow.recordDelivery`.
+   *
+   * Requires a prior {@link ScalarCommonsClient.acceptAgreement} (`NotAccepted`
+   * otherwise) and `created_at + MinDeliveryBlocks` to have passed
+   * (`MinDeliveryBlocksNotElapsed`).
+   */
+  recordDelivery(
     signer: AddressOrPair,
     buyer: string,
     seq: number,
@@ -270,8 +322,22 @@ export class ScalarCommonsClient {
     return this.submit(
       txEntry(this.api, 'escrow', 'recordDelivery')(buyer, seq, deliveryHash),
       signer,
-      'acceptEscrow',
+      'recordDelivery',
     );
+  }
+
+  /**
+   * @deprecated Use {@link ScalarCommonsClient.recordDelivery}. Despite its name this never
+   * accepted anything: it records delivery. To consent to an agreement, call
+   * {@link ScalarCommonsClient.acceptAgreement} first.
+   */
+  acceptEscrow(
+    signer: AddressOrPair,
+    buyer: string,
+    seq: number,
+    deliveryHash: Hash32,
+  ): Promise<SubmitResult> {
+    return this.recordDelivery(signer, buyer, seq, deliveryHash);
   }
 
   /** Confirm a delivered agreement as the buyer, releasing funds. → `escrow.confirmDelivery`. */

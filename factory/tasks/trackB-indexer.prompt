@@ -116,7 +116,9 @@ actually implemented.
 
 Commit in small scoped steps ("indexer: add escrow event decoder"). Do not push
 and do not open a PR — the factory handles that.
-## TRIAGE HINT (2026-08-01)
-The gate runs `npm ci`, which REQUIRES indexer/package-lock.json. Run `npm
-install` once inside indexer/ to generate it, COMMIT package.json AND
-package-lock.json, then make `npm test` genuinely pass.
+## TRIAGE HINT (2026-08-01, updated for #97)
+The repository has one npm lockfile, the root package-lock.json. Never run `npm
+install` inside indexer/ and never create or commit indexer/package-lock.json.
+Install with `npm ci` at the repository root. To add a dependency, run
+`npm install <pkg> -w @scalar-commons/indexer` at the root and commit
+indexer/package.json and the root package-lock.json.

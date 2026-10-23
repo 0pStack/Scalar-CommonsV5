@@ -39,10 +39,10 @@ function fakeTx(update: ReturnType<typeof result> | null) {
   return { signAndSend, unsub };
 }
 
-function chainWith(tx: ReturnType<typeof fakeTx>, { metadata = true } = {}) {
-  const api = {
+function apiWith(tx: ReturnType<typeof fakeTx>, { metadata = true, accept = true } = {}) {
+  return {
     tx: {
-      escrow: { acceptAgreement: vi.fn(() => tx) },
+      escrow: accept ? { acceptAgreement: vi.fn(() => tx) } : {},
       agents: metadata ? { updateMetadata: vi.fn(() => tx) } : {},
     },
     registry: {
@@ -51,7 +51,13 @@ function chainWith(tx: ReturnType<typeof fakeTx>, { metadata = true } = {}) {
       },
     },
   };
-  return new SdkChain({ api } as unknown as ScalarCommonsClient, SIGNER);
+}
+
+function chainWith(
+  tx: ReturnType<typeof fakeTx>,
+  opts: { metadata?: boolean; accept?: boolean } = {},
+) {
+  return new SdkChain({ api: apiWith(tx, opts) } as unknown as ScalarCommonsClient, SIGNER);
 }
 
 // The two writes that build their own promise instead of going through the SDK client.
@@ -105,6 +111,42 @@ describe.each(WRITES)('SdkChain.%s', (_name, write) => {
     await expect(write(chainWith(fakeTx(result('InBlock', badOrigin))))).rejects.toThrow(
       /BadOrigin/,
     );
+  });
+});
+
+describe('SdkChain.acceptAgreement', () => {
+  it('sends escrow.acceptAgreement(buyer, seq) through the SDK on the shared api', async () => {
+    const tx = fakeTx(result('InBlock'));
+    const api = apiWith(tx);
+    const chain = new SdkChain({ api } as unknown as ScalarCommonsClient, SIGNER);
+    await expect(chain.acceptAgreement(BUYER, 7)).resolves.toBe(TX_HASH);
+    expect(api.tx.escrow.acceptAgreement).toHaveBeenCalledWith(BUYER, 7);
+    expect(tx.signAndSend).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects without signing on a runtime without escrow.acceptAgreement', async () => {
+    const tx = fakeTx(result('InBlock'));
+    await expect(chainWith(tx, { accept: false }).acceptAgreement(BUYER, 7)).rejects.toThrow(
+      'runtime does not expose extrinsic escrow.acceptAgreement',
+    );
+    expect(tx.signAndSend).not.toHaveBeenCalled();
+  });
+});
+
+describe('SdkChain.recordDelivery', () => {
+  it('uses the SDK recordDelivery, not the deprecated acceptEscrow alias', async () => {
+    const hash = '0x' + 'cc'.repeat(32);
+    const recordDelivery = vi.fn(async () => ({
+      txHash: TX_HASH,
+      blockHash: BLOCK_HASH,
+      attempts: 1,
+    }));
+    const acceptEscrow = vi.fn();
+    const client = { api: apiWith(fakeTx(null)), recordDelivery, acceptEscrow };
+    const chain = new SdkChain(client as unknown as ScalarCommonsClient, SIGNER);
+    await expect(chain.recordDelivery(BUYER, 7, hash)).resolves.toBe(TX_HASH);
+    expect(recordDelivery).toHaveBeenCalledWith(SIGNER, BUYER, 7, hash);
+    expect(acceptEscrow).not.toHaveBeenCalled();
   });
 });
 

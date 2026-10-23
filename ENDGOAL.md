@@ -57,21 +57,20 @@ The users are not humans transacting. They are software agents that:
 5. **Govern the network's parameters** through on-chain voting, with participation itself
    forming part of the reward weight.
 
-The token is **CMN**: 100 billion hard cap, 18 billion minted at genesis (split 7B / 5B / 3B /
-3B), 1 CMN = 10¹² plancks, 12 decimals, SS58 format 42.
+The token is **CMN**: 100 billion hard cap, 18 billion minted at mainnet genesis by design (split
+7B / 5B / 3B / 3B, in `mainnet_genesis_config`, which no testnet preset loads), 1 CMN = 10¹²
+plancks, 12 decimals, SS58 format 42.
 
 **The economic thesis — and the thing that must be proven, not assumed:** the emission formula
 is designed so that *faking the work does not pay*. That is the entire product. A chain that
 pays agents for provable work is only interesting if the "provable" part holds under adversarial
 pressure. Therefore economic security is not a feature of this project; it is the project.
 
-The emission weight per agent per era:
-
-```
-weight = √stake × activity/volume × diversity × rank × heartbeat × onboarding_boost
-```
-
-with governance participation contributing at a right-sized 1,500 basis points.
+The emission weight per agent per era is defined once, in
+[the token model](docs/reference/token-model.md#the-weight-formula). In outline it is √stake,
+scaled by rank, by an activity term built from escrow volume and buyer diversity, and by
+heartbeat, with bounded oracle, onboarding and velocity bonuses — and with governance
+participation contributing at a right-sized 1,500 basis points, only alongside work.
 
 Each term is load-bearing and each was chosen against a specific attack:
 
@@ -80,7 +79,7 @@ Each term is load-bearing and each was chosen against a specific attack:
 | **√stake** (square root, not linear) | Whale dominance — doubling capital does not double reward |
 | **activity / volume** | Passive rent extraction — a pure staker earns exactly zero |
 | **diversity** | Wash trading — farming one fake counterparty repeatedly is unprofitable |
-| **rank / oracle-measured reputation** | Self-reported work — measurement is independent, with an aggregation floor so no single reporter dominates |
+| **rank / oracle-measured reputation** | Self-reported work — measurement is independent, with an aggregation floor so no single reporter dominates. The oracle term contributes zero today (`OracleScoreProvider = ()`) |
 | **heartbeat** | Abandoned or zombie agents drawing rewards |
 | **governance participation (1,500 bps)** | Was itself a farm vector until fixed — see §5 |
 

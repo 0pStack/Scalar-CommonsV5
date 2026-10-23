@@ -12,9 +12,10 @@ chain spec and is *not* a validator, so spending from it touches no staked
 balance. Any `//Name` dev seed, or the published dev phrase itself, is refused without
 that opt-in (I-6, #123).
 
-There is **no mint path in this component, and there must never be one.** All
-minting on this chain flows through the emissions pallet; a faucet that could
-mint would be a hole in the 100B supply cap. The faucet only ever calls
+There is **no mint path in this component, and there must never be one.** New
+CMN on this chain comes from era-emission claims in the `emissions` and
+`orchestrator` pallets, both paid from one per-era pool and capped at claim
+time; a faucet that could mint would be a hole in the 100B supply cap. The faucet only ever calls
 `balances.transferKeepAlive` — `transferKeepAlive` specifically, so a drip can
 never reap the funding account itself.
 
@@ -51,8 +52,8 @@ round a real balance. `429` responses carry both `retryAfterMs` and a standard
 ## Running
 
 ```bash
-npm ci --no-audit --no-fund
-FAUCET_ALLOW_DEV_SEED=true npm start   # local devnet; otherwise set FAUCET_SEED
+npm ci --no-audit --no-fund                                  # at the repository root
+FAUCET_ALLOW_DEV_SEED=true npm start -w @scalar-commons/faucet   # local devnet; otherwise set FAUCET_SEED
 ```
 
 `npm start` compiles `src/` to `dist/` (`npm run build`) and then runs
@@ -93,7 +94,7 @@ npm test
 Every file in `tests/` is offline: `tests/rateLimiter.test.ts` and
 `tests/amount.test.ts` are pure unit tests with an injected clock. The live suite,
 [`e2e/faucet/faucet.live.test.ts`](../e2e/faucet/faucet.live.test.ts), runs against
-the **live devnet RPC** (`npm run test:live:faucet -w e2e` from the repository root)
+the **live devnet RPC** (`npm run test:live:faucet -w @scalar-commons/e2e` from the repository root)
 and is intentionally not mocked and not skippable — it asserts real balance
 changes, real rate-limit rejections that move no funds, and type shapes read from
 real runtime metadata. **If the node is not reachable the suite fails rather than

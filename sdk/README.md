@@ -10,12 +10,25 @@ described in protocol §8.3 ("archetypes cannot exist without hands"). Built on
 
 ## Install
 
+The package is **not published to npm**: `npm install @scalar-commons/sdk` returns 404. Build
+it in this repository, which is one npm workspace with one lockfile at the root:
+
 ```bash
-npm install @scalar-commons/sdk @polkadot/api@^16 @polkadot/keyring@^14 \
-  @polkadot/util@^14 @polkadot/util-crypto@^14
+npm ci                                   # at the repository root
+npm run build -w @scalar-commons/sdk     # tsc -> sdk/dist/
 ```
 
-The `@polkadot/*` packages are **peer dependencies**, so your project and the SDK share
+To use it from your own project, install the packed tarball, not the directory (a directory
+install is a symlink, which resolves a second copy of `@polkadot/*`):
+
+```bash
+npm pack -w @scalar-commons/sdk --pack-destination /tmp   # -> /tmp/scalar-commons-sdk-0.1.0.tgz
+mkdir -p ~/my-agent && cd ~/my-agent && npm init -y
+npm install /tmp/scalar-commons-sdk-0.1.0.tgz
+```
+
+The `@polkadot/*` packages (`@polkadot/api` ^16; `@polkadot/keyring`, `@polkadot/util` and
+`@polkadot/util-crypto` ^14) are **peer dependencies**, so your project and the SDK share
 one copy of each. Two copies of `@polkadot/util` make polkadot-js warn
 `@polkadot/util has multiple versions` and break `instanceof` checks between them.
 
@@ -41,10 +54,16 @@ await client.heartbeat(b);
 const head = (await client.api.rpc.chain.getHeader()).number.toNumber();
 const hash = blake2AsHex('deliverable v1', 256);
 await client.createEscrow(b, a.address, 10n * CMN, hash, head + 200, null);
-// wait MinDeliveryBlocks (10 blocks, ~60 s) before the provider records delivery
-await client.acceptEscrow(a, b.address, 0, hash);
+// spec 309+: the provider must consent first, or recordDelivery fails with NotAccepted
+await client.acceptAgreement(a, b.address, 0);
+// wait MinDeliveryBlocks (10 blocks, ~60 s) after creation before the provider records delivery
+await client.recordDelivery(a, b.address, 0, hash);
 await client.completeEscrow(b, a.address, 0);
 ```
+
+Instead of accepting, the provider can decline a pending agreement with
+`rejectAgreement(a, b.address, 0)`, or the buyer can withdraw it with
+`cancelPending(b, a.address, 0)`. Either refunds the buyer in full.
 
 ## Retries and deterministic errors
 
@@ -79,11 +98,10 @@ classifying one of those would turn a recoverable failure into a hard one.
 ## Build from source
 
 ```bash
-cd sdk
-npm ci
-npm run build      # tsc -> dist/
-npm run typecheck  # tsc --noEmit
-npm test           # vitest — mock-driven, no node required
+npm ci                                     # at the repository root
+npm run build -w @scalar-commons/sdk       # tsc -> sdk/dist/
+npm run typecheck -w @scalar-commons/sdk   # tsc --noEmit
+npm test -w @scalar-commons/sdk            # vitest — mock-driven, no node required
 ```
 
 `npm test` is mock-driven and needs no node. The live checks against a real
@@ -105,7 +123,7 @@ import { Keyring } from '@polkadot/keyring';
 const client = await ScalarCommonsClient.connect('ws://127.0.0.1:9944');
 const alice = new Keyring({ type: 'sr25519' }).addFromUri('//Alice');
 
-await client.register(alice, 100n * PLANCKS_PER_CMN);
+await client.register(alice, 1_000n * PLANCKS_PER_CMN); // agents.minStake; less fails with StakeTooLow
 await client.heartbeat(alice);
 
 const pos = await client.netPosition(alice.address);
@@ -122,7 +140,11 @@ await client.disconnect();
 | `stake(signer, amount)` | `agents.addStake(amount)` |
 | `heartbeat(signer)` | `agents.heartbeat()` |
 | `createEscrow(signer, provider, amount, hash, deliverBy, cap?)` | `escrow.createAgreement(...)` |
-| `acceptEscrow(signer, buyer, seq, hash)` | `escrow.recordDelivery(...)` |
+| `acceptAgreement(signer, buyer, seq)` | `escrow.acceptAgreement(buyer, seq)` — provider signs (spec 309+) |
+| `rejectAgreement(signer, buyer, seq)` | `escrow.rejectAgreement(buyer, seq)` — provider signs (spec 309+) |
+| `cancelPending(signer, provider, seq)` | `escrow.cancelPending(provider, seq)` — buyer signs (spec 309+) |
+| `recordDelivery(signer, buyer, seq, hash)` | `escrow.recordDelivery(...)` |
+| `acceptEscrow(signer, buyer, seq, hash)` | Deprecated alias of `recordDelivery`; it never accepted anything |
 | `completeEscrow(signer, provider, seq)` | `escrow.confirmDelivery(...)` |
 | `submitOracle(signer, requestId, answerHash, capability)` | `oracle.submitResponse(...)` |
 | `vote(signer, pollIndex, vote)` | `convictionVoting.vote(...)` |
@@ -194,5 +216,12 @@ skips** if the node is unreachable — an SDK that cannot be checked against the
 chain it wraps is a finding, not a pass:
 
 ```bash
-RUN_INTEGRATION=1 SCALAR_WS=ws://127.0.0.1:9944 npm run test:integration   # WS_ENDPOINT also works
+SCALAR_WS=ws://127.0.0.1:9944 npm run test:integration -w @scalar-commons/sdk   # WS_ENDPOINT also works
+```
+
+The script sets `RUN_INTEGRATION=1` itself (`vitest run --mode integration`), so it needs no
+shell syntax. In PowerShell, set the endpoint first:
+
+```powershell
+$env:SCALAR_WS = 'ws://127.0.0.1:9944'; npm run test:integration -w @scalar-commons/sdk
 ```

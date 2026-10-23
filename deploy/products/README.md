@@ -32,8 +32,8 @@ of them means putting a reverse proxy in front of it first, not flipping the
 # inside a product directory — npm prunes the shared node_modules to that one
 # product's dependencies.
 npm ci
-npm run build -w faucet     # faucet's unit runs compiled output
-npm run build -w explorer   # so does explorer's
+npm run build -w @scalar-commons/faucet     # faucet's unit runs compiled output
+npm run build -w @scalar-commons/explorer   # so does explorer's
 
 ./deploy/products/install.sh
 systemctl --user start scalar-indexer.service scalar-explorer.service scalar-faucet.service

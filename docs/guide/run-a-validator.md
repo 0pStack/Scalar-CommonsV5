@@ -19,9 +19,17 @@ finalized blocks **#766 726, #766 737, #766 742 and #766 743** — see [§7](./r
   the emissions pallet and past the supply-cap principle. Whether and how external validators
   are ever paid is an open decision:
   [#172](https://github.com/tejaspatil1936/scalar-commons-v4/issues/172) (`tier:T0`).
-- **There is still slashing risk.** Equivocation (double-signing) is slashed to Treasury. There
-  is no offline slashing on this chain — no `im-online` pallet — but run one node per set of
-  session keys, always.
+- **Slashing arrives with spec 315; the live testnet does not slash yet.** The live testnet
+  runs spec 309 (per `landing/runtime-history.json` and
+  [#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), which does not process
+  equivocation reports. Spec 315, merged on main (`runtime/src/lib.rs:240-250`) and awaiting
+  enactment, reports BABE and GRANDPA equivocation (double-signing) to staking; the offender is slashed to
+  Treasury after a 27-era deferral (about 20 days), during which Root can cancel the slash.
+  Genesis validators are exempt: `dev_genesis` marks them invulnerable
+  (`node/src/chain_spec.rs:368`), and pallet-staking skips invulnerables when it handles an
+  offence (`substrate/frame/staking/src/pallet/impls.rs:1302-1310` at polkadot-stable2606-3).
+  There is no offline slashing on this chain — no `im-online` pallet — but run one node per
+  set of session keys, always.
 - **Leaving takes about 21 days.** `BondingDuration` is 28 staking eras of ~18 hours.
 - **This is a testnet, and it may be reset without notice.** Your bond, your keys' registration
   and your node's database go with it. [What to do on a reset](#if-the-testnet-is-reset).
@@ -127,8 +135,8 @@ sudo apt-get install -y build-essential clang protobuf-compiler git curl   # Deb
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none
 . "$HOME/.cargo/env"
 
-git clone https://github.com/tejaspatil1936/scalar-commons-v4
-cd scalar-commons-v4
+git clone https://github.com/0pStack/Scalar-CommonsV5
+cd Scalar-CommonsV5
 rustc --version          # rustup installs 1.85.0 + wasm32v1-none from rust-toolchain.toml
 cargo build --release    # builds the WASM runtime and target/release/scalar-node
 ./target/release/scalar-node --version
@@ -501,8 +509,9 @@ the old chain; your node's database belongs to a chain that no longer exists.
   one-off rotation, and never pass `--rpc-external` or `--unsafe-rpc-external`.
 - **File permissions.** `chmod 700` the base path; the network key is created 664 — make it
   600; the keystore files are created 600; the env file 600.
-- **One node per session key set.** Two nodes with the same keys double-sign, and equivocation
-  is the one thing this chain slashes.
+- **One node per session key set.** Two nodes with the same keys double-sign, and from spec 315
+  equivocation is slashable for every validator outside the genesis set (see the warning at
+  the top of this page).
 - **The stash seed never lives on the validator** if you can avoid it, and is **never reused** —
   not as an agent key, not for another validator, not on another network. The node needs only
   the session keys; the stash signs four transactions in the validator's lifetime.
@@ -517,7 +526,7 @@ fully verified.
 
 | # | Finding | Where |
 |---|---|---|
-| 1 | **Validators are unpaid.** `EraPayout = ()`, fees burned, slashing to Treasury, 28-era exit. Negative expected value for an outside operator. | [#172](https://github.com/tejaspatil1936/scalar-commons-v4/issues/172) (`tier:T0`) |
+| 1 | **Validators are unpaid.** `EraPayout = ()`, fees burned, equivocation slashing to Treasury from spec 315 (not yet live, per #123), 28-era exit. Negative expected value for an outside operator. | [#172](https://github.com/tejaspatil1936/scalar-commons-v4/issues/172) (`tier:T0`) |
 | 2 | A first start with `--validator` crash-loops on `NetworkKeyNotFound` until `key generate-node-key` is run, and that command writes the key **mode 664**. | §3 |
 | 3 | `--rpc-methods safe` refuses `author_rotateKeysWithOwner` (spec 313+) and `author_rotateKeys` (earlier) **on loopback too**, so key rotation needs a temporary switch to `unsafe` and two restarts. | §5 |
 | 4 | The bond is a staking *hold* (`reserved`), not a lock (`frozen`); tools and docs that look for a lock will report the stake as missing. | §6 |
