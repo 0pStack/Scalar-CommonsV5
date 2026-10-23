@@ -568,6 +568,10 @@ guard is "expired" when the actual pool **meets or exceeds** its break-even.
    crosses the sybil break-even. These require a root/governance action and are
    not reachable through permissionless `settle_era`.
 
+   > **Corrected (spec 306+):** an override lifts the ceiling only. The era still mints at
+   > most `alpha × qualifying escrow volume`, so an override cannot push emission past the
+   > volume bound — see the banner at the top of this file.
+
 ---
 
 ### Source references (summary — P0-1b)
