@@ -14,6 +14,7 @@ import { ChainIndexer } from '../../indexer/src/indexer.ts';
 import { createApiServer, ROUTES } from '../../indexer/src/api.ts';
 import { fetchAgents, fetchEscrows } from '../../indexer/src/chainState.ts';
 import { loadConfig } from '../../indexer/src/config.ts';
+import { connectLiveSuite, submit as submitExtrinsic } from '../support/chain.js';
 
 /**
  * End-to-end against the live devnet node.
@@ -27,6 +28,10 @@ import { loadConfig } from '../../indexer/src/config.ts';
  */
 
 const RPC_URL = process.env.INDEXER_RPC_URL ?? 'ws://127.0.0.1:9944';
+const availabilityApi = await connectLiveSuite('indexer live suite', RPC_URL);
+const nodeAvailable = Boolean(availabilityApi);
+const liveDescribe = nodeAvailable ? describe : describe.skip;
+await availabilityApi?.disconnect();
 
 let chain: Awaited<ReturnType<typeof connectChain>>;
 let api: ApiPromise;
@@ -128,21 +133,8 @@ function countingApi(target: ApiPromise): {
 }
 
 /** Submits an extrinsic and resolves with the block number it landed in. */
-function submit(tx: SubmittableExtrinsic<'promise'>, signer: KeyringPair): Promise<number> {
-  return new Promise((resolve, reject) => {
-    tx.signAndSend(signer, ({ status, dispatchError, txIndex }) => {
-      if (dispatchError) {
-        reject(new Error(`extrinsic failed: ${dispatchError.toString()} (txIndex ${txIndex})`));
-        return;
-      }
-      if (status.isInBlock) {
-        api.rpc.chain
-          .getHeader(status.asInBlock)
-          .then((header) => resolve(header.number.toNumber()))
-          .catch(reject);
-      }
-    }).catch(reject);
-  });
+async function submit(tx: SubmittableExtrinsic<'promise'>, signer: KeyringPair): Promise<number> {
+  return (await submitExtrinsic(api, tx, signer)).blockNumber;
 }
 
 /** Resolves once the node's best block reaches `target`, or throws. */
@@ -285,6 +277,11 @@ afterAll(async () => {
       ).toNumber();
       await waitForChainBlock(seeded.escrowBlock + minDeliveryBlocks, 200_000);
 
+      // Newer runtimes require provider consent before delivery. Keep the agreement
+      // Created during the assertions above, then accept it only for cleanup.
+      if (chainTx().escrow.acceptAgreement) {
+        await submit(chainTx().escrow.acceptAgreement(seeded.buyer, seeded.seq), providerSigner);
+      }
       await submit(
         chainTx().escrow.recordDelivery(seeded.buyer, seeded.seq, `0x${'22'.repeat(32)}`),
         providerSigner,
@@ -308,7 +305,7 @@ afterAll(async () => {
   }
 });
 
-describe('v1 surface', () => {
+liveDescribe('v1 surface', () => {
   it('exposes exactly the 25 documented endpoints', () => {
     expect(ROUTES).toHaveLength(25);
     // Paths are the public contract — duplicates would mean one is unreachable.
@@ -345,7 +342,7 @@ describe('v1 surface', () => {
   });
 });
 
-describe('status', () => {
+liveDescribe('status', () => {
   it('reports the live runtime and the indexer position', async () => {
     const { status, body } = await getRoute('/v1/status');
     expect(status).toBe(200);
@@ -361,7 +358,7 @@ describe('status', () => {
   });
 });
 
-describe('blocks', () => {
+liveDescribe('blocks', () => {
   it('lists real finalized blocks, newest first', async () => {
     const { status, body } = await getRoute('/v1/blocks', {}, '?limit=5');
     expect(status).toBe(200);
@@ -451,7 +448,7 @@ describe('blocks', () => {
   });
 });
 
-describe('extrinsics', () => {
+liveDescribe('extrinsics', () => {
   let heartbeatId = '';
 
   it('lists extrinsics and filters them by signer', async () => {
@@ -511,7 +508,7 @@ describe('extrinsics', () => {
   });
 });
 
-describe('events', () => {
+liveDescribe('events', () => {
   it('lists events and filters by pallet and method', async () => {
     const { status, body } = await getRoute(
       '/v1/events',
@@ -561,7 +558,7 @@ describe('events', () => {
   });
 });
 
-describe('accounts', () => {
+liveDescribe('accounts', () => {
   it('lists accounts the indexer has seen on chain', async () => {
     const { status, body } = await getRoute('/v1/accounts', {}, '?limit=50');
     expect(status).toBe(200);
@@ -602,7 +599,7 @@ describe('accounts', () => {
   });
 });
 
-describe('agents', () => {
+liveDescribe('agents', () => {
   it('lists every registered agent with its live stake', async () => {
     const { status, body } = await getRoute('/v1/agents');
     expect(status).toBe(200);
@@ -726,7 +723,7 @@ describe('agents', () => {
   });
 });
 
-describe('escrows', () => {
+liveDescribe('escrows', () => {
   it('lists live agreements straight from chain storage', async () => {
     const { status, body } = await getRoute('/v1/escrows', {}, '?limit=100');
     expect(status).toBe(200);
@@ -823,7 +820,7 @@ describe('escrows', () => {
   });
 });
 
-describe('eras', () => {
+liveDescribe('eras', () => {
   it('reports the current era from live chain state', async () => {
     const { status, body } = await getRoute('/v1/eras/current');
     expect(status).toBe(200);
@@ -895,7 +892,7 @@ describe('eras', () => {
   });
 });
 
-describe('follower shutdown', () => {
+liveDescribe('follower shutdown', () => {
   it('fails a pending waiter on stop rather than resolving it', async () => {
     // `waitForBlock` is what the tests above use to know the index reached a
     // block. Resolving it on shutdown would report "reached" for a block the
@@ -912,7 +909,7 @@ describe('follower shutdown', () => {
   });
 });
 
-describe('emissions', () => {
+liveDescribe('emissions', () => {
   it('reports emission parameters and settlement state from the runtime', async () => {
     const { status, body } = await getRoute('/v1/emissions');
     expect(status).toBe(200);
@@ -954,7 +951,7 @@ describe('emissions', () => {
   });
 });
 
-describe('activity', () => {
+liveDescribe('activity', () => {
   it('feeds the seeded heartbeat and agreement, newest first, and nothing else', async () => {
     const { status, body } = await getRoute(
       '/v1/activity',
@@ -1022,7 +1019,7 @@ describe('activity', () => {
   });
 });
 
-describe('endpoint coverage', () => {
+liveDescribe('endpoint coverage', () => {
   it('exercised every one of the 25 endpoints against the live node', () => {
     const declared = ROUTES.map((r) => r.path).sort();
     expect([...exercised].sort()).toEqual(declared);

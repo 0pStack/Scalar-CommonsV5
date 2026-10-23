@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
-import { ApiPromise, WsProvider } from '@polkadot/api';
+import type { ApiPromise } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import type { AccountInfo, EventRecord } from '@polkadot/types/interfaces';
@@ -11,6 +11,7 @@ import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
 import { createIndexerClient } from '../../explorer/src/activity.js';
 import { connectExplorerChain, type ExplorerChain } from '../../explorer/src/chain.js';
 import { createExplorerServer } from '../../explorer/src/server.js';
+import { connectChain, connectLiveSuite, submit } from '../support/chain.js';
 
 /**
  * These tests run against the LIVE devnet RPC. Nothing here is mocked and
@@ -23,6 +24,10 @@ import { createExplorerServer } from '../../explorer/src/server.js';
  */
 
 const RPC_ENDPOINT = process.env.EXPLORER_RPC_ENDPOINT ?? 'ws://127.0.0.1:9944';
+const availabilityApi = await connectLiveSuite('explorer live suite', RPC_ENDPOINT);
+const nodeAvailable = Boolean(availabilityApi);
+const liveDescribe = nodeAvailable ? describe : describe.skip;
+await availabilityApi?.disconnect();
 
 /** Genesis-endowed devnet account used only to author one real signed extrinsic. */
 const TEST_SEED = process.env.EXPLORER_TEST_SEED ?? '//Eve';
@@ -73,16 +78,8 @@ async function submitTransfer(sender: KeyringPair, recipient: string): Promise<F
     'balances.transferKeepAlive call',
   );
   const tx = transferKeepAlive(recipient, ONE_CMN);
-  const blockHash = await new Promise<string>((resolve, reject) => {
-    tx.signAndSend(sender, { nonce: -1 }, (result) => {
-      if (result.isError) {
-        reject(new Error(`transfer submission failed: ${result.status.type}`));
-      } else if (result.status.isInBlock) {
-        resolve(result.status.asInBlock.toHex());
-      }
-    }).catch(reject);
-  });
-
+  const outcome = await submit(api, tx, sender);
+  const blockHash = outcome.blockHash;
   const signedBlock = await api.rpc.chain.getBlock(blockHash);
   const index = signedBlock.block.extrinsics.findIndex((ex) => ex.hash.toHex() === tx.hash.toHex());
   if (index < 0) {
@@ -103,11 +100,7 @@ beforeAll(async () => {
   await cryptoWaitReady();
   keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
 
-  api = await ApiPromise.create({
-    provider: new WsProvider(RPC_ENDPOINT),
-    noInitWarn: true,
-    throwOnConnect: true,
-  });
+  api = await connectChain(RPC_ENDPOINT);
 
   chain = await connectExplorerChain({ rpcEndpoint: RPC_ENDPOINT });
   server = createExplorerServer({
@@ -132,7 +125,7 @@ afterAll(async () => {
   await api?.disconnect();
 });
 
-describe('connection', () => {
+liveDescribe('connection', () => {
   it('reports the runtime it is connected to, read from live metadata', async () => {
     const info = chain.chainInfo();
     expect(info.chain).toBe((await api.rpc.system.chain()).toString());
@@ -150,7 +143,7 @@ describe('connection', () => {
   });
 });
 
-describe('home view', () => {
+liveDescribe('home view', () => {
   it('shows the live chain identity and links the head block', async () => {
     const head = (await api.rpc.chain.getHeader()).number.toNumber();
     const { status, body } = await get('/');
@@ -164,7 +157,7 @@ describe('home view', () => {
   });
 });
 
-describe('block view', () => {
+liveDescribe('block view', () => {
   it('renders the head block with the hash the node reports', async () => {
     const header = await api.rpc.chain.getHeader();
     const headNumber = header.number.toNumber();
@@ -202,7 +195,7 @@ describe('block view', () => {
   });
 });
 
-describe('extrinsic view', () => {
+liveDescribe('extrinsic view', () => {
   it('decodes the signed transfer from runtime metadata: signer, args, outcome, events', async () => {
     const { status, body } = await get(
       `/extrinsic/${transfer.blockNumber}/${transfer.extrinsicIndex}`,
@@ -264,7 +257,7 @@ describe('extrinsic view', () => {
   });
 });
 
-describe('account view', () => {
+liveDescribe('account view', () => {
   it('shows balances that match a direct storage read', async () => {
     const { status, body } = await get(`/account/${transfer.recipient}`);
     expect(status).toBe(200);
@@ -284,7 +277,7 @@ describe('account view', () => {
   });
 });
 
-describe('http surface', () => {
+liveDescribe('http surface', () => {
   it('answers HEAD without a body, so a health check costs nothing to read', async () => {
     const response = await fetch(`${baseUrl}/`, { method: 'HEAD' });
     expect(response.status).toBe(200);
