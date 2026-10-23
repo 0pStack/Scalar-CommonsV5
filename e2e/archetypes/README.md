@@ -19,9 +19,8 @@ This directory replaces that with something that actually touches the chain.
 ```bash
 npm ci                                     # at the repository root: one install for the workspace
 npm test -w @scalar-commons/e2e            # offline: money maths, accounting, report
-cd e2e/archetypes
-node run.mjs --archetype wash --eras 1     # live: real extrinsics, real fees
-node run.mjs --archetype all --eras 2 --json out.json
+npm run archetypes -w @scalar-commons/e2e -- --archetype wash --eras 1
+npm run archetypes -w @scalar-commons/e2e -- --archetype all --eras 2 --json out.json
 ```
 
 Every archetype derives **fresh accounts** from a run-scoped mnemonic, funds

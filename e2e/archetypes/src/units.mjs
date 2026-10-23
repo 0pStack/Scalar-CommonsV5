@@ -9,7 +9,9 @@
  * whole experiment exists to produce.
  */
 
-export const PLANCKS_PER_CMN = 1_000_000_000_000n;
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
+
+export { PLANCKS_PER_CMN };
 
 /** CMN (number or string) -> plancks. Exact for up to 12 decimal places. */
 export function cmnToPlancks(cmn) {

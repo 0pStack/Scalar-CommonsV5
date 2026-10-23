@@ -16,6 +16,7 @@
     "test:live:faucet": "vitest run faucet/",
     "test:live:indexer": "vitest run indexer/",
     "test:live:explorer": "vitest run explorer/",
+    "prearchetypes": "npm run setup:sdk",
     "archetypes": "node archetypes/run.mjs"
   },
   "devDependencies": {
