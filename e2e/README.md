@@ -10,6 +10,7 @@ runs the archetype runner's offline unit tests; live suites are deliberate devne
 | `faucet/` | Real drips, limits and response metadata | A devnet with the configured faucet seed endowed |
 | `indexer/` | The indexer API cross-checked against direct RPC reads | A devnet with development accounts |
 | `explorer/` | Node-backed pages after a real transfer | A devnet with the configured test seed endowed |
+| `sdk/` | SDK metadata, storage decoding and runtime call conformance | A devnet with registered development agents |
 | `archetypes/` | Attacker-archetype accounting and reports | Offline for unit tests; a development chain for the runner |
 
 All live test files use the `*.live.test.ts` suffix. Shared connection, account,
@@ -32,6 +33,7 @@ npm run test:live:lifecycle -w @scalar-commons/e2e
 npm run test:live:faucet -w @scalar-commons/e2e
 npm run test:live:indexer -w @scalar-commons/e2e
 npm run test:live:explorer -w @scalar-commons/e2e
+npm run test:live:sdk -w @scalar-commons/e2e
 npm run archetypes -w @scalar-commons/e2e -- --archetype wash --eras 1
 npm run typecheck -w @scalar-commons/e2e
 npm test -w @scalar-commons/e2e
@@ -48,6 +50,7 @@ must not race their nonce streams.
 | faucet | `FAUCET_RPC_ENDPOINT`, `FAUCET_SEED` | `ws://127.0.0.1:9944`, `//Ferdie` |
 | indexer | `INDEXER_RPC_URL` | `ws://127.0.0.1:9944` |
 | explorer | `EXPLORER_RPC_ENDPOINT`, `EXPLORER_TEST_SEED`, `EXPLORER_INDEXER_URL` | `ws://127.0.0.1:9944`, `//Eve`, `http://127.0.0.1:8080` |
+| SDK | `SCALAR_WS` (or `WS_ENDPOINT`) | `ws://127.0.0.1:9944` |
 | archetypes | `--endpoint` | `ws://127.0.0.1:9944` |
 
 Lifecycle tests use fresh throwaway accounts funded from `//Alice`. They are for a
