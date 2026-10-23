@@ -648,9 +648,9 @@ impl pallet_treasury::Config for Runtime {
     type SpendFunds = ();
     type WeightInfo = pallet_treasury::weights::SubstrateWeight<Runtime>;
     type MaxApprovals = ConstU32<100>;
-    // V4: EnsureRootWithMaxBalance allows Root (sudo during bootstrap) and
-    // Track 2 governance (post-day-14) to spend from Treasury without limit.
-    // The Balance::MAX cap means governance decides the actual amount per proposal.
+    // Treasury spending requires Root. The Balance::MAX cap removes the amount
+    // ceiling after that Root authorization; it does not grant a spend origin to
+    // any governance track.
     type SpendOrigin = EnsureRootWithMaxBalance;
     type AssetKind = ();
     type Beneficiary = AccountId;
@@ -1105,8 +1105,8 @@ impl pallet_staking::Config for Runtime {
     // This was `ConvertCurve<RewardCurve>` — 2.5%–10% annual inflation, minted
     // by pallet-staking at every era rotation and routed to the treasury via
     // RewardRemainder. It violated CLAUDE.md first principle #1 ("No code path
-    // may mint beyond the cap. All minting flows through the emissions pallet
-    // only"), and it was not theoretical: TotalIssuance grew from 6 010 250 000.01
+    // may mint beyond the cap"), and it was not theoretical: TotalIssuance grew
+    // from 6 010 250 000.01
     // CMN at genesis to 6 053 831 090.07 CMN — +43 581 090 CMN, 100% of it from
     // staking — while pallet-emissions minted exactly zero. Passive stake earned
     // 43.6M CMN in 35 days on a chain whose thesis is that stake alone earns
