@@ -17,6 +17,7 @@ import type { Codec } from '@polkadot/types-codec/types';
 import type { DispatchError, EventRecord } from '@polkadot/types/interfaces';
 import { u8aToHex } from '@polkadot/util';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
+import { SS58_PREFIX } from '@scalar-commons/sdk';
 
 import { collectAccounts } from './accounts.js';
 import type { BlockRef } from './routes.js';
@@ -185,7 +186,7 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
     }
   }
 
-  const ss58Format = api.registry.chainSS58 ?? 42;
+  const ss58Format = api.registry.chainSS58 ?? SS58_PREFIX;
 
   const info: ChainInfo = {
     chain: (await api.rpc.system.chain()).toString(),

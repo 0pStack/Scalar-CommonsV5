@@ -7,6 +7,7 @@ import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady, decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import type { SubmittableExtrinsic } from '@polkadot/api/types';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
 import { connectChain } from '../../indexer/src/chain.ts';
 import { IndexerStore } from '../../indexer/src/store.ts';
@@ -203,7 +204,7 @@ beforeAll(async () => {
 
   // A transfer gives the account endpoints a second real account to report.
   seeded.transferBlock = await submit(
-    chainTx().balances.transferKeepAlive(dave.address, 1_000_000_000_000n),
+    chainTx().balances.transferKeepAlive(dave.address, PLANCKS_PER_CMN),
     alice,
   );
 

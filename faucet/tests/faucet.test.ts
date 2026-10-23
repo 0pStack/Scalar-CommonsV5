@@ -18,8 +18,9 @@ import type { ChainClient, ChainInfo, TransferReceipt } from '../src/chain.js';
 import { FaucetService, type FaucetStatus } from '../src/faucet.js';
 import { MemoryStore, SlidingWindowRateLimiter } from '../src/rateLimiter.js';
 import { createFaucetServer } from '../src/server.js';
+import { CMN_DECIMALS, PLANCKS_PER_CMN, SS58_PREFIX } from '@scalar-commons/sdk';
 
-const CMN = 1_000_000_000_000n;
+const CMN = PLANCKS_PER_CMN;
 const DRIP = 1_500n * CMN;
 const RESERVE = 1_000n * CMN;
 const ED = CMN / 100n;
@@ -35,8 +36,8 @@ const INFO: ChainInfo = {
   specName: 'scalar-commons',
   specVersion: 309,
   tokenSymbol: 'CMN',
-  tokenDecimals: 12,
-  ss58Format: 42,
+  tokenDecimals: CMN_DECIMALS,
+  ss58Format: SS58_PREFIX,
 };
 
 /** A chain whose faucet balance is whatever the test says, minus what it paid out. */

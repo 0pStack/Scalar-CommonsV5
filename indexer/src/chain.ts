@@ -8,6 +8,7 @@
  */
 
 import { ApiPromise, WsProvider } from '@polkadot/api';
+import { SS58_PREFIX } from '@scalar-commons/sdk';
 
 /** Raised when the configured node cannot be reached. */
 export class ChainUnreachableError extends Error {
@@ -52,7 +53,7 @@ export async function connectChain(rpcUrl: string, timeoutMs = 30_000): Promise<
   }
 
   const properties = api.registry.getChainProperties();
-  const ss58Format = properties?.ss58Format.unwrapOr(undefined)?.toNumber() ?? 42;
+  const ss58Format = properties?.ss58Format.unwrapOr(undefined)?.toNumber() ?? SS58_PREFIX;
   const tokenSymbol = properties?.tokenSymbol.unwrapOr(undefined)?.[0]?.toString() ?? 'UNIT';
   const tokenDecimals = properties?.tokenDecimals.unwrapOr(undefined)?.[0]?.toNumber() ?? 12;
 

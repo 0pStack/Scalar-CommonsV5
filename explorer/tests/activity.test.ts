@@ -14,6 +14,7 @@ import { renderActivity } from '../src/render.js';
 import { activityPath, parseRoute } from '../src/routes.js';
 import { createExplorerServer } from '../src/server.js';
 import type { ActivityView, ChainInfo } from '../src/types.js';
+import { CMN_DECIMALS, SS58_PREFIX } from '@scalar-commons/sdk';
 
 /**
  * The agent-activity page, end to end within the explorer, against a stand-in
@@ -35,8 +36,8 @@ const CHAIN: ChainInfo = {
   specName: 'scalar-commons',
   specVersion: 307,
   tokenSymbol: 'CMN',
-  tokenDecimals: 12,
-  ss58Format: 42,
+  tokenDecimals: CMN_DECIMALS,
+  ss58Format: SS58_PREFIX,
   genesisHash: `0x${'ff'.repeat(32)}`,
 };
 

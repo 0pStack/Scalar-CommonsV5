@@ -11,8 +11,9 @@ import { describe, expect, it } from 'vitest';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { configFromEnv } from '../src/config.js';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
-const CMN = 1_000_000_000_000n;
+const CMN = PLANCKS_PER_CMN;
 
 /** minStake 1 000 + baseRegistrationFee 50 + existentialDeposit 0.01, from the live chain. */
 const REGISTRATION_FLOOR = 1_050n * CMN + CMN / 100n;

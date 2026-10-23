@@ -6,9 +6,13 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "setup:sdk": "npm --prefix ../sdk run build",
+    "prebuild": "npm run setup:sdk",
     "start": "npm run build && node dist/index.js",
     "build": "tsc -p tsconfig.json",
+    "pretypecheck": "npm run setup:sdk",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "pretest": "npm run setup:sdk",
     "test": "vitest run",
     "test:watch": "vitest",
     "coverage": "vitest run --coverage"
@@ -17,7 +21,8 @@
     "@polkadot/api": "^16.5.0",
     "@polkadot/keyring": "^14.0.0",
     "@polkadot/util": "^14.0.0",
-    "@polkadot/util-crypto": "^14.0.0"
+    "@polkadot/util-crypto": "^14.0.0",
+    "@scalar-commons/sdk": "*"
   },
   "devDependencies": {
     "@types/node": "^22.20.1",

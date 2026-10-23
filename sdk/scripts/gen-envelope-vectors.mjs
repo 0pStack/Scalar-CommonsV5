@@ -19,10 +19,11 @@ import {
   encodeSignedMessage,
   envelopeSigningHash,
   sealBody,
+  SS58_PREFIX,
 } from '../dist/index.js';
 
 await cryptoWaitReady();
-const kr = new Keyring({ type: 'sr25519', ss58Format: 42 });
+const kr = new Keyring({ type: 'sr25519', ss58Format: SS58_PREFIX });
 const accounts = {
   '//Alice': kr.addFromUri('//Alice'),
   '//Bob': kr.addFromUri('//Bob'),
@@ -84,7 +85,7 @@ const vectors = {
   generator: 'sdk/scripts/gen-envelope-vectors.mjs',
   signingDomain: 'ScalarMsg/v1|',
   genesisHash,
-  ss58Format: 42,
+  ss58Format: SS58_PREFIX,
   messages: cases.map((c) => {
     const signer = accounts[c.from];
     const plaintext = stringToU8a(c.plaintext);

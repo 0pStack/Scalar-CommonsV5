@@ -4,12 +4,12 @@ import type { Server } from 'node:http';
 
 import { Keyring } from '@polkadot/keyring';
 import { cryptoWaitReady, mnemonicGenerate } from '@polkadot/util-crypto';
+import { PLANCKS_PER_CMN, SS58_PREFIX } from '@scalar-commons/sdk';
 
 import { connectChain, type ChainClient } from '../../faucet/src/chain.js';
 import { FaucetService } from '../../faucet/src/faucet.js';
 import { SlidingWindowRateLimiter } from '../../faucet/src/rateLimiter.js';
 import { createFaucetServer } from '../../faucet/src/server.js';
-import { PLANCKS_PER_CMN } from '../../faucet/src/amount.js';
 
 /**
  * These tests run against the LIVE devnet RPC. They are not mocked and they are
@@ -34,11 +34,11 @@ let keyring: Keyring;
 
 beforeAll(async () => {
   await cryptoWaitReady();
-  keyring = new Keyring({ type: 'sr25519', ss58Format: 42 });
+  keyring = new Keyring({ type: 'sr25519', ss58Format: SS58_PREFIX });
   chain = await connectChain({
     rpcEndpoint: RPC_ENDPOINT,
     faucetSeed: FAUCET_SEED,
-    ss58Format: 42,
+    ss58Format: SS58_PREFIX,
   });
 });
 

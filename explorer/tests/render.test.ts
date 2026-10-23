@@ -8,6 +8,7 @@ import {
   renderHome,
 } from '../src/render.js';
 import type { AccountView, BlockView, ChainInfo, ExtrinsicView, HomeView } from '../src/types.js';
+import { CMN_DECIMALS, SS58_PREFIX } from '@scalar-commons/sdk';
 
 const ALICE = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
 const BOB = '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty';
@@ -17,8 +18,8 @@ const CHAIN: ChainInfo = {
   specName: 'scalar-commons',
   specVersion: 304,
   tokenSymbol: 'CMN',
-  tokenDecimals: 12,
-  ss58Format: 42,
+  tokenDecimals: CMN_DECIMALS,
+  ss58Format: SS58_PREFIX,
   genesisHash: `0x${'ff'.repeat(32)}`,
 };
 

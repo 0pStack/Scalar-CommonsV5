@@ -21,28 +21,9 @@
  * how you know the rollback artefact is what you think it is.
  */
 
-import { createRequire } from 'node:module';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, resolve as pathResolve } from 'node:path';
 import { readFileSync, existsSync } from 'node:fs';
 import { zstdDecompressSync } from 'node:zlib';
-
-const HERE = dirname(fileURLToPath(import.meta.url));
-const CANDIDATES = ['../sdk/package.json', '../indexer/package.json'];
-function loadPolkadot(pkg) {
-  let lastErr;
-  for (const c of CANDIDATES) {
-    try {
-      const req = createRequire(pathResolve(HERE, c));
-      return import(pathToFileURL(req.resolve(pkg)).href);
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw new Error(
-    `cannot resolve ${pkg} from sdk/ or indexer/ node_modules (${lastErr && lastErr.message})`,
-  );
-}
+import { loadPolkadot } from '../sdk/scripts/load-polkadot.mjs';
 const { TypeRegistry } = await loadPolkadot('@polkadot/types');
 
 const argv = process.argv.slice(2);

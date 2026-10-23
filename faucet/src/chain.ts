@@ -13,6 +13,7 @@ import { ApiPromise, WsProvider } from '@polkadot/api';
 import { Keyring } from '@polkadot/keyring';
 import type { KeyringPair } from '@polkadot/keyring/types';
 import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { SS58_PREFIX, submitAndWatch } from '@scalar-commons/sdk';
 
 /** Static facts about the connected chain, read from metadata at connect time. */
 export interface ChainInfo {
@@ -95,7 +96,7 @@ export async function connectChain(options: ConnectOptions): Promise<ChainClient
     );
   }
 
-  const ss58Format = options.ss58Format ?? api.registry.chainSS58 ?? 42;
+  const ss58Format = options.ss58Format ?? api.registry.chainSS58 ?? SS58_PREFIX;
   const keyring = new Keyring({ type: 'sr25519', ss58Format });
   const signer: KeyringPair = keyring.addFromUri(options.faucetSeed);
 
@@ -140,48 +141,21 @@ export async function connectChain(options: ConnectOptions): Promise<ChainClient
   let queue: Promise<unknown> = Promise.resolve();
 
   async function submitTransfer(dest: string, amountPlancks: bigint): Promise<TransferReceipt> {
-    const nonce = await api.rpc.system.accountNextIndex(signer.address);
-    return new Promise<TransferReceipt>((resolve, reject) => {
-      let unsub: (() => void) | undefined;
-      const settle = (fn: () => void) => {
-        if (unsub) {
-          unsub();
-          unsub = undefined;
-        }
-        fn();
-      };
-
+    try {
       // transferKeepAlive, not transferAllowDeath: a drip must never be able to
-      // reap the faucet account itself.
-      transferKeepAlive(dest, amountPlancks)
-        .signAndSend(signer, { nonce }, ({ status, dispatchError, txHash }) => {
-          if (dispatchError) {
-            let reason = dispatchError.toString();
-            if (dispatchError.isModule) {
-              // Decode the pallet error against live metadata for a real message.
-              const meta = api.registry.findMetaError(dispatchError.asModule);
-              reason = `${meta.section}.${meta.name}: ${meta.docs.join(' ').trim()}`;
-            }
-            settle(() => reject(new TransferFailedError(reason)));
-            return;
-          }
-          if (status.isInvalid || status.isDropped || status.isUsurped) {
-            settle(() =>
-              reject(new TransferFailedError(`transaction ${status.type.toLowerCase()}`)),
-            );
-            return;
-          }
-          if (status.isInBlock) {
-            settle(() => resolve({ blockHash: status.asInBlock.toHex(), txHash: txHash.toHex() }));
-          }
-        })
-        .then((u) => {
-          unsub = u;
-        })
-        .catch((error: unknown) => {
-          reject(new TransferFailedError(error instanceof Error ? error.message : String(error)));
-        });
-    });
+      // reap the faucet account itself. The queue serializes the signer, so
+      // polkadot-js can safely select the next nonce for each submission.
+      const { blockHash, txHash } = await submitAndWatch(
+        api,
+        transferKeepAlive(dest, amountPlancks),
+        signer,
+        'faucet.transferKeepAlive',
+        { maxRetries: 0 },
+      );
+      return { blockHash, txHash };
+    } catch (error) {
+      throw new TransferFailedError(error instanceof Error ? error.message : String(error));
+    }
   }
 
   return {

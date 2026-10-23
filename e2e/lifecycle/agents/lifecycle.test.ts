@@ -4,6 +4,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ApiPromise } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 import { SCALAR_WS, connect, eventsOf, freshAccount, fund, nodeIsUp, send } from './helpers.js';
 
 const up = await nodeIsUp();
@@ -23,8 +24,8 @@ describe.skipIf(!up)(`agents lifecycle @ ${SCALAR_WS}`, () => {
     outsider = freshAccount('outsider');
     delegate = freshAccount('delegate');
     // Stake + registration fee + headroom for tx fees.
-    await fund(api, agent, minStake * 3n + 1_000_000_000_000n);
-    await fund(api, outsider, 10_000_000_000_000n);
+    await fund(api, agent, minStake * 3n + PLANCKS_PER_CMN);
+    await fund(api, outsider, 10n * PLANCKS_PER_CMN);
   });
 
   afterAll(async () => {

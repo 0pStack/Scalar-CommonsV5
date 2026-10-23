@@ -8,11 +8,9 @@
  * dispense the wrong amount.
  */
 
-/** Decimal places of the native token, per chain properties (`tokenDecimals`). */
-export const CMN_DECIMALS = 12;
+import { CMN_DECIMALS, PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 
-/** 1 CMN = 10^12 plancks. */
-export const PLANCKS_PER_CMN = 10n ** BigInt(CMN_DECIMALS);
+export { CMN_DECIMALS, PLANCKS_PER_CMN };
 
 /** Matches an unsigned decimal amount with an optional fractional part. */
 const DECIMAL_RE = /^\+?(\d+)(?:\.(\d+))?$/;

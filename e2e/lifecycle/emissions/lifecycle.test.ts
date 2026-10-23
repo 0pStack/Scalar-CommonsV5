@@ -14,6 +14,7 @@
  */
 import type { ApiPromise } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
+import { PLANCKS_PER_CMN } from '@scalar-commons/sdk';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { big, connect, freshAccount, keyring, send } from './helpers.js';
 
@@ -50,14 +51,14 @@ async function issuance(): Promise<bigint> {
 
 describe('emissions constants on the live runtime', () => {
   it('keeps the hard supply cap at 100B CMN and the velocity bonus at or below +30%', () => {
-    const cmn = 10n ** 12n;
-    expect(big(api.consts.emissions.supplyCap)).toBe(100_000_000_000n * cmn);
+    expect(big(api.consts.emissions.supplyCap)).toBe(100_000_000_000n * PLANCKS_PER_CMN);
     expect(Number(big(api.consts.emissions.velocityBonusBps))).toBeLessThanOrEqual(3000);
   });
 
   it('keeps the MinQualifyingVol floor gate at or above 50 CMN of era volume', () => {
-    const cmn = 10n ** 12n;
-    expect(big(api.consts.emissions.minQualifyingVol)).toBeGreaterThanOrEqual(50n * cmn);
+    expect(big(api.consts.emissions.minQualifyingVol)).toBeGreaterThanOrEqual(
+      50n * PLANCKS_PER_CMN,
+    );
   });
 });
 
