@@ -393,10 +393,8 @@ jobs:
   # ── sdk ────────────────────────────────────────────────────────────────────
   # Gate: npm ci && npm run typecheck && npm test.
   #
-  # NO live-test exclusion is needed here and none is applied. sdk's chain-
-  # dependent block already gates itself — tests/integration.test.ts:237 is
-  # `describe.skipIf(!runReal)` behind RUN_INTEGRATION=1 — so a plain `npm test`
-  # is offline by construction (9 passed, 1 skipped).
+  # NO live-test exclusion is needed here and none is applied. sdk's tests are
+  # offline by construction: its live-node suite lives in e2e/sdk/ (#54).
   #
   # THIS JOB WAS RED ON THE UPSTREAM master WHEN ADDED, and that was the point.
   # Two real defects, both measured 2026-08-19 and reported in docs/history/CI-NODE.md:
