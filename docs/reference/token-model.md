@@ -301,7 +301,7 @@ Claims are equally unprivileged and pull-based: `emissions.claim` pays the calle
 `emissions.batchClaim` pays up to `emissions.maxBatchClaimSize` (raw `100`) agents on their
 behalf. No privileged caller is needed to settle or claim, and from spec 311 neither SafeMode
 nor TxPause can block `settleEra`, `claim` or `batchClaim`: both brakes whitelist them. That
-is on main; the public testnet runs spec 309 (per
+is on main; the public testnet runs spec 309 (per `landing/runtime-history.json` and
 [#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), where the two brakes are
 configured but filter nothing.
 
