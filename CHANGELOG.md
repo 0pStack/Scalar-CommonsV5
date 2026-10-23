@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Fixed
+
+- SDK: add escrow consent calls; acceptEscrow becomes recordDelivery ([#164](https://github.com/0pStack/Scalar-CommonsV5/pull/164), closes [#64](https://github.com/0pStack/Scalar-CommonsV5/issues/64))
+
 ### Documentation
 
 - fix(docs): verify runtime snapshot and docs base ([#163](https://github.com/0pStack/Scalar-CommonsV5/pull/163), closes [#100](https://github.com/0pStack/Scalar-CommonsV5/issues/100))
