@@ -23,7 +23,8 @@ install is a symlink, which resolves a second copy of `@polkadot/*`):
 
 ```bash
 npm pack -w @scalar-commons/sdk --pack-destination /tmp   # -> /tmp/scalar-commons-sdk-0.1.0.tgz
-cd ~/my-agent && npm install /tmp/scalar-commons-sdk-0.1.0.tgz
+mkdir -p ~/my-agent && cd ~/my-agent && npm init -y
+npm install /tmp/scalar-commons-sdk-0.1.0.tgz
 ```
 
 The `@polkadot/*` packages (`@polkadot/api` ^16; `@polkadot/keyring`, `@polkadot/util` and
