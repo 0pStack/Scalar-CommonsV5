@@ -57,8 +57,9 @@ The users are not humans transacting. They are software agents that:
 5. **Govern the network's parameters** through on-chain voting, with participation itself
    forming part of the reward weight.
 
-The token is **CMN**: 100 billion hard cap, 18 billion minted at genesis (split 7B / 5B / 3B /
-3B), 1 CMN = 10¹² plancks, 12 decimals, SS58 format 42.
+The token is **CMN**: 100 billion hard cap, 18 billion minted at mainnet genesis by design (split
+7B / 5B / 3B / 3B, in `mainnet_genesis_config`, which no testnet preset loads), 1 CMN = 10¹²
+plancks, 12 decimals, SS58 format 42.
 
 **The economic thesis — and the thing that must be proven, not assumed:** the emission formula
 is designed so that *faking the work does not pay*. That is the entire product. A chain that

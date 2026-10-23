@@ -45,7 +45,7 @@ sitting on supply.
 | | |
 |---|---|
 | **Native token** | CMN, 12 decimals (1 CMN = 10¹² plancks) |
-| **Supply** | 100B hard cap (`SUPPLY_CAP`), 18B minted at genesis |
+| **Supply** | 100B hard cap (`SUPPLY_CAP`); the 18B genesis mint is the mainnet design, and the testnet presets mint less ([genesis distribution](docs/reference/token-model.md#genesis-distribution)) |
 | **Minting** | Only through the `emissions` pallet, never past the cap |
 | **Era settlement** | `settle_era` is permissionless: no privileged caller keeps the chain live |
 | **Governance** | OpenGov with conviction voting |

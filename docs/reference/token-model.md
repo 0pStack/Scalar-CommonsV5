@@ -39,10 +39,14 @@ realistic stake. See [amounts and plancks](/guide/sdk#amounts-and-plancks).
 | Quantity | Value | Raw |
 |---|---|---|
 | Hard supply cap (`emissions.supplyCap`) | 100,000,000,000 CMN | `100000000000000000000000` |
-| Genesis mint | 18,000,000,000 CMN | `18000000000000000000000` |
-| Emittable headroom | 82,000,000,000 CMN | `82000000000000000000000` |
+| Mainnet genesis allocation (design; no testnet preset) | 18,000,000,000 CMN | `18000000000000000000000` |
+| Headroom above the mainnet genesis design | 82,000,000,000 CMN | `82000000000000000000000` |
 | Independent cap copy (`constitution.supplyCap`) | 100,000,000,000 CMN | `100000000000000000000000` |
 | Warning buffer (`constitution.capWarningBuffer`) | 1,000,000,000 CMN | `1000000000000000000000` |
+
+Genesis issuance is set by the chain spec, not the runtime, and differs by preset — see
+[Genesis distribution](#genesis-distribution). On a running chain, emittable headroom is the
+cap minus its current `balances.totalIssuance`, not the design figure above.
 
 The cap is an absolute invariant, not a target. Three things enforce it:
 
@@ -101,9 +105,9 @@ The cap is an absolute invariant, not a target. Three things enforce it:
    `RewardDestination::None`.
 
    See docs/history/TESTNETAUDIT.md §6 I-2 and issue #120, which stays open until this residue is
-   resolved. The genesis-mint and headroom figures in the table above are **separately
-   wrong** and tracked as issue #121 (I-3) — they describe the unreachable
-   `mainnet_genesis_config` allocation, not this chain.
+   resolved. The 18B genesis figure in the table above is the allocation in the unreachable
+   `mainnet_genesis_config`, not this chain's genesis — see
+   [Genesis distribution](#genesis-distribution).
 3. **`pallet-constitution` watches independently.** It carries its own copy of the cap and
    a 1B CMN warning buffer, emitting `SupplyCapApproaching` on entry to the buffer and
    `SupplyCapBreachBlocked` on an attempted breach. The two copies are listed in the table
@@ -115,6 +119,8 @@ partially and then not at all. Emissions stop; the chain does not.
 
 ### Genesis distribution
 
+The mainnet genesis design allocates 18B CMN:
+
 | Recipient | Allocation | Share |
 |---|---|---|
 | Founders | 7,000,000,000 CMN | 38.9% |
@@ -122,8 +128,21 @@ partially and then not at all. Emissions stop; the chain does not.
 | Researcher multisig | 3,000,000,000 CMN | 16.7% |
 | Bootstrap multisig | 3,000,000,000 CMN | 16.7% |
 
-A compile-time assertion in `node/src/chain_spec.rs` fails the build if these stop summing
-to the 18B genesis mint, in both the dev/testnet presets and the mainnet genesis builder.
+These allocations exist only in `mainnet_genesis_config` (`node/src/chain_spec.rs`), which no
+`--chain` id loads. A compile-time assertion fails the build if they stop summing to
+`GENESIS_MINT`. Genesis validator balances — 2,000,000 CMN per stash and 50,000 CMN per
+controller — come on top of the 18B.
+
+Every testnet preset uses `dev_genesis` instead: 1,000,000,000 CMN per endowed account plus the
+same validator balances, and no treasury funding.
+
+| Preset | Endowed accounts | Validators | Genesis issuance |
+|---|---|---|---|
+| `dev`, `sc-e1` | 3 | 3 | 3,006,150,000 CMN |
+| `local` | 6 | 5 | 6,010,250,000 CMN |
+| `staging` | 10 | 7 | 10,014,350,000 CMN |
+
+The public testnet is built from the `local` preset (`deploy/build-spec.sh`).
 
 ## The emission schedule
 
@@ -163,8 +182,8 @@ Two consequences of the ceiling that are easy to miss:
 
 - **Emission per agent falls once the set exceeds 100.** Growth past that point dilutes
   rather than inflates. The pool is bounded; the claimants are not.
-- **The maximum issuance rate is 1,000,000 × 1,460 = 1.46B CMN/year.** Against 82B of
-  headroom that is roughly **56 years to reach the cap at the maximum rate**, or about 561
+- **The maximum issuance rate is 1,000,000 × 1,460 = 1.46B CMN/year.** Against the 82B of
+  headroom left by the 18B mainnet genesis design that is roughly **56 years to reach the cap at the maximum rate**, or about 561
   years if the pool sits at the floor. Both numbers assume every era settles.
 
 ::: warning There is no halving schedule

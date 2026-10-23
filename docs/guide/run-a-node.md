@@ -102,7 +102,8 @@ point address encodings change.
 
 ### Genesis allocation
 
-The 18B CMN genesis mint is split four ways, and a compile-time assertion in
+The mainnet genesis design mints 18B CMN, split four ways. It lives in
+`mainnet_genesis_config`, which no `--chain` id loads, and a compile-time assertion in
 `chain_spec.rs` fails the build if the parts stop summing to the whole:
 
 | Recipient | Allocation | Share of mint |
@@ -112,9 +113,23 @@ The 18B CMN genesis mint is split four ways, and a compile-time assertion in
 | Researcher multisig | 3,000,000,000 CMN | 16.7% |
 | Bootstrap multisig | 3,000,000,000 CMN | 16.7% |
 
-Dev and testnet presets additionally bond `1,000,000 CMN` per validator stash, give each
-controller `50,000 CMN` for fees, and pre-register each genesis validator as an agent with
-`10,000 CMN` of agent stake — the minimum that qualifies for floor emissions from era 1.
+Validator balances come on top of the 18B: each genesis stash receives `2,000,000 CMN` and
+bonds `1,000,000 CMN` of it, and each controller receives `50,000 CMN` for fees.
+
+Every `--chain` preset (`dev`, `local`, `staging`, `sc-e1`) uses `dev_genesis` instead. It
+makes none of the four allocations above and funds no treasury. Each endowed account
+receives `1,000,000,000 CMN`, and validators receive the same stash and controller balances:
+
+| Preset | Endowed accounts | Validators | Genesis issuance |
+|---|---|---|---|
+| `dev`, `sc-e1` | 3 | 3 | 3,006,150,000 CMN |
+| `local` | 6 | 5 | 6,010,250,000 CMN |
+| `staging` | 10 | 7 | 10,014,350,000 CMN |
+
+The first three endowed accounts are pre-registered as agents with `10,000 CMN` of agent
+stake — the minimum that qualifies for floor emissions from era 1. On `dev` and `sc-e1` those
+are the three validators; on `local` they are three of the five (Alice, Bob and Charlie); on
+`staging` they are `User1`–`User3`, which are not validators.
 See [the token model](/reference/token-model) for what that stake does and does not earn.
 
 ## Generate the raw chainspec

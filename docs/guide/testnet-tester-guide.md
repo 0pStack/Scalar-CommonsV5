@@ -860,9 +860,9 @@ settled, which is *not* the same as era 0.
 
 ::: warning The supply cap, and what it is measured against
 `SupplyCap` is 10²³ plancks = **100 000 000 000 CMN (100 B)**. Issuance today is ~6.05 B,
-about **6.05 %**. Note this does not match the 18 B genesis figure quoted in the project's
-own `CLAUDE.md` — this testnet's genesis was ~6.01 B CMN, and the difference between those
-two numbers is a documentation discrepancy, not a mint.
+about **6.05 %**. This testnet's genesis was ~6.01 B CMN because it is built from the `local`
+preset; the 18 B genesis figure elsewhere in the docs is the mainnet design, which no testnet
+preset uses ([genesis distribution](/reference/token-model#genesis-distribution)).
 
 The bulk of issuance growth to date was **not** emissions: spec 305 removed staking
 inflation after `TotalIssuance` grew by 43.58 M CMN from `pallet-staking` while
@@ -1216,7 +1216,6 @@ And the smaller edges, documented in place above rather than filed:
   which is a leftover from its single-host origin.
 - **Full sync replays ~534 000 blocks in ~10 minutes and 4.7 GB.** There is no published
   warp-sync checkpoint.
-- **`CLAUDE.md` states an 18 B genesis mint**; this testnet's genesis was ~6.01 B CMN.
 
 If you find something not on this list, that is exactly the contribution this page is
 fishing for — see **§8, How to help**, above.
