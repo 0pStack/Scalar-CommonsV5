@@ -65,6 +65,9 @@ function makeMockApi() {
       },
       escrow: {
         createAgreement: makeTx('escrow', 'createAgreement'),
+        acceptAgreement: makeTx('escrow', 'acceptAgreement'),
+        rejectAgreement: makeTx('escrow', 'rejectAgreement'),
+        cancelPending: makeTx('escrow', 'cancelPending'),
         recordDelivery: makeTx('escrow', 'recordDelivery'),
         confirmDelivery: makeTx('escrow', 'confirmDelivery'),
       },
@@ -127,7 +130,7 @@ describe('ScalarCommonsClient — write method → extrinsic mapping', () => {
     await client.stake(SIGNER, 250n);
     await client.heartbeat(SIGNER);
     await client.createEscrow(SIGNER, PROVIDER, 500n, HASH, 1_000n, 3);
-    await client.acceptEscrow(SIGNER, PROVIDER, 0, HASH);
+    await client.recordDelivery(SIGNER, PROVIDER, 0, HASH);
     await client.completeEscrow(SIGNER, PROVIDER, 0);
     await client.submitOracle(SIGNER, HASH, HASH, 3);
     await client.vote(SIGNER, 1, {
@@ -159,6 +162,48 @@ describe('ScalarCommonsClient — write method → extrinsic mapping', () => {
     // derives the agent argument from the signer rather than trusting a caller-
     // supplied address that the runtime would only reject as `Unauthorized`.
     expect(calls[8]?.args).toEqual([SIGNER, 9]);
+  });
+});
+
+describe('ScalarCommonsClient — escrow consent (spec 309)', () => {
+  const BUYER = '5DAAnrj7VHTznn2AWBemMuyBwZWs6FNFjdyVXUeYum3PTXFy';
+
+  // Provider signs accept/reject and names the buyer; the buyer signs cancel and names
+  // the provider. A swapped argument would encode fine and fail on chain as
+  // AgreementNotFound, so the exact args are pinned here.
+  it.each([
+    ['acceptAgreement', 'escrow.acceptAgreement', [BUYER, 4]],
+    ['rejectAgreement', 'escrow.rejectAgreement', [BUYER, 4]],
+    ['cancelPending', 'escrow.cancelPending', [PROVIDER, 4]],
+  ] as const)('%s → %s with %j', async (method, extrinsic, args) => {
+    const { api, calls } = makeMockApi();
+    const client = new ScalarCommonsClient(api, { retryDelayMs: 0 });
+    const target = method === 'cancelPending' ? PROVIDER : BUYER;
+    const res = await client[method](SIGNER, target, 4);
+    expect(res).toEqual({ txHash: '0xtxhash', blockHash: '0xblockhash', attempts: 1 });
+    expect(calls.map((c) => [`${c.section}.${c.method}`, c.args])).toEqual([[extrinsic, args]]);
+  });
+
+  it('acceptEscrow is a deprecated alias that records delivery, not acceptance', async () => {
+    const { api, calls } = makeMockApi();
+    const client = new ScalarCommonsClient(api, { retryDelayMs: 0 });
+    await client.acceptEscrow(SIGNER, BUYER, 2, HASH);
+    await client.recordDelivery(SIGNER, BUYER, 2, HASH);
+    expect(calls.map((c) => [`${c.section}.${c.method}`, c.args])).toEqual([
+      ['escrow.recordDelivery', [BUYER, 2, HASH]],
+      ['escrow.recordDelivery', [BUYER, 2, HASH]],
+    ]);
+  });
+
+  it('names the missing call on a runtime without provider consent', () => {
+    const { api, calls } = makeMockApi();
+    delete (api as unknown as { tx: { escrow: Record<string, unknown> } }).tx.escrow
+      .acceptAgreement;
+    const client = new ScalarCommonsClient(api);
+    expect(() => client.acceptAgreement(SIGNER, BUYER, 0)).toThrow(
+      'runtime does not expose extrinsic escrow.acceptAgreement',
+    );
+    expect(calls).toEqual([]);
   });
 });
 
