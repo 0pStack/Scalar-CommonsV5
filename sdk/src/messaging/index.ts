@@ -1,4 +1,51 @@
 /** Agent-to-agent messaging (spec 308): signed envelopes, messaging keys, transports. */
-export * from './envelope.js';
-export * from './keys.js';
-export * from './transport.js';
+export {
+  ENVELOPE_VERSION,
+  MAX_ONCHAIN_PAYLOAD,
+  MESSAGE_KINDS,
+  MessageInbox,
+  MessageRejected,
+  NonceTracker,
+  OutboundNonces,
+  SIGNATURE_LENGTH,
+  SIGNING_DOMAIN,
+  createMessage,
+  decodeEnvelope,
+  decodeSignedMessage,
+  encodeBody,
+  encodeEnvelope,
+  encodeSignedMessage,
+  envelopeSigningHash,
+  type AccountLike,
+  type AgreementRef,
+  type Body,
+  type BodyOpener,
+  type Envelope,
+  type InboxOptions,
+  type MessageInput,
+  type MessageKind,
+  type MessageSigner,
+  type OnChainCall,
+  type ReceiveOptions,
+  type ReceivedMessage,
+  type RejectReason,
+  type SignedMessage,
+} from './envelope.js';
+export {
+  BOX_MAC_LENGTH,
+  deriveMessagingKey,
+  openBody,
+  sealBody,
+  type MessagingKeypair,
+} from './keys.js';
+export {
+  HttpsTransport,
+  OnChainTransport,
+  subscribeMessages,
+  type InboundFrame,
+  type MessageSubmitter,
+  type SendMessageArgs,
+  type SubscribeOptions,
+  type Transport,
+  type UriResolver,
+} from './transport.js';

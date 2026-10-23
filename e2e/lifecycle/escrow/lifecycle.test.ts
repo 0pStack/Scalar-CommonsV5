@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import type { ApiPromise } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
-import { cmn, connect, findEvent, freshPair, fund, send, waitForBlock } from './helpers';
+import { cmn, connect, findEvent, freshPair, fund, send, waitForBlock } from './helpers.js';
 
 const HASH = '0x' + '11'.repeat(32);
 const PROOF = '0x' + '22'.repeat(32);

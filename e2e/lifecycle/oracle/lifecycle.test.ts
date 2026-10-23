@@ -5,7 +5,7 @@ import { afterAll, beforeAll, expect, test } from 'vitest';
 import { blake2AsU8a } from '@polkadot/util-crypto';
 import { u8aToHex } from '@polkadot/util';
 import type { ApiPromise } from '@polkadot/api';
-import { connect, devAccounts, send, hasEvent, waitBlocks } from './helpers';
+import { connect, devAccounts, send, hasEvent, waitBlocks } from './helpers.js';
 
 let api: ApiPromise;
 let authoring = false;

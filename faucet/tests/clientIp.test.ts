@@ -25,8 +25,8 @@
 import { describe, expect, it } from 'vitest';
 import type { IncomingMessage } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { clientIp, createFaucetServer, ipBucket } from '../src/server.ts';
-import type { FaucetService } from '../src/faucet.ts';
+import { clientIp, createFaucetServer, ipBucket } from '../src/server.js';
+import type { FaucetService } from '../src/faucet.js';
 
 const PEER = '198.51.100.7';
 

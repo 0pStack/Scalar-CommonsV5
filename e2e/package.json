@@ -6,7 +6,10 @@
   "description": "Every test that needs a live Scalar Commons chain: pallet lifecycles, the faucet, indexer and explorer against a node, and the attacker-archetype runner. CI typechecks the package and runs only the archetype runner's offline unit tests.",
   "license": "Apache-2.0",
   "scripts": {
+    "setup:sdk": "npm --prefix ../sdk run build",
+    "pretypecheck": "npm run setup:sdk",
     "typecheck": "tsc -p tsconfig.json && tsc -p lifecycle/tsconfig.json",
+    "pretest": "npm run setup:sdk",
     "test": "vitest run archetypes/",
     "test:live": "vitest run lifecycle/ faucet/ indexer/ explorer/",
     "test:live:lifecycle": "vitest run lifecycle/",

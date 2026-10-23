@@ -4,7 +4,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ApiPromise } from '@polkadot/api';
 import type { KeyringPair } from '@polkadot/keyring/types';
-import { SCALAR_WS, connect, eventsOf, freshAccount, fund, nodeIsUp, send } from './helpers';
+import { SCALAR_WS, connect, eventsOf, freshAccount, fund, nodeIsUp, send } from './helpers.js';
 
 const up = await nodeIsUp();
 if (!up) console.warn(`[testkit] no node at ${SCALAR_WS}: agents lifecycle suite SKIPPED`);

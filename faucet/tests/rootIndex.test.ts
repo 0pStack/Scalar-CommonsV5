@@ -24,8 +24,8 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 
-import { createFaucetServer } from '../src/server.ts';
-import type { FaucetService } from '../src/faucet.ts';
+import { createFaucetServer } from '../src/server.js';
+import type { FaucetService } from '../src/faucet.js';
 
 /** Fails on any property access — the root index may read nothing. */
 const chainless = new Proxy(
