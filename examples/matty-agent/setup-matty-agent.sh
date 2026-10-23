@@ -20,7 +20,7 @@ fi
 
 step() { printf '\n==> %s\n' "$*"; }
 
-step "1/4 installing the workspace packages at the repository root (about a minute)"
+step "1/4 installing the workspace packages at the repository root (a few minutes)"
 (cd "$ROOT" && npm ci --no-audit --no-fund --loglevel=error)
 
 step "2/4 building the Scalar Commons SDK"
