@@ -398,8 +398,10 @@ pool = min(clamp(TargetEmissionPerAgent × agents, floor, ceiling),
 
 Volume does **not** qualify when the provider is ring-flagged (more than one completion from a
 single buyer), when the pair traded both ways in the era, when the pair declared a shared
-funding lineage, or beyond `stake × maxVolToStakeRatio`. The pool is then split by weight —
-`sqrt(stake)`, rank, work score, oracle accuracy, governance participation, velocity — and
+funding lineage, or beyond `stake × maxVolToStakeRatio`. The pool is then split by weight
+([the weight formula](/reference/token-model#the-weight-formula)) — `sqrt(stake)` scaled by
+rank, heartbeat and an activity term built from work score and governance, plus bounded
+oracle, onboarding and velocity bonuses — and
 `MinQualifyingVol` (50 CMN in the era) and a live heartbeat gate the floor share. The
 [tester guide](./testnet-tester-guide#_5-how-cmn-is-actually-earned) walks through the weight
 terms.

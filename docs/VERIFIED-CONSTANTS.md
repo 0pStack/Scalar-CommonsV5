@@ -1,5 +1,19 @@
 # VERIFIED-CONSTANTS — SC-E1 P0-1a
 
+> **Superseded in part — read [the token model](reference/token-model.md) for current values.**
+> This is a dated transcription: its `file:line` references point at the commit it was
+> written against, not at today's tree. Where it no longer describes the chain, the affected
+> rows are corrected inline:
+>
+> - The 18B genesis mint is the **mainnet design only**. It lives in `mainnet_genesis_config`,
+>   which no `--chain` preset loads; the testnet presets mint 3.0B–10.0B CMN at genesis.
+> - **Since spec 306 the agent-count pool is a ceiling, not the emission.** `settle_era`
+>   mints `min(pool, qualifying_escrow_volume × emissionVolumeAlphaBps / 10_000)`, and the
+>   bound applies to governance overrides too (`pallets/emissions/src/lib.rs:427-462` in
+>   today's tree). `emissionVolumeAlphaBps` starts at 10,000 (1.0×) and Root can move it within
+>   0..100,000. An era with no qualifying volume mints nothing. See
+>   [the volume bound](reference/token-model.md#the-volume-bound-spec-306).
+
 > **Gate:** SC-E1 protocol §3 P0-1 / issue P0-1a. Satisfies finding **R-SC-0002**'s
 > precondition: *"the real formula must be transcribed (tab 03) before this number
 > means anything about the chain."*
@@ -150,6 +164,9 @@ registered agent, floored at 100,000 CMN/era and hard-capped at 1,000,000 CMN/er
 (Fully expanded — era length, per-year totals, halving, and break-even comparison — in
 the [P0-1b section](#verified-constants--sc-e1-p0-1b--era-emission-schedule-and-per-era-pool-size).)
 
+> **Corrected (spec 306+):** this is the era's ceiling. The era mints at most
+> `alpha × qualifying escrow volume` — see the banner at the top of this file.
+
 ### 1.4 Distribution (MasterChef accumulator)
 
 - On settle: `AccRewardPerStake += emission * ACC_SCALE / total_weight`
@@ -173,7 +190,7 @@ All values verified against source. "Live value" is the effective genesis value.
 |---|---|---|---|
 | Token unit | 1 CMN = 10^12 plancks | `runtime/src/lib.rs:72` | all |
 | `SupplyCap` | 100,000,000,000 CMN | `:73` (`SUPPLY_CAP`), `:1007`, `:1033` | mint cap |
-| Genesis mint | 18,000,000,000 CMN | `:74` | genesis |
+| Genesis mint (mainnet design only) | 18,000,000,000 CMN | `:74` | `mainnet_genesis_config`; no `--chain` preset uses it |
 | `InitialEmissionsPerEra` (pool **ceiling**) | 1,000,000 CMN | `:1008`, `:1034` | §1.3 high |
 | `TargetEmissionPerAgent` | 10,000 CMN | `:1009`, `:1035` | §1.3 slope |
 | `FloorEmissionPerEra` (pool **floor**) | 100,000 CMN | `:1010`, `:1036` | §1.3 low |
@@ -311,6 +328,10 @@ the real cap, those model break-evens are not reachable via the base pool — th
 `set_era_emission_override` (root-only, ≤ `SupplyCap`, `lib.rs:344-360`) can exceed it.
 (Quantified in the [P0-1b break-even comparison](#comparison-against-gaming-break-evens).)
 
+> **Corrected (spec 306+):** an override no longer escapes the volume bound. It replaces the
+> agent-count ceiling, but the era still mints at most `alpha × qualifying escrow volume` —
+> see the banner at the top of this file.
+
 **F-5 — Oracle accuracy bonus is inert at genesis.** The formula's oracle term (STEP 9) is
 real, but the runtime wires `type OracleScoreProvider = ()` (`runtime/src/lib.rs:1046`),
 whose `best_score` returns 0 (`pallets/emissions/src/lib.rs:48-50`). So the **+20%
@@ -385,9 +406,11 @@ break-evens.
 |---|---|---|
 | `CMN` (1 CMN in plancks) | `1_000_000_000_000` (10¹²) | `runtime/src/lib.rs:72` |
 | `SUPPLY_CAP` | `100_000_000_000 * CMN` = 100B CMN | `runtime/src/lib.rs:73` |
-| `GENESIS_MINT` | `18_000_000_000 * CMN` = 18B CMN | `runtime/src/lib.rs:74` |
+| `GENESIS_MINT` (mainnet design only) | `18_000_000_000 * CMN` = 18B CMN | `runtime/src/lib.rs:74` |
 
-Emittable headroom above genesis = 100B − 18B = **82B CMN**.
+Emittable headroom above the mainnet genesis design = 100B − 18B = **82B CMN**. The testnet
+presets mint 3.0B–10.0B CMN at genesis (`dev_genesis` in `node/src/chain_spec.rs`), so their
+headroom is larger.
 
 ### 2. Era length (blocks)
 
@@ -457,6 +480,10 @@ matches in any pallet or in the runtime. The per-era pool depends **only** on th
 live agent count (§3), clamped between a fixed floor and a fixed ceiling. It does
 not shrink over time, and it does not grow beyond the ceiling.
 
+> **Corrected (spec 306+):** the pool no longer depends only on agent count. The agent-count
+> clamp is a ceiling, and each era mints at most `alpha × qualifying escrow volume` — see the
+> banner at the top of this file.
+
 Consequences:
 
 - Emission does **not** decrease as the chain ages. Bitcoin-style halving is not
@@ -468,6 +495,8 @@ Consequences:
 - The auto-params pallet tunes **weighting** (`alpha`, `beta`, `floor_bps`) used
   to split the pool among agents — it does **not** resize the pool. The pool
   formula in §3 is independent of auto-params.
+  **Corrected (spec 306+):** auto-params now also holds `emissionVolumeAlphaBps`, which does
+  resize the pool through the volume bound.
 
 ### 5. Per-era emission "by year"
 
@@ -475,7 +504,7 @@ Because emission has no time component (§4), the per-era pool is **flat across
 years** for a given agent count. The table below is therefore driven by agent
 count, not by calendar year; every year looks identical at the same agent count.
 
-| Scenario | Per-era pool | × 1,460 eras/yr = annual emission | Years to reach 100B cap from 18B (82B headroom) |
+| Scenario | Per-era pool | × 1,460 eras/yr = annual emission | Years to reach 100B cap from the 18B mainnet design (82B headroom) |
 |---|---|---|---|
 | Floor (`n ≤ 10`) | 100,000 CMN | 146,000,000 CMN/yr (146M) | ~561 years |
 | Ceiling (`n ≥ 100`) | 1,000,000 CMN | 1,460,000,000 CMN/yr (1.46B) | ~56 years |
@@ -483,6 +512,9 @@ count, not by calendar year; every year looks identical at the same agent count.
 (The "years to cap" figures assume 100% of emitted rewards are claimed and
 ignore the agent-count ramp; they bound the fastest realistic issuance and are
 illustrative only.)
+
+> **Corrected (spec 306+):** these per-era figures are ceilings; the volume bound can only
+> lower them.
 
 ### 6. Emission override (only path above the ceiling)
 
@@ -492,6 +524,10 @@ illustrative only.)
 `MaxEmissionOverrideEras = 10` eras ahead (`runtime/src/lib.rs:1048`). This is
 the **only** code path that can push a single era's pool above the 1,000,000 CMN
 ceiling. It is root/governance-gated and not part of the steady-state schedule.
+
+> **Corrected (spec 306+):** an override lifts the ceiling only. The era still mints at most
+> `alpha × qualifying escrow volume`, so an override cannot push emission past the volume
+> bound — see the banner at the top of this file.
 
 ---
 
@@ -523,10 +559,18 @@ guard is "expired" when the actual pool **meets or exceeds** its break-even.
    emission override (§6) at or above 1.12M CMN/era would **expire the R-SC-0004
    guard**. The sybil break-even (2.78M) retains a larger 2.78× cushion.
 
+   > **Corrected (spec 306+):** an override lifts the ceiling only. The era still mints at
+   > most `alpha × qualifying escrow volume`, so an override cannot push emission past the
+   > volume bound — see the banner at the top of this file.
+
 4. **Root emission overrides are the only escape hatch above the ceiling** (§6).
    An override ≥ 1.12M CMN/era crosses the wash break-even; ≥ 2.78M CMN/era
    crosses the sybil break-even. These require a root/governance action and are
    not reachable through permissionless `settle_era`.
+
+   > **Corrected (spec 306+):** an override lifts the ceiling only. The era still mints at
+   > most `alpha × qualifying escrow volume`, so an override cannot push emission past the
+   > volume bound — see the banner at the top of this file.
 
 ---
 

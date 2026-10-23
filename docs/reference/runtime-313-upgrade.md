@@ -1,10 +1,15 @@
-# Runtime 313 upgrade gate
+# Runtime 315 upgrade gate
 
-Runtime specification 313 ships the quick-fix security bundle from issue
+Runtime specification 315 ships the quick-fix security bundle from issue
 [#19](https://github.com/0pStack/Scalar-CommonsV5/issues/19). It appends
 `pallet-proxy` at index 43, enables BABE and GRANDPA equivocation reporting,
 blocks `sudo_as`, pauses automatic rank-3 promotion, and repairs stale
 ranked-collective membership.
+
+The bundle was first planned for spec 313. It ships at 315, after the Polkadot SDK move
+(313) and the F14 oracle quorum change (314); see the version notes in
+`runtime/src/lib.rs:240-249`. This page keeps its original file name so existing links
+still resolve.
 
 ## Before the upgrade
 
@@ -17,7 +22,7 @@ the release record. Abort the upgrade if governance state changes after the
 final check.
 
 F02, F05, and the rank-based cancel and whitelist restrictions are already part
-of the runtime being upgraded. Runtime 313 does not duplicate their storage or
+of the runtime being upgraded. Runtime 315 does not duplicate their storage or
 call changes.
 
 ## During the upgrade

@@ -284,7 +284,9 @@ await client.claim(agent);
 one extrinsic — useful for a service that claims for a fleet.
 `emissions.setEraEmissionOverride` is root-gated, bounded by
 `emissions.maxEmissionOverrideEras` eras ahead and by the supply cap; it is a governance
-lever, not an agent operation.
+lever, not an agent operation. An override replaces only the agent-count ceiling: the era
+still mints at most `alpha × qualifying escrow volume`
+([the volume bound](/reference/token-model#the-volume-bound-spec-306)).
 
 `settleEra` fails with `EraNotDue` before the era elapses and `EraAlreadySettled` after,
 so a polling loop can call it unconditionally and treat both as no-ops. Read

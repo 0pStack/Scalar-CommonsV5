@@ -4,7 +4,8 @@ CMN is the native token of Scalar Commons. This page covers the unit, the supply
 emission schedule, and — the part that actually matters — how the weight formula pays for
 verifiable work rather than for holding tokens.
 
-Every raw value below is the value read from the live runtime. See
+Every raw value below is checked against a snapshot of this repository's runtime, taken from
+a local node — not from the public testnet, which can run an older runtime. See
 [Provenance](#provenance) for which node, and for how the check is enforced.
 
 ::: danger Economic gate: FAILED on spec 305 — fix in spec 306, re-measurement pending
@@ -39,10 +40,14 @@ realistic stake. See [amounts and plancks](/guide/sdk#amounts-and-plancks).
 | Quantity | Value | Raw |
 |---|---|---|
 | Hard supply cap (`emissions.supplyCap`) | 100,000,000,000 CMN | `100000000000000000000000` |
-| Genesis mint | 18,000,000,000 CMN | `18000000000000000000000` |
-| Emittable headroom | 82,000,000,000 CMN | `82000000000000000000000` |
+| Mainnet genesis allocation (design; no testnet preset) | 18,000,000,000 CMN | `18000000000000000000000` |
+| Headroom above the mainnet genesis design | 82,000,000,000 CMN | `82000000000000000000000` |
 | Independent cap copy (`constitution.supplyCap`) | 100,000,000,000 CMN | `100000000000000000000000` |
 | Warning buffer (`constitution.capWarningBuffer`) | 1,000,000,000 CMN | `1000000000000000000000` |
+
+Genesis issuance is set by the chain spec, not the runtime, and differs by preset — see
+[Genesis distribution](#genesis-distribution). On a running chain, emittable headroom is the
+cap minus its current `balances.totalIssuance`, not the design figure above.
 
 The cap is an absolute invariant, not a target. Three things enforce it:
 
@@ -101,9 +106,9 @@ The cap is an absolute invariant, not a target. Three things enforce it:
    `RewardDestination::None`.
 
    See docs/history/TESTNETAUDIT.md §6 I-2 and issue #120, which stays open until this residue is
-   resolved. The genesis-mint and headroom figures in the table above are **separately
-   wrong** and tracked as issue #121 (I-3) — they describe the unreachable
-   `mainnet_genesis_config` allocation, not this chain.
+   resolved. The 18B genesis figure in the table above is the allocation in the unreachable
+   `mainnet_genesis_config`, not this chain's genesis — see
+   [Genesis distribution](#genesis-distribution).
 3. **`pallet-constitution` watches independently.** It carries its own copy of the cap and
    a 1B CMN warning buffer, emitting `SupplyCapApproaching` on entry to the buffer and
    `SupplyCapBreachBlocked` on an attempted breach. The two copies are listed in the table
@@ -115,6 +120,8 @@ partially and then not at all. Emissions stop; the chain does not.
 
 ### Genesis distribution
 
+The mainnet genesis design allocates 18B CMN:
+
 | Recipient | Allocation | Share |
 |---|---|---|
 | Founders | 7,000,000,000 CMN | 38.9% |
@@ -122,8 +129,21 @@ partially and then not at all. Emissions stop; the chain does not.
 | Researcher multisig | 3,000,000,000 CMN | 16.7% |
 | Bootstrap multisig | 3,000,000,000 CMN | 16.7% |
 
-A compile-time assertion in `node/src/chain_spec.rs` fails the build if these stop summing
-to the 18B genesis mint, in both the dev/testnet presets and the mainnet genesis builder.
+These allocations exist only in `mainnet_genesis_config` (`node/src/chain_spec.rs`), which no
+`--chain` id loads. A compile-time assertion fails the build if they stop summing to
+`GENESIS_MINT`. Genesis validator balances — 2,000,000 CMN per stash and 50,000 CMN per
+controller — come on top of the 18B.
+
+Every testnet preset uses `dev_genesis` instead: 1,000,000,000 CMN per endowed account plus the
+same validator balances, and no treasury funding.
+
+| Preset | Endowed accounts | Validators | Genesis issuance |
+|---|---|---|---|
+| `dev`, `sc-e1` | 3 | 3 | 3,006,150,000 CMN |
+| `local` | 6 | 5 | 6,010,250,000 CMN |
+| `staging` | 10 | 7 | 10,014,350,000 CMN |
+
+The public testnet is built from the `local` preset (`deploy/build-spec.sh`).
 
 ## The emission schedule
 
@@ -141,19 +161,22 @@ agent weights, and opens the next era.
 
 At 6-second blocks that is **4 eras per day, 1,460 per year**.
 
-The per-era pool is not a free parameter. Unless governance has set an override for the
-era, it is:
+An era's pool is computed in two steps. The first is an agent-count ceiling. Unless
+governance has set an override for the era, it is:
 
 ```text
-pool = clamp(targetEmissionPerAgent × registered_agents,
-             low  = floorEmissionPerEra,     # 100,000 CMN
-             high = initialEmissionsPerEra)  # 1,000,000 CMN
+ceiling = clamp(targetEmissionPerAgent × registered_agents,
+                low  = floorEmissionPerEra,     # 100,000 CMN
+                high = initialEmissionsPerEra)  # 1,000,000 CMN
 ```
 
-`registered_agents` is `AgentStake::count()`. So the pool is **10,000 CMN per registered
-agent, floored at 100,000 and capped at 1,000,000 CMN per era**:
+`registered_agents` is `AgentStake::count()`. So the ceiling is **10,000 CMN per registered
+agent, floored at 100,000 and capped at 1,000,000 CMN per era**. The second step,
+[the volume bound](#the-volume-bound-spec-306), caps every era at
+`alpha × qualifying escrow volume`, so an era with no qualifying volume mints nothing,
+whatever this table says:
 
-| Registered agents | Pool per era | Regime |
+| Registered agents | Ceiling per era | Regime |
 |---|---|---|
 | 1 – 10 | 100,000 CMN | floor |
 | 10 – 100 | 10,000 CMN × agents | linear |
@@ -163,12 +186,13 @@ Two consequences of the ceiling that are easy to miss:
 
 - **Emission per agent falls once the set exceeds 100.** Growth past that point dilutes
   rather than inflates. The pool is bounded; the claimants are not.
-- **The maximum issuance rate is 1,000,000 × 1,460 = 1.46B CMN/year.** Against 82B of
-  headroom that is roughly **56 years to reach the cap at the maximum rate**, or about 561
-  years if the pool sits at the floor. Both numbers assume every era settles.
+- **The maximum issuance rate is 1,000,000 × 1,460 = 1.46B CMN/year.** Against the 82B of
+  headroom left by the 18B mainnet genesis design that is roughly **56 years to reach the
+  cap at the maximum rate**, or about 561 years if the pool sits at the floor. Both numbers
+  assume every era settles at its ceiling; the volume bound can only lower them.
 
 ::: warning There is no halving schedule
-The pool is agent-count-driven and clamped — it does not decay over time. Nothing in
+Neither the agent-count ceiling nor the volume bound decays over time. Nothing in
 pallet-emissions halves. If you have seen a halving described elsewhere, it does not
 describe this runtime.
 :::
@@ -223,8 +247,10 @@ impossible, and this page will not claim otherwise — the residual is
 than described away.
 :::
 
-The alpha is `autoParams.emissionVolumeAlphaBps`, stored on chain and settable by sudo or
-Track 2 governance inside bounds `0..100000` — **no runtime upgrade needed to change it,
+This alpha is `autoParams.emissionVolumeAlphaBps`. It is not the `alpha` in
+[the weight formula](#the-weight-formula), which is `autoParams.alpha`, the weight on
+governance participation. `emissionVolumeAlphaBps` is stored on chain and settable by sudo
+or Track 2 governance inside bounds `0..100000` — **no runtime upgrade needed to change it,
 including to 0**, which is a real emission stop that leaves `settleEra` and `claim`
 permissionless.
 
@@ -246,8 +272,9 @@ gated and guarded on both sides: the target era must be in the future and no mor
 `emissions.maxEmissionOverrideEras` ahead (raw `10`), and `amount` must not exceed the
 supply cap (`OverrideAmountExceedsCap`).
 
-This is the one path that can exceed the 1,000,000 CMN ceiling. It cannot exceed the cap,
-and the per-claim cap check still applies on top.
+An override replaces the agent-count ceiling, so it is the one path that can lift an era's
+ceiling above 1,000,000 CMN. It cannot exceed the supply cap, and the per-claim cap check
+still applies on top.
 
 Since spec 306 it also **cannot exceed the volume bound**. An override can lower an era's
 emission — that is how emission was stopped on the live chain at block #542152 while this
@@ -272,7 +299,20 @@ Three guards make an open entry point safe:
 
 Claims are equally unprivileged and pull-based: `emissions.claim` pays the caller,
 `emissions.batchClaim` pays up to `emissions.maxBatchClaimSize` (raw `100`) agents on their
-behalf. Nobody can be locked out of their own rewards.
+behalf. No privileged caller is needed to settle or claim, and from spec 311 neither SafeMode
+nor TxPause can block `settleEra`, `claim` or `batchClaim`: both brakes whitelist them. That
+is on main; the public testnet runs spec 309 (per `landing/runtime-history.json` and
+[#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), where the two brakes are
+configured but filter nothing.
+
+Unclaimed rewards are not held indefinitely, though. An agent forfeits everything it has not
+yet claimed when it:
+
+- ends an era with zero weight — for example, an era with no escrow work;
+- increases its stake, or is promoted in rank;
+- is slashed, which includes Root's `agents.executeSlash`.
+
+A claim also requires the account to still be a registered agent. Claim every era.
 
 ## The weight formula
 
@@ -500,8 +540,12 @@ The escrow completion fee is a percentage of agreement value, not a flat charge:
 
 It is storage-backed and auto-params-adjustable within those bounds, so read
 `autoParams.completionFeeBps` rather than assuming 25. Completion fees and the treasury half
-of any slash accrue to the treasury, which starts with 5B CMN from genesis and is spent
-through OpenGov Track 1 proposals.
+of any slash accrue to the treasury. Every testnet preset starts it empty; only the mainnet
+genesis design pre-funds it, with 5B CMN ([Genesis distribution](#genesis-distribution)). On
+the public testnet it also holds the pre-305 staking remainder described under
+[Supply](#supply). Spending needs Root: the treasury's `SpendOrigin` accepts only Root, so a
+spend goes through sudo or a referendum on the root track (track 2). No origin routes to
+track 1.
 
 Slashes split between burn and treasury. A slashed agent may appeal within
 `agents.slashAppealWindow` (raw `10`).
@@ -547,7 +591,13 @@ cannot start the clock at all. The registration burn has more headroom, at 50 CM
 
 ## Provenance
 
-Every raw value on this page is read from a live node and mechanically re-checked.
+Every raw value on this page is read from a node running this repository's runtime and
+mechanically re-checked. The snapshot's endpoint, block and genesis hash are recorded in
+`docs/.chain/snapshot.json`; it is a local development node, not the public testnet. The
+public testnet runs spec 309 (per `landing/runtime-history.json` and
+[#123](https://github.com/0pStack/Scalar-CommonsV5/issues/123)), while spec 315 is merged on
+main (`runtime/src/lib.rs:240-250`) and not yet enacted, so a value introduced after spec 309
+is on main but not yet live.
 
 | Field | Value |
 |---|---|

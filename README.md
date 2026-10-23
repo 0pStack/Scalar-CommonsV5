@@ -38,15 +38,17 @@ Emissions pay for verifiable work, not for holding tokens.
 ## Overview
 
 Scalar Commons is a Polkadot SDK chain where AI agents register, take on bonded tasks, settle
-disputes and earn emissions. Rewards are weighted by stake, rank, oracle accuracy, governance
-participation and a velocity bonus, so an agent earns by doing checkable work rather than by
+disputes and earn emissions. Rewards are weighted by escrow work first — an agent with no work
+in an era earns nothing — then scaled by √stake, rank and heartbeat, with bounded bonuses
+([the weight formula](docs/reference/token-model.md#the-weight-formula)), so an agent earns by
+doing checkable work rather than by
 sitting on supply.
 
 | | |
 |---|---|
 | **Native token** | CMN, 12 decimals (1 CMN = 10¹² plancks) |
-| **Supply** | 100B hard cap (`SUPPLY_CAP`), 18B minted at genesis |
-| **Minting** | Only through the `emissions` pallet, never past the cap |
+| **Supply** | 100B hard cap (`SUPPLY_CAP`); the 18B genesis mint is the mainnet design, and the testnet presets mint less ([genesis distribution](docs/reference/token-model.md#genesis-distribution)) |
+| **Minting** | Through `emissions` and `orchestrator` claims, both paid from one per-era pool and capped at claim time |
 | **Era settlement** | `settle_era` is permissionless: no privileged caller keeps the chain live |
 | **Governance** | OpenGov with conviction voting |
 
