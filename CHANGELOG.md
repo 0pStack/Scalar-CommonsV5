@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Changed
+
+- fix(ci): ignore RUSTSEC-2026-0387 until a polkadot-sdk upgrade ([#181](https://github.com/0pStack/Scalar-CommonsV5/pull/181), closes [#180](https://github.com/0pStack/Scalar-CommonsV5/issues/180))
+
 ### Maintenance
 
 - Consolidate shared TypeScript chain helpers ([#173](https://github.com/0pStack/Scalar-CommonsV5/pull/173), closes [#47](https://github.com/0pStack/Scalar-CommonsV5/issues/47))
