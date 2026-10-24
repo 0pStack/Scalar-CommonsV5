@@ -21,6 +21,7 @@ chain. That still takes `system.setCode` from root.
 ### Security
 
 - fix(oracle): reject buyer and provider responses to their own dispute ([#190](https://github.com/0pStack/Scalar-CommonsV5/pull/190), closes [#31](https://github.com/0pStack/Scalar-CommonsV5/issues/31))
+- fix(explorer): CSP, linear block pages, honest status codes and copy-safe account matching ([#195](https://github.com/0pStack/Scalar-CommonsV5/pull/195), closes [#69](https://github.com/0pStack/Scalar-CommonsV5/issues/69))
 
 ### Fixed
 
