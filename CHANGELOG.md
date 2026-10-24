@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Fixed
+
+- fix(sdk): bound connect and transaction submission ([#189](https://github.com/0pStack/Scalar-CommonsV5/pull/189), closes [#74](https://github.com/0pStack/Scalar-CommonsV5/issues/74))
+
 ### Maintenance
 
 - Move every package to polkadot-js v17 in one change ([#188](https://github.com/0pStack/Scalar-CommonsV5/pull/188), closes [#157](https://github.com/0pStack/Scalar-CommonsV5/issues/157))
