@@ -53,6 +53,21 @@ function decodeSegment(segment: string): string | null {
   }
 }
 
+/**
+ * Parses the request target, or returns null when it is not a URL at all.
+ *
+ * `new URL` throws on a target such as "//[" (scheme-relative, with an invalid
+ * host). Like an undecodable segment, that is a malformed request and has to be
+ * a 400 here, not a throw the server would report as the node failing.
+ */
+function parseUrl(url: string): URL | null {
+  try {
+    return new URL(url, 'http://explorer.invalid');
+  } catch {
+    return null;
+  }
+}
+
 /** The bad-request route for a segment that is not valid percent-encoding. */
 function undecodable(segment: string): Route {
   return { kind: 'badRequest', message: `not a valid URL-encoded path segment: ${segment}` };
@@ -90,7 +105,10 @@ export function isAddress(raw: string): boolean {
 
 /** Maps a request URL onto a view. Unknown paths are 404; malformed ones are 400. */
 export function parseRoute(url: string): Route {
-  const parsed = new URL(url, 'http://explorer.invalid');
+  const parsed = parseUrl(url);
+  if (parsed === null) {
+    return { kind: 'badRequest', message: `not a valid request URL: ${url}` };
+  }
   const segments = parsed.pathname.split('/').filter((segment) => segment.length > 0);
 
   if (segments.length === 0) {

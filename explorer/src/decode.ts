@@ -72,16 +72,18 @@ export async function resolveBlock(
     }
     return { number: ref.number, hash: hash.toHex() };
   }
-  try {
-    const header = await rpc.getHeader(ref.hash);
-    return { number: header.number.toNumber(), hash: header.hash.toHex() };
-  } catch (error) {
-    throw new BlockNotFoundError(
-      `block ${ref.hash} not found on this chain (${
-        error instanceof Error ? error.message : String(error)
-      })`,
-    );
+  // chain_getHeader answers null for a hash it holds no header for, and
+  // polkadot-js decodes that null as an empty Header instead of throwing. The
+  // empty header's own hash is never the one asked for, so a mismatch is the
+  // one "header not found" signal. Anything the RPC throws — a dropped socket,
+  // a timeout — is the node failing, and passes through to be reported as that
+  // rather than as a block that does not exist.
+  const header = await rpc.getHeader(ref.hash);
+  const hash = header.hash.toHex();
+  if (hash !== ref.hash) {
+    throw new BlockNotFoundError(`block ${ref.hash} not found on this chain: header not found`);
   }
+  return { number: header.number.toNumber(), hash };
 }
 
 /** Reads the dispatch outcome of one extrinsic out of the block's event records. */

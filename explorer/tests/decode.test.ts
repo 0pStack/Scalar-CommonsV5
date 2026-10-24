@@ -1,7 +1,14 @@
 import type { EventRecord } from '@polkadot/types/interfaces';
 import { describe, it, expect } from 'vitest';
 
-import { decodeExtrinsics, eventView, outcomeOf } from '../src/decode.js';
+import {
+  BlockNotFoundError,
+  type BlockResolverRpc,
+  decodeExtrinsics,
+  eventView,
+  outcomeOf,
+  resolveBlock,
+} from '../src/decode.js';
 import {
   ALICE,
   BOB,
@@ -157,5 +164,68 @@ describe('decodeExtrinsics', () => {
     const [lonely] = decodeExtrinsics(registry, [transfer(1n)], [], SS58_PREFIX);
     expect(lonely?.events).toEqual([]);
     expect(lonely?.outcome).toEqual({ kind: 'unknown' });
+  });
+});
+
+describe('resolveBlock', () => {
+  const header = registry.createType('Header', {
+    number: 5,
+    parentHash: `0x${'01'.repeat(32)}`,
+    stateRoot: `0x${'02'.repeat(32)}`,
+    extrinsicsRoot: `0x${'03'.repeat(32)}`,
+  });
+  const known = header.hash.toHex();
+  const unknown = `0x${'99'.repeat(32)}`;
+
+  /** Stands in for the node's chain RPCs; only what resolution calls is provided. */
+  function rpc(overrides: {
+    getHeader?: () => Promise<unknown>;
+    getBlockHash?: () => Promise<unknown>;
+  }): BlockResolverRpc {
+    return {
+      getHeader: overrides.getHeader ?? (async () => header),
+      getBlockHash: overrides.getBlockHash ?? (async () => registry.createType('BlockHash', known)),
+    } as unknown as BlockResolverRpc;
+  }
+
+  it('resolves a hash the node has a header for', async () => {
+    await expect(resolveBlock(rpc({}), { kind: 'hash', hash: known })).resolves.toEqual({
+      number: 5,
+      hash: known,
+    });
+  });
+
+  it('reports a hash the node has no header for as not found', async () => {
+    // chain_getHeader answers null, and polkadot-js decodes that as an empty
+    // Header rather than throwing — so this is what "not found" looks like.
+    const empty = rpc({ getHeader: async () => registry.createType('Header', null) });
+    const lookup = resolveBlock(empty, { kind: 'hash', hash: unknown });
+    await expect(lookup).rejects.toBeInstanceOf(BlockNotFoundError);
+    await expect(lookup).rejects.toThrow('header not found');
+  });
+
+  it('passes a node failure through instead of calling the block missing', async () => {
+    const dropped = rpc({
+      getHeader: async () => {
+        throw new Error('WebSocket is not connected');
+      },
+    });
+    const lookup = resolveBlock(dropped, { kind: 'hash', hash: known });
+    await expect(lookup).rejects.toThrow('WebSocket is not connected');
+    await expect(lookup).rejects.not.toBeInstanceOf(BlockNotFoundError);
+  });
+
+  it('resolves a block number the chain has authored', async () => {
+    await expect(resolveBlock(rpc({}), { kind: 'number', number: 5 })).resolves.toEqual({
+      number: 5,
+      hash: known,
+    });
+  });
+
+  it('reports a block number the chain has not authored as not found', async () => {
+    const future = rpc({ getBlockHash: async () => registry.createType('BlockHash') });
+    await expect(resolveBlock(future, { kind: 'number', number: 9 })).rejects.toBeInstanceOf(
+      BlockNotFoundError,
+    );
   });
 });
