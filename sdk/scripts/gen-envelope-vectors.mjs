@@ -10,7 +10,8 @@
 import { writeFileSync } from 'node:fs';
 import { Keyring } from '@polkadot/keyring';
 import { stringToU8a, u8aToHex } from '@polkadot/util';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { cryptoWaitReady, naclEncrypt } from '@polkadot/util-crypto';
+import { boxBeforenm } from '../dist/messaging/keys.js';
 import {
   createMessage,
   deriveMessagingKey,
@@ -18,7 +19,6 @@ import {
   encodeEnvelope,
   encodeSignedMessage,
   envelopeSigningHash,
-  sealBody,
   SS58_PREFIX,
 } from '../dist/index.js';
 
@@ -89,14 +89,21 @@ const vectors = {
   messages: cases.map((c) => {
     const signer = accounts[c.from];
     const plaintext = stringToU8a(c.plaintext);
+    const senderKey = deriveMessagingKey(c.from);
+    const recipientKey = deriveMessagingKey(c.to);
+    const boxNonce = new Uint8Array(24).fill(c.boxNonce);
     const body =
       c.body === 'Sealed'
-        ? sealBody(
-            plaintext,
-            deriveMessagingKey(c.from),
-            deriveMessagingKey(c.to).publicKey,
-            new Uint8Array(24).fill(c.boxNonce),
-          )
+        ? {
+            type: 'Sealed',
+            senderKey: senderKey.publicKey,
+            nonce: boxNonce,
+            ciphertext: naclEncrypt(
+              plaintext,
+              boxBeforenm(recipientKey.publicKey, senderKey.secretKey),
+              boxNonce,
+            ).encrypted,
+          }
         : c.body === 'None'
           ? { type: 'None' }
           : undefined;

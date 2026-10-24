@@ -15,7 +15,8 @@ import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 
 import type { SubmitResult } from '../submit.js';
 import { SS58_PREFIX } from '../constants.js';
-import { isLoopbackHostname } from '../net.js';
+import { consoleLogger } from '../logger.js';
+import { isLoopbackHostname, isPrivateNetworkHostname } from '../net.js';
 import {
   MAX_ONCHAIN_PAYLOAD,
   MESSAGE_KINDS,
@@ -96,6 +97,15 @@ export class OnChainTransport implements Transport {
 /** Looks up where to deliver: normally the recipient's registered service URI. */
 export type UriResolver = (to: string) => string | Promise<string>;
 
+export interface HttpsTransportOptions {
+  fetch?: typeof fetch;
+  ss58Format?: number;
+  /** Maximum duration of one POST. Defaults to 10 seconds. */
+  timeoutMs?: number;
+  /** Development-only escape hatch for loopback/private literal hosts. */
+  allowPrivateHosts?: boolean;
+}
+
 /**
  * Binding (b): POST the full frame (`application/octet-stream`) to the
  * recipient's service URI. Plain `http` is refused except on loopback, so a
@@ -106,21 +116,32 @@ export type UriResolver = (to: string) => string | Promise<string>;
 export class HttpsTransport implements Transport {
   private readonly fetchImpl: typeof fetch;
   private readonly ss58: number;
+  private readonly timeoutMs: number;
+  private readonly allowPrivateHosts: boolean;
 
   constructor(
     private readonly resolve: UriResolver,
-    opts: { fetch?: typeof fetch; ss58Format?: number } = {},
+    opts: HttpsTransportOptions = {},
   ) {
     this.fetchImpl = opts.fetch ?? globalThis.fetch;
     this.ss58 = opts.ss58Format ?? SS58_PREFIX;
+    this.timeoutMs = opts.timeoutMs ?? 10_000;
+    if (!Number.isFinite(this.timeoutMs) || this.timeoutMs <= 0) {
+      throw new RangeError(`timeoutMs must be a positive finite number, got ${this.timeoutMs}`);
+    }
+    this.allowPrivateHosts = opts.allowPrivateHosts ?? false;
   }
 
   async send(message: SignedMessage): Promise<void> {
     const uri = await this.resolve(encodeAddress(message.envelope.to, this.ss58));
     const url = new URL(uri);
+    const privateHost = isPrivateNetworkHostname(url.hostname);
+    if (privateHost && !this.allowPrivateHosts) {
+      throw new Error(`refusing to deliver to private or local host ${url.hostname}`);
+    }
     if (
       url.protocol !== 'https:' &&
-      !(url.protocol === 'http:' && isLoopbackHostname(url.hostname))
+      !(url.protocol === 'http:' && this.allowPrivateHosts && isLoopbackHostname(url.hostname))
     ) {
       throw new Error(
         `refusing to deliver over ${url.protocol} to ${url.hostname}: https is required`,
@@ -130,6 +151,8 @@ export class HttpsTransport implements Transport {
       method: 'POST',
       headers: { 'content-type': 'application/octet-stream' },
       body: encodeSignedMessage(message),
+      redirect: 'error',
+      signal: AbortSignal.timeout(this.timeoutMs),
     });
     if (!res.ok) throw new Error(`delivery to ${uri} failed: HTTP ${res.status}`);
   }
@@ -153,6 +176,8 @@ export interface SubscribeOptions {
   fromBlock?: number;
   /** Called for per-block failures and handler exceptions; the subscription carries on. */
   onError?: (err: Error) => void;
+  /** Retries after the first failed read before the block is skipped. Defaults to 3. */
+  maxBlockRetries?: number;
   ss58Format?: number;
 }
 
@@ -247,10 +272,24 @@ export async function subscribeMessages(
   const api = apiLike as ChainApi;
   const me = decodeAddress(self);
   const ss58 = opts.ss58Format ?? SS58_PREFIX;
-  const report = (err: unknown) =>
-    opts.onError?.(err instanceof Error ? err : new Error(String(err)));
+  const maxBlockRetries = opts.maxBlockRetries ?? 3;
+  if (!Number.isSafeInteger(maxBlockRetries) || maxBlockRetries < 0) {
+    throw new RangeError(
+      `maxBlockRetries must be a non-negative safe integer, got ${maxBlockRetries}`,
+    );
+  }
+  const report = (err: unknown) => {
+    const error = err instanceof Error ? err : new Error(String(err));
+    try {
+      if (opts.onError) opts.onError(error);
+      else consoleLogger.warn('message subscriber error', { error: error.message });
+    } catch {
+      // Error reporting must never poison the ordered scan queue.
+    }
+  };
   let next = opts.fromBlock;
   let queue = Promise.resolve();
+  const failedReads = new Map<number, number>();
 
   const scan = async (n: number) => {
     const hash = await api.rpc.chain.getBlockHash(n);
@@ -305,18 +344,34 @@ export async function subscribeMessages(
 
   return api.rpc.chain.subscribeFinalizedHeads((header) => {
     const head = header.number.toNumber();
-    queue = queue.then(async () => {
-      for (let n = next ?? head; n <= head; n++) {
-        try {
-          await scan(n);
-        } catch (err) {
-          // Do not skip a block we could not read: stop here and retry it on
-          // the next finalized head, so no message is silently lost.
-          report(err);
-          return;
+    queue = queue
+      .then(async () => {
+        next ??= head;
+        for (let n = next; n <= head; n++) {
+          try {
+            await scan(n);
+            failedReads.delete(n);
+          } catch (err) {
+            const attempts = (failedReads.get(n) ?? 0) + 1;
+            if (attempts <= maxBlockRetries) {
+              failedReads.set(n, attempts);
+              report(
+                new Error(
+                  `block ${n}: read failed; retry ${attempts}/${maxBlockRetries}: ${err instanceof Error ? err.message : String(err)}`,
+                ),
+              );
+              return;
+            }
+            failedReads.delete(n);
+            report(
+              new Error(
+                `block ${n}: skipped after ${attempts} failed reads: ${err instanceof Error ? err.message : String(err)}`,
+              ),
+            );
+          }
+          next = n + 1;
         }
-        next = n + 1;
-      }
-    });
+      })
+      .catch(report);
   });
 }

@@ -9,6 +9,7 @@ use crate::envelope::*;
 use crate::pallet::MessageKind;
 use crate::MAX_PAYLOAD_LEN;
 use parity_scale_codec::{Decode, Encode};
+use serde::Deserialize;
 use sp_core::{sr25519, Pair};
 use sp_runtime::{
     traits::{BlakeTwo256, Hash},
@@ -66,6 +67,67 @@ fn vector_canonical_encoding_and_signing_hash_are_pinned() {
     assert_eq!(hex(&env.payload_hash), VECTOR_PAYLOAD_HASH_HEX);
     assert_eq!(scale, VECTOR_SCALE_HEX);
     assert_eq!(signing, VECTOR_SIGNING_HASH_HEX);
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct VectorFile {
+    genesis_hash: String,
+    signing_domain: String,
+    messages: Vec<JsonVector>,
+}
+
+#[derive(Deserialize)]
+struct JsonVector {
+    name: String,
+    expected: JsonExpected,
+    sample: JsonSample,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JsonExpected {
+    payload_hash: String,
+    scale_envelope: String,
+    signing_hash: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JsonSample {
+    signed_message: String,
+}
+
+#[test]
+fn shared_typescript_vector_is_loaded_and_verified_by_rust() {
+    let file: VectorFile =
+        serde_json::from_str(include_str!("../../../sdk/tests/vectors/envelope.json"))
+            .expect("shared envelope vector JSON must parse");
+    assert_eq!(file.signing_domain, "ScalarMsg/v1|");
+    assert_eq!(decode_hex(&file.genesis_hash), TEST_GENESIS);
+
+    let vector = file
+        .messages
+        .iter()
+        .find(|message| message.name == "rust-reference-offer")
+        .expect("the shared Rust reference vector must exist");
+    let env = vector_envelope();
+    assert_eq!(decode_hex(&vector.expected.payload_hash), env.payload_hash);
+    assert_eq!(decode_hex(&vector.expected.scale_envelope), env.encode());
+    assert_eq!(
+        decode_hex(&vector.expected.signing_hash),
+        env.signing_hash(&TEST_GENESIS)
+    );
+
+    let signed =
+        SignedMessage::<AccountId32>::decode(&mut &decode_hex(&vector.sample.signed_message)[..])
+            .expect("the TypeScript sample must decode with Rust SCALE");
+    assert_eq!(signed.envelope, env);
+    assert!(sr25519::Pair::verify(
+        &sr25519::Signature::from_raw(signed.signature),
+        signed.envelope.signing_hash(&TEST_GENESIS),
+        &alice().public(),
+    ));
 }
 
 #[test]
@@ -185,4 +247,17 @@ fn hex(b: &[u8]) -> String {
             let _ = write!(s, "{x:02x}");
             s
         })
+}
+
+fn decode_hex(value: &str) -> Vec<u8> {
+    let value = value.strip_prefix("0x").unwrap_or(value);
+    assert_eq!(value.len() % 2, 0, "hex must contain whole bytes");
+    value
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| {
+            let digits = core::str::from_utf8(pair).expect("hex is ASCII");
+            u8::from_str_radix(digits, 16).expect("valid hex")
+        })
+        .collect()
 }

@@ -184,7 +184,43 @@ describe('HttpsTransport', () => {
     expect((init.headers as Record<string, string>)['content-type']).toBe(
       'application/octet-stream',
     );
+    expect(init.redirect).toBe('error');
+    expect(init.signal).toBeInstanceOf(AbortSignal);
     expect(u8aToHex(init.body as Uint8Array)).toBe(u8aToHex(encodeSignedMessage(m)));
+  });
+
+  it('aborts a peer that does not answer within the configured timeout', async () => {
+    const fetch = vi.fn(
+      async (_url: string | URL | Request, init?: RequestInit): Promise<Response> =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason), {
+            once: true,
+          });
+        }),
+    );
+    await expect(
+      new HttpsTransport(() => 'https://agent.example/inbox', { fetch, timeoutMs: 10 }).send(
+        message(),
+      ),
+    ).rejects.toThrow(/timeout|aborted/i);
+  });
+
+  it.each([
+    'https://localhost/inbox',
+    'https://127.2.3.4/inbox',
+    'https://10.0.0.1/inbox',
+    'https://172.16.0.1/inbox',
+    'https://192.168.1.1/inbox',
+    'https://169.254.169.254/latest/meta-data',
+    'https://[::1]/inbox',
+    'https://[fc00::1]/inbox',
+    'https://[fe80::1]/inbox',
+  ])('refuses private destination %s before sending', async (uri) => {
+    const fetch = vi.fn(async () => new Response(null, { status: 200 }));
+    await expect(new HttpsTransport(() => uri, { fetch }).send(message())).rejects.toThrow(
+      /private|local/i,
+    );
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('fails loudly on a non-2xx answer', async () => {
@@ -194,13 +230,19 @@ describe('HttpsTransport', () => {
     ).rejects.toThrow(/409/);
   });
 
-  it('refuses plain http except for loopback', async () => {
+  it('refuses plain http and requires an explicit development override for loopback', async () => {
     const fetch = vi.fn(async () => new Response(null, { status: 200 }));
     await expect(
       new HttpsTransport(() => 'http://agent.example/inbox', { fetch }).send(message()),
     ).rejects.toThrow(/https/);
     await expect(
       new HttpsTransport(() => 'http://127.0.0.1:8080/inbox', { fetch }).send(message()),
+    ).rejects.toThrow(/private|local/i);
+    await expect(
+      new HttpsTransport(() => 'http://127.0.0.1:8080/inbox', {
+        fetch,
+        allowPrivateHosts: true,
+      }).send(message()),
     ).resolves.toBeUndefined();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
@@ -223,8 +265,12 @@ interface MockBlock {
   events: [number, string, string, unknown[]][];
 }
 
-function chainApi(blocks: Map<number, MockBlock>) {
+function chainApi(
+  blocks: Map<number, MockBlock>,
+  failure: { block: number; times: number } | null = null,
+) {
   let onHead: ((h: unknown) => void) | undefined;
+  let failedReads = 0;
   const hash = (n: number) => ({ toHex: () => `0x${n.toString(16).padStart(64, '0')}`, n });
   const leaf = (v: unknown) => ({ toString: () => String(v), toJSON: () => v });
   // The polkadot-js JSON shapes of send's arguments.
@@ -252,14 +298,20 @@ function chainApi(blocks: Map<number, MockBlock>) {
           };
         },
         getBlockHash: async (n: number) => hash(n),
-        getBlock: async (h: { n: number }) => ({
-          block: {
-            extrinsics: (blocks.get(h.n)?.extrinsics ?? []).map((x) => ({
-              method: { section: x.section, method: x.method, args: argsOf(x) },
-              signer: leaf(x.signer),
-            })),
-          },
-        }),
+        getBlock: async (h: { n: number }) => {
+          if (failure && h.n === failure.block && failedReads < failure.times) {
+            failedReads += 1;
+            throw new Error(`block ${h.n} pruned`);
+          }
+          return {
+            block: {
+              extrinsics: (blocks.get(h.n)?.extrinsics ?? []).map((x) => ({
+                method: { section: x.section, method: x.method, args: argsOf(x) },
+                signer: leaf(x.signer),
+              })),
+            },
+          };
+        },
       },
     },
     at: async (h: { n: number }) => ({
@@ -275,7 +327,12 @@ function chainApi(blocks: Map<number, MockBlock>) {
     }),
   };
   const finalize = (n: number) => onHead?.({ number: { toNumber: () => n }, hash: hash(n) });
-  return { api: api as never, finalize, subscribed: () => onHead !== undefined };
+  return {
+    api: api as never,
+    finalize,
+    failedReads: () => failedReads,
+    subscribed: () => onHead !== undefined,
+  };
 }
 
 const sentEvent = (from: string, to: string, idx: number): [number, string, string, unknown[]] => [
@@ -402,5 +459,50 @@ describe('subscribeMessages', () => {
     expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'handler bug' }));
     unsub();
     expect(subscribed()).toBe(false);
+  });
+
+  it('bounds retries, skips an unreadable block, reports it, and survives a throwing onError', async () => {
+    const m = message();
+    const blocks = new Map<number, MockBlock>([
+      [5, { extrinsics: [], events: [] }],
+      [6, { extrinsics: [send(m)], events: [sentEvent(alice.address, bob.address, 0)] }],
+    ]);
+    const { api, finalize, failedReads } = chainApi(blocks, { block: 5, times: 99 });
+    const handler = vi.fn();
+    const onError = vi.fn(() => {
+      throw new Error('reporter failed');
+    });
+    await subscribeMessages(api, bob.address, handler, {
+      maxBlockRetries: 1,
+      onError,
+    });
+
+    finalize(5);
+    await new Promise((r) => setTimeout(r, 10));
+    expect(handler).not.toHaveBeenCalled();
+    finalize(6);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(failedReads()).toBe(2);
+    expect(onError).toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ blockNumber: 6 }));
+  });
+
+  it('reports a skipped block through the default logger when onError is omitted', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { api, finalize } = chainApi(new Map([[5, { extrinsics: [], events: [] }]]), {
+      block: 5,
+      times: 99,
+    });
+    await subscribeMessages(api, bob.address, vi.fn(), { maxBlockRetries: 0 });
+
+    finalize(5);
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(warn).toHaveBeenCalledWith(
+      '[scalar-sdk] message subscriber error',
+      expect.objectContaining({ error: expect.stringContaining('skipped after 1 failed reads') }),
+    );
+    warn.mockRestore();
   });
 });

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { Keyring } from '@polkadot/keyring';
 import { hexToU8a, stringToU8a, u8aToHex } from '@polkadot/util';
-import { cryptoWaitReady } from '@polkadot/util-crypto';
+import { cryptoWaitReady, naclEncrypt } from '@polkadot/util-crypto';
 
 import {
   BOX_MAC_LENGTH,
@@ -93,13 +93,14 @@ describe('NaCl box primitives', () => {
 
   it('matches libsodium crypto_box byte for byte (vector generated with PyNaCl 1.6.2)', () => {
     // Box from //Alice's derived messaging key to //Bob's, nonce 0x07 × 24.
-    const sealed = sealBody(
+    const sender = deriveMessagingKey('//Alice');
+    const nonce = new Uint8Array(24).fill(7);
+    const { encrypted } = naclEncrypt(
       stringToU8a('hello libsodium'),
-      deriveMessagingKey('//Alice'),
-      deriveMessagingKey('//Bob').publicKey,
-      new Uint8Array(24).fill(7),
+      boxBeforenm(deriveMessagingKey('//Bob').publicKey, sender.secretKey),
+      nonce,
     );
-    expect(u8aToHex(sealed.ciphertext)).toBe(
+    expect(u8aToHex(encrypted)).toBe(
       '0xe16dfd8957df720c6e19ef90b4fb04c27edfbdac5f7c73ac37fe26a1e7df25',
     );
   });
@@ -122,6 +123,17 @@ describe('sealBody / openBody', () => {
     expect(u8aToHex(sealBody(plaintext, alice(), bob().publicKey).nonce)).not.toBe(
       u8aToHex(sealBody(plaintext, alice(), bob().publicKey).nonce),
     );
+  });
+
+  it('does not let a caller choose the box nonce', () => {
+    const chosen = new Uint8Array(24).fill(7);
+    const body = (sealBody as unknown as (...args: unknown[]) => ReturnType<typeof sealBody>)(
+      plaintext,
+      alice(),
+      bob().publicKey,
+      chosen,
+    );
+    expect(u8aToHex(body.nonce)).not.toBe(u8aToHex(chosen));
   });
 
   it('cannot be opened by anyone else', () => {

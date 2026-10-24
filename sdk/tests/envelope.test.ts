@@ -273,6 +273,18 @@ describe('canonical SCALE encoding', () => {
     badBody[111 + 64] = 3;
     expect(() => decodeSignedMessage(badBody)).toThrow(/Body/);
   });
+
+  it('rejects a non-canonical SCALE compact length', () => {
+    const b = bytes(msg({ body: { type: 'Plain', bytes: new Uint8Array(5) } }));
+    const lengthOffset = 111 + 64 + 1;
+    expect(b[lengthOffset]).toBe(5 << 2);
+    const nonCanonical = u8aConcat(
+      b.slice(0, lengthOffset),
+      new Uint8Array([(5 << 2) | 1, 0]),
+      b.slice(lengthOffset + 1),
+    );
+    expect(() => decodeSignedMessage(nonCanonical)).toThrow(/canonical/i);
+  });
 });
 
 describe('signing hash', () => {
@@ -422,6 +434,18 @@ describe('MessageInbox.receive — verification rules', () => {
       nonces: new NonceTracker(tracker.toJSON()),
     });
     expect(reason(() => box.receive(bytes(msg({ nonce: 3n })), 1))).toBe('replay');
+  });
+
+  it('never lowers a committed nonce and evicts the oldest pair at the configured bound', () => {
+    const tracker = new NonceTracker({}, { maxEntries: 2 });
+    tracker.commit(alice.publicKey, bob.publicKey, 5n);
+    expect(() => tracker.commit(alice.publicKey, bob.publicKey, 4n)).toThrow(/increase/i);
+    expect(tracker.isFresh(alice.publicKey, bob.publicKey, 5n)).toBe(false);
+
+    tracker.commit(carol.publicKey, bob.publicKey, 1n);
+    tracker.commit(bob.publicKey, alice.publicKey, 1n);
+    expect(Object.keys(tracker.toJSON())).toHaveLength(2);
+    expect(tracker.isFresh(alice.publicKey, bob.publicKey, 1n)).toBe(true);
   });
 });
 
