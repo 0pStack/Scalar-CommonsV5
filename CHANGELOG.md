@@ -26,6 +26,10 @@ chain. That still takes `system.setCode` from root.
 
 - docs: tidy stale references after recent merges ([#185](https://github.com/0pStack/Scalar-CommonsV5/pull/185), closes [#184](https://github.com/0pStack/Scalar-CommonsV5/issues/184))
 
+### Maintenance
+
+- chore: standard root files (security, contributing, PR template, CODEOWNERS, editorconfig) ([#186](https://github.com/0pStack/Scalar-CommonsV5/pull/186))
+
 ## [v0.8.1] - 2026-10-24
 
 ### Changed
