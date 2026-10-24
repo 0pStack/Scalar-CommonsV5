@@ -23,3 +23,22 @@
 /node/**            @0pStack
 # CI is the gate everything else is judged by, so it guards itself.
 /.github/**         @0pStack
+
+# ── Build, supply chain and operations ──────────────────────────────────────
+# The dependency graph, toolchain and advisory ignores decide what gets built.
+/Cargo.toml         @0pStack
+/Cargo.lock         @0pStack
+/rust-toolchain.toml @0pStack
+/deny.toml          @0pStack
+/.cargo/**          @0pStack
+/package.json       @0pStack
+/package-lock.json  @0pStack
+# Root-key tools and live-host units run with real keys.
+/scripts/**         @0pStack
+/deploy/**          @0pStack
+# Agent permissions, secret scanning and the rules agents follow.
+/.claude/**         @0pStack
+/factory/**         @0pStack
+/.gitleaks.toml     @0pStack
+/CLAUDE.md          @0pStack
+/SECURITY.md        @0pStack
