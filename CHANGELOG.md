@@ -18,6 +18,8 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.8.1] - 2026-10-24
+
 ### Changed
 
 - fix(ci): ignore RUSTSEC-2026-0387 until a polkadot-sdk upgrade ([#181](https://github.com/0pStack/Scalar-CommonsV5/pull/181), closes [#180](https://github.com/0pStack/Scalar-CommonsV5/issues/180))
@@ -27,6 +29,8 @@ chain. That still takes `system.setCode` from root.
 - Consolidate shared TypeScript chain helpers ([#173](https://github.com/0pStack/Scalar-CommonsV5/pull/173), closes [#47](https://github.com/0pStack/Scalar-CommonsV5/issues/47))
 - docs: point public links at V5 repository ([#178](https://github.com/0pStack/Scalar-CommonsV5/pull/178), closes [#43](https://github.com/0pStack/Scalar-CommonsV5/issues/43))
 - factory: run npm gates from workspace root ([#179](https://github.com/0pStack/Scalar-CommonsV5/pull/179), closes [#166](https://github.com/0pStack/Scalar-CommonsV5/issues/166))
+- chore(rust): remove unused dependencies and test helpers ([#176](https://github.com/0pStack/Scalar-CommonsV5/pull/176), closes [#46](https://github.com/0pStack/Scalar-CommonsV5/issues/46))
+- SDK: move @noble/curves to v2 ([#182](https://github.com/0pStack/Scalar-CommonsV5/pull/182), closes [#158](https://github.com/0pStack/Scalar-CommonsV5/issues/158))
 
 ## [v0.8.0] - 2026-10-23
 
