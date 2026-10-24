@@ -12,6 +12,15 @@ or runtime logic is involved.
 This file covers the five validators. The indexer, explorer and faucet that read
 from them are in [`products/README.md`](products/README.md).
 
+> [!IMPORTANT]
+> **Who operates the live host.** This file was written from the live devnet host. The
+> maintainers of this repository have no shell access to that host and hold none of its keys:
+> not the sudo key, the validator session keys, the faucet seed or the node keys. Every step here
+> that touches the live host, and every issue labelled
+> [`needs-operator`](https://github.com/0pStack/Scalar-CommonsV5/issues?q=is%3Aopen+label%3Aneeds-operator),
+> waits on that operator. Who holds each key was not yet confirmed on 2026-10-24; record it here
+> once it is.
+
 > **ROUND15 changed the network's identity.** Going from 3 to 5 authorities is a
 > different genesis, therefore a different chain. The chainspec was regenerated
 > and the databases wiped; any node still holding pre-ROUND15 data cannot sync

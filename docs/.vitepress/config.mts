@@ -23,7 +23,14 @@ export default defineConfig({
   // The site lives in `docs/` alongside pre-existing engineering records that
   // are not part of the published documentation. They stay where they are.
   // history/ holds archived round and status reports; never publish them.
-  srcExclude: ['VERIFIED-CONSTANTS.md', 'rfcs/**', 'README.md', 'history/**'],
+  srcExclude: [
+    'VERIFIED-CONSTANTS.md',
+    'rfcs/**',
+    'README.md',
+    'history/**',
+    'internal/**',
+    'ci-drafts/**',
+  ],
 
   // A broken internal link is a documentation bug, so fail the build on one.
   ignoreDeadLinks: false,
