@@ -1014,32 +1014,6 @@ impl pallet_agents::pallet::GovVoteVerifier<u64> for MockGovVoteVerifier {
     }
 }
 
-/// `who` votes on `poll`, and `poll` is ongoing.
-#[allow(dead_code)]
-pub fn cast_live_vote(who: u64, poll: u32) {
-    HELD_VOTES.with(|v| {
-        v.borrow_mut().insert((who, poll));
-    });
-    ONGOING_POLLS.with(|p| {
-        p.borrow_mut().insert(poll);
-    });
-}
-
-/// The referendum ends; the vote itself survives, exactly as on chain.
-#[allow(dead_code)]
-pub fn conclude_poll(poll: u32) {
-    ONGOING_POLLS.with(|p| {
-        p.borrow_mut().remove(&poll);
-    });
-}
-
-/// Reset verifier state — the test harness reuses threads across tests.
-#[allow(dead_code)]
-pub fn reset_gov_state() {
-    HELD_VOTES.with(|v| v.borrow_mut().clear());
-    ONGOING_POLLS.with(|p| p.borrow_mut().clear());
-}
-
 // ── finalise_request declared weight (#223) ──────────────────────────────────
 //
 // `finalise_request` is priced per call but works per response: it iterates

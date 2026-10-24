@@ -6652,22 +6652,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-assets"
-version = "53.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2606-3#9d0dc6e8fbb13174663abb4001e369f2a69f357a"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "impl-trait-for-tuples",
- "log",
- "parity-scale-codec",
- "scale-info",
- "sp-core",
- "sp-runtime",
-]
-
-[[package]]
 name = "pallet-authority-discovery"
 version = "49.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2606-3#9d0dc6e8fbb13174663abb4001e369f2a69f357a"
@@ -6794,11 +6778,8 @@ version = "4.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "pallet-agents",
  "parity-scale-codec",
  "scale-info",
- "sp-runtime",
- "sp-std",
 ]
 
 [[package]]
@@ -6815,28 +6796,6 @@ dependencies = [
  "serde",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-election-provider-multi-phase"
-version = "52.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2606-3#9d0dc6e8fbb13174663abb4001e369f2a69f357a"
-dependencies = [
- "frame-benchmarking",
- "frame-election-provider-support",
- "frame-support",
- "frame-system",
- "log",
- "parity-scale-codec",
- "rand 0.8.8",
- "scale-info",
- "sp-arithmetic",
- "sp-core",
- "sp-crypto-hashing 0.1.0 (git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2606-3)",
- "sp-io",
- "sp-npos-elections",
- "sp-runtime",
- "strum 0.26.3",
 ]
 
 [[package]]
@@ -6871,7 +6830,6 @@ dependencies = [
  "sp-core",
  "sp-io",
  "sp-runtime",
- "sp-std",
 ]
 
 [[package]]
@@ -6910,25 +6868,6 @@ dependencies = [
  "scale-info",
  "sp-io",
  "sp-runtime",
-]
-
-[[package]]
-name = "pallet-im-online"
-version = "48.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2606-3#9d0dc6e8fbb13174663abb4001e369f2a69f357a"
-dependencies = [
- "frame-benchmarking",
- "frame-support",
- "frame-system",
- "log",
- "pallet-authorship",
- "parity-scale-codec",
- "scale-info",
- "sp-application-crypto",
- "sp-core",
- "sp-io",
- "sp-runtime",
- "sp-staking",
 ]
 
 [[package]]
@@ -7048,9 +6987,6 @@ dependencies = [
  "frame-system",
  "pallet-agents",
  "pallet-balances",
- "pallet-emissions",
- "pallet-escrow",
- "pallet-oracle",
  "parity-scale-codec",
  "scale-info",
  "sp-core",
@@ -7130,18 +7066,6 @@ dependencies = [
  "pallet-balances",
  "pallet-proxy",
  "pallet-utility",
- "parity-scale-codec",
- "polkadot-sdk-frame",
- "scale-info",
-]
-
-[[package]]
-name = "pallet-salary"
-version = "34.0.0"
-source = "git+https://github.com/paritytech/polkadot-sdk?tag=polkadot-stable2606-3#9d0dc6e8fbb13174663abb4001e369f2a69f357a"
-dependencies = [
- "log",
- "pallet-ranked-collective",
  "parity-scale-codec",
  "polkadot-sdk-frame",
  "scale-info",
@@ -10424,7 +10348,6 @@ dependencies = [
  "frame-system-rpc-runtime-api",
  "frame-try-runtime",
  "pallet-agents",
- "pallet-assets",
  "pallet-authority-discovery",
  "pallet-authorship",
  "pallet-auto-params",
@@ -10433,12 +10356,10 @@ dependencies = [
  "pallet-balances",
  "pallet-constitution",
  "pallet-conviction-voting",
- "pallet-election-provider-multi-phase",
  "pallet-emissions",
  "pallet-escrow",
  "pallet-grandpa",
  "pallet-identity",
- "pallet-im-online",
  "pallet-messages",
  "pallet-multisig",
  "pallet-nomination-pools",
@@ -10450,7 +10371,6 @@ dependencies = [
  "pallet-ranked-collective",
  "pallet-referenda",
  "pallet-safe-mode",
- "pallet-salary",
  "pallet-scheduler",
  "pallet-session",
  "pallet-staking",
@@ -10493,13 +10413,10 @@ version = "4.0.0"
 dependencies = [
  "clap",
  "frame-benchmarking-cli",
- "frame-system-rpc-runtime-api",
  "futures",
  "jsonrpsee",
- "log",
  "pallet-staking",
  "pallet-transaction-payment-rpc",
- "pallet-transaction-payment-rpc-runtime-api",
  "sc-authority-discovery",
  "sc-basic-authorship",
  "sc-cli",
@@ -10515,10 +10432,8 @@ dependencies = [
  "sc-network-sync",
  "sc-offchain",
  "sc-rpc",
- "sc-rpc-api",
  "sc-service",
  "sc-storage-monitor",
- "sc-sysinfo",
  "sc-telemetry",
  "sc-transaction-pool",
  "sc-transaction-pool-api",
@@ -10532,7 +10447,6 @@ dependencies = [
  "sp-consensus-babe",
  "sp-consensus-grandpa",
  "sp-core",
- "sp-inherents",
  "sp-io",
  "sp-keystore",
  "sp-runtime",

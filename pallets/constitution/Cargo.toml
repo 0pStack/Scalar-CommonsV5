@@ -9,11 +9,6 @@ parity-scale-codec  = { version = "3.6.12", default-features = false, features =
 scale-info          = { version = "2.11",   default-features = false, features = ["derive"] }
 frame-support       = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
 frame-system        = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
-sp-runtime          = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
-sp-std              = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
-
-# pallet-agents (for AgentStake, MinStake access)
-pallet-agents       = { path = "../agents", default-features = false }
 
 [features]
 default = ["std"]
@@ -22,9 +17,6 @@ std = [
     "scale-info/std",
     "frame-support/std",
     "frame-system/std",
-    "sp-runtime/std",
-    "sp-std/std",
-    "pallet-agents/std",
 ]
 runtime-benchmarks = ["frame-support/runtime-benchmarks", "frame-system/runtime-benchmarks"]
 try-runtime        = ["frame-support/try-runtime", "frame-system/try-runtime"]

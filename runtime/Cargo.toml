@@ -50,11 +50,9 @@ pallet-babe               = { workspace = true }
 pallet-grandpa            = { workspace = true }
 pallet-session            = { workspace = true }
 pallet-staking            = { workspace = true }
-pallet-im-online          = { workspace = true }
 pallet-authority-discovery = { workspace = true }
 pallet-offences           = { workspace = true }
 pallet-bags-list          = { workspace = true }
-pallet-election-provider-multi-phase = { workspace = true }
 frame-election-provider-support      = { workspace = true }
 
 # Standard pallets — tokens
@@ -72,7 +70,6 @@ pallet-proxy              = { workspace = true }
 pallet-referenda          = { workspace = true }
 pallet-conviction-voting  = { workspace = true }
 pallet-ranked-collective  = { workspace = true }
-pallet-salary             = { workspace = true }
 pallet-identity           = { workspace = true }
 pallet-preimage           = { workspace = true }
 pallet-treasury           = { workspace = true }
@@ -91,7 +88,6 @@ pallet-messages     = { workspace = true }
 pallet-whitelist        = { workspace = true }
 pallet-safe-mode        = { workspace = true }
 pallet-tx-pause         = { workspace = true }
-pallet-assets           = { workspace = true }
 # V4: constitution pallet (custom — 6 pre-dispatch invariants)
 # default-features = false is load-bearing: pallet-constitution defaults to
 # ["std"], and without this it stays on during the wasm-builder inner build,
@@ -121,18 +117,18 @@ std = [
     "sp-session/std", "sp-staking/std", "sp-offchain/std",
     "sp-transaction-pool/std",
     "pallet-babe/std", "pallet-grandpa/std", "pallet-session/std",
-    "pallet-staking/std", "pallet-im-online/std",
+    "pallet-staking/std",
     "pallet-authority-discovery/std", "pallet-offences/std",
-    "pallet-bags-list/std", "pallet-election-provider-multi-phase/std",
+    "pallet-bags-list/std",
     "frame-election-provider-support/std",
     "pallet-balances/std", "pallet-transaction-payment/std",
     "pallet-timestamp/std", "pallet-vesting/std",
     "pallet-sudo/std", "pallet-scheduler/std", "pallet-utility/std",
     "pallet-multisig/std", "pallet-proxy/std", "pallet-referenda/std",
     "pallet-conviction-voting/std", "pallet-ranked-collective/std",
-    "pallet-salary/std", "pallet-identity/std", "pallet-treasury/std",
+    "pallet-identity/std", "pallet-treasury/std",
     "pallet-whitelist/std", "pallet-safe-mode/std", "pallet-tx-pause/std",
-    "pallet-assets/std", "pallet-constitution/std", "pallet-nomination-pools/std",
+    "pallet-constitution/std", "pallet-nomination-pools/std",
     "pallet-agents/std", "pallet-escrow/std", "pallet-oracle/std",
     "pallet-emissions/std", "pallet-auto-params/std",
     "pallet-orchestrator/std",
@@ -155,10 +151,6 @@ std = [
 # crates, so the same graph is spelled out.) Membership was determined by
 # reading each crate's own Cargo.toml, not from memory.
 #
-# Four entries are for dependencies declared in [dependencies] but NOT present
-# in construct_runtime: pallet-assets, pallet-salary, pallet-im-online and
-# pallet-election-provider-multi-phase. They are forwarded anyway so the graph
-# stays uniform and cannot silently skew if one of them is later wired in.
 runtime-benchmarks = [
     # FRAME core
     "frame-support/runtime-benchmarks",
@@ -173,14 +165,11 @@ runtime-benchmarks = [
     "pallet-staking/runtime-benchmarks",
     "pallet-offences/runtime-benchmarks",
     "pallet-bags-list/runtime-benchmarks",
-    "pallet-im-online/runtime-benchmarks",
-    "pallet-election-provider-multi-phase/runtime-benchmarks",
     # Tokens
     "pallet-balances/runtime-benchmarks",
     "pallet-transaction-payment/runtime-benchmarks",
     "pallet-timestamp/runtime-benchmarks",
     "pallet-vesting/runtime-benchmarks",
-    "pallet-assets/runtime-benchmarks",
     "pallet-nomination-pools/runtime-benchmarks",
     # Governance / admin
     "pallet-sudo/runtime-benchmarks",
@@ -192,7 +181,6 @@ runtime-benchmarks = [
     "pallet-referenda/runtime-benchmarks",
     "pallet-conviction-voting/runtime-benchmarks",
     "pallet-ranked-collective/runtime-benchmarks",
-    "pallet-salary/runtime-benchmarks",
     "pallet-identity/runtime-benchmarks",
     "pallet-treasury/runtime-benchmarks",
     "pallet-whitelist/runtime-benchmarks",
@@ -217,11 +205,9 @@ try-runtime = [
     "pallet-grandpa/try-runtime",
     "pallet-session/try-runtime",
     "pallet-staking/try-runtime",
-    "pallet-im-online/try-runtime",
     "pallet-authority-discovery/try-runtime",
     "pallet-offences/try-runtime",
     "pallet-bags-list/try-runtime",
-    "pallet-election-provider-multi-phase/try-runtime",
     "frame-election-provider-support/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-transaction-payment/try-runtime",
@@ -234,7 +220,6 @@ try-runtime = [
     "pallet-referenda/try-runtime",
     "pallet-conviction-voting/try-runtime",
     "pallet-ranked-collective/try-runtime",
-    "pallet-salary/try-runtime",
     "pallet-identity/try-runtime",
     "pallet-preimage/try-runtime",
     "pallet-treasury/try-runtime",
@@ -249,7 +234,6 @@ try-runtime = [
     "pallet-whitelist/try-runtime",
     "pallet-safe-mode/try-runtime",
     "pallet-tx-pause/try-runtime",
-    "pallet-assets/try-runtime",
     "pallet-constitution/try-runtime",
     "pallet-authorship/try-runtime",
 ]
