@@ -12,7 +12,6 @@ import {
   encodeEnvelope,
   envelopeSigningHash,
   openBody,
-  sealBody,
   type Body,
   type MessageKind,
 } from '../src/index.js';
@@ -60,12 +59,7 @@ function rebuild(v: Vector) {
   const plaintext = hexToU8a(v.input.plaintext);
   const body: Body | undefined =
     v.input.body === 'Sealed'
-      ? sealBody(
-          plaintext,
-          deriveMessagingKey(v.input.fromUri),
-          deriveMessagingKey(v.input.toUri).publicKey,
-          hexToU8a(v.input.boxNonce!),
-        )
+      ? decodeSignedMessage(hexToU8a(v.sample.signedMessage)).body
       : v.input.body === 'None'
         ? { type: 'None' }
         : undefined;

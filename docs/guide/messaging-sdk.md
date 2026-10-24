@@ -82,6 +82,11 @@ exceeds 2048 bytes, or one signed on chain by an account other than `from`. A
 Larger content goes hash-only (`Body::None`) on chain, and the content itself
 travels over `HttpsTransport`.
 
+`HttpsTransport` uses a 10-second timeout, refuses redirects, and rejects literal
+loopback/private/link-local destinations before calling `fetch`. Local development
+can opt in explicitly with `{ allowPrivateHosts: true }`; plain HTTP is still limited
+to loopback. Override the deadline with `timeoutMs`.
+
 ## Receiving
 
 ```ts
@@ -107,9 +112,13 @@ and finally the plaintext hash. It records the nonce only after every rule
 passes. A failure throws `MessageRejected` with a stable `reason`.
 
 `subscribeMessages` follows **finalized** blocks, backfills any block the
-finality notification skipped, and retries a block it could not read. It
-decodes the payload and the call's arguments from the `messages.send` extrinsic
-that each `MessageSent` event points to.
+finality notification skipped, and retries a block it could not read three times
+by default. It then reports and skips that block so a permanently pruned block
+cannot stall the subscriber forever. Configure this with `maxBlockRetries` and
+provide `onError` for custom reporting. Without it, the SDK logger reports the
+failure; an exception from `onError` cannot stop the ordered scan queue. It
+decodes the payload and the call's arguments from the
+`messages.send` extrinsic that each `MessageSent` event points to.
 
 ## Reference agent
 
@@ -136,4 +145,6 @@ cd agent && npm run setup:sdk && npm run build && npm run messaging-demo
 public dev accounts and the Rust reference's stand-in genesis hash (`0x11…11`).
 It covers every body type, with and without an agreement, and its first entry is
 the Rust reference vector. `npm test` recomputes every deterministic byte and
-verifies every sample signature.
+verifies every sample signature. The Rust pallet test loads this same JSON file,
+SCALE-decodes its sample and verifies its signature, so the two implementations
+cannot silently drift.

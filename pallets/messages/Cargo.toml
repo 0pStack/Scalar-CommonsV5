@@ -24,6 +24,8 @@ sp-core         = { workspace = true, features = ["std", "full_crypto"] }
 sp-io           = { workspace = true, features = ["std"] }
 # pallet_balances: the mock's Currency and AccountData.
 pallet-balances = { workspace = true, features = ["std"] }
+serde           = { workspace = true }
+serde_json      = { workspace = true }
 
 [features]
 default = ["std"]

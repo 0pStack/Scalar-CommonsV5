@@ -157,15 +157,15 @@ export function boxBeforenm(peerPublicKey: Uint8Array, ownSecretKey: Uint8Array)
 
 /**
  * Build a `Sealed` body: NaCl `box` of `plaintext` from `sender`'s messaging
- * key to `recipientPublicKey`. `nonce` is random unless given (tests only).
+ * key to `recipientPublicKey`. The nonce is always generated internally so a
+ * caller cannot accidentally reuse one with the same keypair.
  */
 export function sealBody(
   plaintext: Uint8Array,
   sender: Pick<MessagingKeypair, 'publicKey' | 'secretKey'>,
   recipientPublicKey: Uint8Array,
-  nonce: Uint8Array = randomAsU8a(24),
 ): Extract<Body, { type: 'Sealed' }> {
-  if (nonce.length !== 24) throw new Error('box nonce must be 24 bytes');
+  const nonce = randomAsU8a(24);
   const { encrypted } = naclEncrypt(
     plaintext,
     boxBeforenm(recipientPublicKey, sender.secretKey),

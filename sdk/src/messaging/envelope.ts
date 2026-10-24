@@ -215,8 +215,12 @@ class Reader {
     return new DataView(b.buffer, b.byteOffset, 8).getBigUint64(0, true);
   }
   vec(): Uint8Array {
+    const start = this.at;
     const [offset, len] = compactFromU8a(this.bytes.subarray(this.at));
     if (len.bitLength() > 32) throw new Error('Vec length out of range');
+    if (!u8aEq(this.bytes.subarray(start, start + offset), compactToU8a(len))) {
+      throw new Error('non-canonical SCALE compact length');
+    }
     this.at += offset;
     return this.take(len.toNumber());
   }
@@ -375,9 +379,17 @@ export function createMessage(signer: MessageSigner, input: MessageInput): Signe
  */
 export class NonceTracker {
   private readonly seen: Map<string, bigint>;
+  private readonly maxEntries: number;
 
-  constructor(saved: Record<string, string> = {}) {
+  constructor(saved: Record<string, string> = {}, opts: { maxEntries?: number } = {}) {
+    this.maxEntries = opts.maxEntries ?? 10_000;
+    if (!Number.isSafeInteger(this.maxEntries) || this.maxEntries <= 0) {
+      throw new RangeError(`maxEntries must be a positive safe integer, got ${this.maxEntries}`);
+    }
     this.seen = new Map(Object.entries(saved).map(([k, v]) => [k, BigInt(v)]));
+    while (this.seen.size > this.maxEntries) {
+      this.seen.delete(this.seen.keys().next().value!);
+    }
   }
 
   private static key(from: Uint8Array, to: Uint8Array): string {
@@ -392,7 +404,16 @@ export class NonceTracker {
 
   /** Record `nonce` as accepted. Call only after every other check passed. */
   commit(from: Uint8Array, to: Uint8Array, nonce: bigint): void {
-    this.seen.set(NonceTracker.key(from, to), nonce);
+    const key = NonceTracker.key(from, to);
+    const last = this.seen.get(key);
+    if (last !== undefined && nonce <= last) {
+      throw new RangeError(`nonce must increase: got ${nonce}, last committed ${last}`);
+    }
+    this.seen.delete(key);
+    this.seen.set(key, nonce);
+    if (this.seen.size > this.maxEntries) {
+      this.seen.delete(this.seen.keys().next().value!);
+    }
   }
 
   toJSON(): Record<string, string> {

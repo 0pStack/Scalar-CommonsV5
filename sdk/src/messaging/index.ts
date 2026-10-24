@@ -44,6 +44,7 @@ export {
   subscribeMessages,
   type InboundFrame,
   type MessageSubmitter,
+  type HttpsTransportOptions,
   type SendMessageArgs,
   type SubscribeOptions,
   type Transport,

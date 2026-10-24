@@ -115,6 +115,10 @@ recipient's registered service URI (`agents.agentMetadata(to).uri`). The recipie
 applies the same verification rules. The chain is consulted for keys, registration and
 the current block, but nothing is submitted.
 
+Clients refuse redirects, bound each POST with a timeout, and reject literal loopback,
+private, carrier-grade NAT, link-local and unique-local destinations. This prevents a
+registered URI from turning the sender into a blind internal-network POST client.
+
 ### (c) Statement store
 
 Reserved. It depends on the outcome of the statement-store spike and is not part of
@@ -150,13 +154,20 @@ Two nonces are in play, and they do different jobs:
 - **The chain nonce** (`MessageSent.nonce`) is per sender across all recipients and assigned
   by the chain. It lets an indexer detect gaps in what the chain carried.
 
+The sealed-body box nonce is separate again: the SDK generates its 24 random bytes
+internally and does not accept a caller-supplied value, because reuse under one keypair
+breaks XSalsa20-Poly1305 confidentiality. Receiver high-water marks never move backwards
+and are kept in a bounded oldest-entry-evicted map.
+
 A verifier must not substitute one for the other.
 
 ## Test vectors
 
-These vectors are produced by `pallets/messages/src/envelope_tests.rs` and pinned there,
-so CI fails if the encoding ever changes. When they were pinned, they were cross-checked
-against an independent implementation (Python `hashlib.blake2b(digest_size=32)` over
+The committed vectors live in `sdk/tests/vectors/envelope.json`. TypeScript recomputes
+their deterministic fields and verifies every sample; `pallets/messages` loads the same
+JSON, SCALE-decodes the Rust reference sample and verifies its signature. CI therefore
+fails if either implementation drifts. The first vector was also cross-checked against
+an independent implementation (Python `hashlib.blake2b(digest_size=32)` over
 hand-assembled bytes).
 
 | Input | Value |
