@@ -18,6 +18,8 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+## [v0.8.2] - 2026-10-24
+
 ### Fixed
 
 - SDK: stop retrying dispatch errors that cannot succeed ([#183](https://github.com/0pStack/Scalar-CommonsV5/pull/183), closes [#29](https://github.com/0pStack/Scalar-CommonsV5/issues/29))
@@ -29,6 +31,7 @@ chain. That still takes `system.setCode` from root.
 ### Maintenance
 
 - chore: standard root files (security, contributing, PR template, CODEOWNERS, editorconfig) ([#186](https://github.com/0pStack/Scalar-CommonsV5/pull/186))
+- chore: reserve all rights until further notice ([#187](https://github.com/0pStack/Scalar-CommonsV5/pull/187), closes [#93](https://github.com/0pStack/Scalar-CommonsV5/issues/93))
 
 ## [v0.8.1] - 2026-10-24
 

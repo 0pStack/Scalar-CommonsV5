@@ -8,7 +8,7 @@ Emissions pay for verifiable work, not for holding tokens.
 [![ci-full](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-full.yml/badge.svg?branch=main)](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-full.yml)
 [![ci-node](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-node.yml/badge.svg?branch=main)](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/ci-node.yml)
 [![changelog-release](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/changelog-release.yml/badge.svg?branch=main)](https://github.com/0pStack/Scalar-CommonsV5/actions/workflows/changelog-release.yml)
-[![release](https://img.shields.io/badge/release-v0.8.1-blue)](https://github.com/0pStack/Scalar-CommonsV5/releases/latest)
+[![release](https://img.shields.io/badge/release-v0.8.2-blue)](https://github.com/0pStack/Scalar-CommonsV5/releases/latest)
 [![changelog](https://img.shields.io/badge/changelog-CHANGELOG.md-E05735)](CHANGELOG.md)
 ![status](https://img.shields.io/badge/status-pre--mainnet-orange)
 
