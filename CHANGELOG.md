@@ -25,6 +25,7 @@ chain. That still takes `system.setCode` from root.
 ### Fixed
 
 - fix(sdk): bound connect and transaction submission ([#189](https://github.com/0pStack/Scalar-CommonsV5/pull/189), closes [#74](https://github.com/0pStack/Scalar-CommonsV5/issues/74))
+- fix(escrow): declare the real storage path of escrow extrinsics ([#192](https://github.com/0pStack/Scalar-CommonsV5/pull/192), closes [#118](https://github.com/0pStack/Scalar-CommonsV5/issues/118))
 
 ### Maintenance
 
