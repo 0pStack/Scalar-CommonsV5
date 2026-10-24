@@ -170,5 +170,6 @@ report vulnerabilities as described in [`SECURITY.md`](SECURITY.md).
 
 ## License
 
-No `LICENSE` file is committed yet. `package.json` declares Apache-2.0, but that is not a grant
-until a license file lands.
+Copyright 2026 The Scalar Commons contributors. All rights reserved until further notice: no
+licence is granted to use, copy, modify or distribute this code without written permission. Any
+future licence will be published in [`LICENSE`](LICENSE).

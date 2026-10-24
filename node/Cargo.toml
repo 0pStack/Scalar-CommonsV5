@@ -3,6 +3,7 @@ name    = "scalar-node"
 version = "4.0.0"
 publish = false
 edition = "2021"
+license-file.workspace = true
 description = "Scalar Commons node — sovereign Substrate chain for autonomous AI-agent coordination."
 build   = "build.rs"
 

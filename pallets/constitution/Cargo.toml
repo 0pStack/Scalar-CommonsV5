@@ -3,6 +3,7 @@ name    = "pallet-constitution"
 version = "4.0.0"
 publish = false
 edition = "2021"
+license-file.workspace = true
 
 [dependencies]
 parity-scale-codec  = { version = "3.6.12", default-features = false, features = ["derive"] }

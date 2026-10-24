@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "One-command reference worker for the Scalar Commons chain: register, heartbeat, accept, deliver, claim.",
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "setup:sdk": "npm --prefix ../sdk run build",
