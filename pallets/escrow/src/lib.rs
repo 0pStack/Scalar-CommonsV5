@@ -394,8 +394,11 @@ pub mod pallet {
         BalanceOf<T>: From<u32>,
         <T as agents_pallet::Config>::Currency: ReservableCurrency<T::AccountId>,
     {
+        // 8r/5w (#118): `AgentStake` × 2, `AgentCapabilities`, `block_number` (4r);
+        // `NextSeq`, `Agreements`, the buyer's `System::Account` for `reserve`,
+        // `ActiveAgreementCount` (1r 1w each); `PendingAcceptance` (1w).
         #[pallet::call_index(0)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(6, 5)
+        #[pallet::weight(T::DbWeight::get().reads_writes(8, 5)
             .saturating_add(CREATE_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn create_agreement(
             origin: OriginFor<T>,
@@ -478,8 +481,10 @@ pub mod pallet {
             Ok(())
         }
 
+        // 4r/1w (#118): `PendingAcceptance`, `AgentCapabilities`, `block_number` (3r);
+        // `Agreements` (1r 1w).
         #[pallet::call_index(1)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(2, 1)
+        #[pallet::weight(T::DbWeight::get().reads_writes(4, 1)
             .saturating_add(RECORD_DELIVERY_COMPUTE_WEIGHT))]
         pub fn record_delivery(
             origin: OriginFor<T>,
@@ -664,8 +669,11 @@ pub mod pallet {
             })
         }
 
+        // 6r/5w (#118): `PendingAcceptance`, `block_number` (2r); `Agreements`, the
+        // buyer's `System::Account` for `unreserve`, `ActiveEscrowCount`,
+        // `ActiveAgreementCount` (1r 1w each); `DisputeToAgreement` (1w).
         #[pallet::call_index(4)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(3, 3)
+        #[pallet::weight(T::DbWeight::get().reads_writes(6, 5)
             .saturating_add(CLAIM_REFUND_COMPUTE_WEIGHT))]
         pub fn claim_refund(
             origin: OriginFor<T>,
@@ -785,8 +793,11 @@ pub mod pallet {
         /// takes the job on. Accepting after `deliver_by` is refused — it would pin the
         /// provider's count for work that can no longer be delivered, and the agreement is
         /// already headed for expiry.
+        // 6r/2w (#118): `Agreements`, `PendingAcceptance`, `AgentCapabilities`,
+        // `block_number`, `AgentStake` (5r); `ActiveEscrowCount` (1r 1w);
+        // `PendingAcceptance` removal (1w).
         #[pallet::call_index(6)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(4, 2)
+        #[pallet::weight(T::DbWeight::get().reads_writes(6, 2)
             .saturating_add(ACCEPT_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn accept_agreement(
             origin: OriginFor<T>,
@@ -827,8 +838,11 @@ pub mod pallet {
         /// Valid only while pending, so it can never be used to walk away from a commitment
         /// already made — once accepted, the provider is bound and must deliver, be disputed,
         /// or let the agreement expire.
+        // 4r/4w via `close_pending` (#118): `PendingAcceptance` (1r); `Agreements`, the
+        // buyer's `System::Account` for `unreserve`, `ActiveAgreementCount` (1r 1w
+        // each); `PendingAcceptance` removal (1w).
         #[pallet::call_index(7)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(3, 4)
+        #[pallet::weight(T::DbWeight::get().reads_writes(4, 4)
             .saturating_add(REJECT_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn reject_agreement(
             origin: OriginFor<T>,
@@ -851,8 +865,9 @@ pub mod pallet {
         /// The buyer's counterpart to `reject_agreement`, and the reason refusing pending
         /// agreements from `claim_refund` costs a buyer nothing: this door is open
         /// immediately, with no deadline to wait out, and refunds the same full amount.
+        // 4r/4w via `close_pending`, counted as for `reject_agreement` (#118).
         #[pallet::call_index(8)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(3, 4)
+        #[pallet::weight(T::DbWeight::get().reads_writes(4, 4)
             .saturating_add(CANCEL_PENDING_COMPUTE_WEIGHT))]
         pub fn cancel_pending(
             origin: OriginFor<T>,
@@ -896,8 +911,12 @@ pub mod pallet {
         /// have received. Restricting this to `Created` is what let a silent buyer pin a
         /// provider's whole stake behind `ActiveEscrowCount > 0` forever — see
         /// `DESIGN-E18-E2.md` §8.1.
+        // 6r/5w (#118): `block_number`, `PendingAcceptance` (2r); `Agreements`, the
+        // buyer's `System::Account` for `unreserve`, `ActiveAgreementCount` (1r 1w
+        // each); the accepted arm's `ActiveEscrowCount` (1r 1w) or the pending arm's
+        // `PendingAcceptance` removal (1w); `DisputeToAgreement` (1w).
         #[pallet::call_index(9)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(4, 5)
+        #[pallet::weight(T::DbWeight::get().reads_writes(6, 5)
             .saturating_add(EXPIRE_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn expire_agreement(
             origin: OriginFor<T>,
