@@ -21,6 +21,7 @@ chain. That still takes `system.setCode` from root.
 ### Maintenance
 
 - Consolidate shared TypeScript chain helpers ([#173](https://github.com/0pStack/Scalar-CommonsV5/pull/173), closes [#47](https://github.com/0pStack/Scalar-CommonsV5/issues/47))
+- docs: point public links at V5 repository ([#178](https://github.com/0pStack/Scalar-CommonsV5/pull/178), closes [#43](https://github.com/0pStack/Scalar-CommonsV5/issues/43))
 
 ## [v0.8.0] - 2026-10-23
 
