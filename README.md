@@ -165,7 +165,8 @@ pallet indices, saturating balance math, guards before funds move, migrations fo
 changes. [`ENDGOAL.md`](ENDGOAL.md) defines what "done" means.
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org/) and stay scoped to one
-pallet or one concern.
+pallet or one concern. The workflow and setup are in [`CONTRIBUTING.md`](CONTRIBUTING.md);
+report vulnerabilities as described in [`SECURITY.md`](SECURITY.md).
 
 ## License
 
