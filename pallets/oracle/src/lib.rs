@@ -254,6 +254,10 @@ pub mod pallet {
         DuplicateRequest,
         /// Preserve the request if its bounty cannot be paid or refunded in full.
         IncompleteReserveOperation,
+        /// The buyer or provider of an escrow dispute tried to answer the question that
+        /// judges it. Either party profits from one verdict, and on a binary answer set
+        /// a single party vote can carry the threshold and draw a share of the bounty.
+        DisputePartyCannotRespond,
     }
 
     // ── finalise_request worst-case weight (#223) ────────────────────────────

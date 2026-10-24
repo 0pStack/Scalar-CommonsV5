@@ -802,6 +802,90 @@ fn dispute_without_consensus_defaults_to_buyer() {
     });
 }
 
+/// Opens a dispute with ALICE as buyer and BOB as provider; CAROL is a third party.
+fn open_dispute() -> [u8; 32] {
+    use crate::escrow_bridge::DisputeOracle;
+    for a in [ALICE, BOB, CAROL] {
+        register(a);
+    }
+    <Oracle as DisputeOracle<u64, u64, u64>>::post_dispute_question(&ALICE, &BOB, 1, 300, 10, None)
+        .unwrap()
+}
+
+/// F01 (#31) — the buyer cannot vote on their own dispute: they would push the
+/// verdict their way and be paid a share of their own bounty.
+#[test]
+fn dispute_buyer_cannot_respond_to_own_dispute() {
+    ext_with_events().execute_with(|| {
+        let id = open_dispute();
+        let bw = sp_io::hashing::blake2_256(pallet_escrow::dispute_hashes::BUYER_WINS_PREIMAGE);
+        assert_noop!(
+            Oracle::submit_response(RuntimeOrigin::signed(ALICE), id, bw, 0),
+            Error::<Test>::DisputePartyCannotRespond
+        );
+        assert!(OracleResponses::<Test>::get(id, ALICE).is_none());
+        assert_eq!(OracleRequests::<Test>::get(id).unwrap().response_count, 0);
+    });
+}
+
+/// F01 (#31) — the provider cannot vote on their own dispute.
+#[test]
+fn dispute_provider_cannot_respond_to_own_dispute() {
+    ext_with_events().execute_with(|| {
+        let id = open_dispute();
+        let pw = sp_io::hashing::blake2_256(pallet_escrow::dispute_hashes::PROVIDER_WINS_PREIMAGE);
+        assert_noop!(
+            Oracle::submit_response(RuntimeOrigin::signed(BOB), id, pw, 0),
+            Error::<Test>::DisputePartyCannotRespond
+        );
+        assert!(OracleResponses::<Test>::get(id, BOB).is_none());
+        assert_eq!(OracleRequests::<Test>::get(id).unwrap().response_count, 0);
+    });
+}
+
+/// F01 (#31) — the guard is scoped to the parties: a third party still answers.
+#[test]
+fn dispute_third_party_can_still_respond() {
+    ext_with_events().execute_with(|| {
+        let id = open_dispute();
+        let pw = sp_io::hashing::blake2_256(pallet_escrow::dispute_hashes::PROVIDER_WINS_PREIMAGE);
+        assert_ok!(Oracle::submit_response(
+            RuntimeOrigin::signed(CAROL),
+            id,
+            pw,
+            0
+        ));
+        assert_eq!(OracleResponses::<Test>::get(id, CAROL), Some(pw));
+        assert_eq!(OracleRequests::<Test>::get(id).unwrap().response_count, 1);
+    });
+}
+
+/// F01 (#31) — the batch path skips a party's item on its own dispute and still
+/// accepts the party's answers to unrelated requests.
+#[test]
+fn batch_skips_dispute_party_response() {
+    ext_with_events().execute_with(|| {
+        let id = open_dispute();
+        let other = [42u8; 32];
+        create(CAROL, other, 100, 1, 50);
+        let pw = sp_io::hashing::blake2_256(pallet_escrow::dispute_hashes::PROVIDER_WINS_PREIMAGE);
+        let subs: frame_support::BoundedVec<Sub, ConstU32<20>> =
+            vec![(id, pw, 0), (other, [9u8; 32], 0)].try_into().unwrap();
+        assert_ok!(Oracle::batch_submit_response(
+            RuntimeOrigin::signed(BOB),
+            subs
+        ));
+        assert!(OracleResponses::<Test>::get(id, BOB).is_none());
+        assert_eq!(OracleRequests::<Test>::get(id).unwrap().response_count, 0);
+        assert_eq!(OracleResponses::<Test>::get(other, BOB), Some([9u8; 32]));
+        assert!(has_event(Event::BatchResponseSubmitted {
+            agent: BOB,
+            accepted: 1,
+            skipped: 1
+        }));
+    });
+}
+
 type Sub = ([u8; 32], [u8; 32], u32);
 
 /// E25 — a batch at exactly the cap is processed in full and reported in the
