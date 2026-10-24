@@ -601,14 +601,15 @@ pub mod pallet {
         // work the chain performs.
         // Escrow, 3r/3w: `Agreements` (1r 1w), `block_number` (1r), the buyer's
         //   `System::Account` for the bounty `unreserve` (1r 1w), `DisputeToAgreement` (1w).
-        // Oracle `post_dispute_question_internal`, 5r/4w: the `OracleRequests` counter
-        //   for the open-request cap (1r), the buyer's `System::Account` for `reserve`
-        //   (1r 1w), `OracleRequests::insert` (`contains_key` + counter: 2r 2w),
-        //   `EraTotalQuestions` (1r 1w).
+        // Oracle `post_dispute_question_internal`, 6r/4w: the `OracleRequests` counter
+        //   for the open-request cap (1r), `MinResponses` — in the runtime a read of
+        //   auto-params' `MinScoreEligibleResponses` (1r), the buyer's `System::Account`
+        //   for `reserve` (1r 1w), `OracleRequests::insert` (`contains_key` + counter:
+        //   2r 2w), `EraTotalQuestions` (1r 1w).
         // Hard-coded here because `DisputeOracle` exposes no weight; a change to the
         // oracle's path must update this count.
         #[pallet::call_index(3)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(8, 7)
+        #[pallet::weight(T::DbWeight::get().reads_writes(9, 7)
             .saturating_add(DISPUTE_DELIVERY_COMPUTE_WEIGHT))]
         pub fn dispute_delivery(
             origin: OriginFor<T>,
