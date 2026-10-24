@@ -3,6 +3,7 @@ name = "pallet-messages"
 version = "4.0.0"
 publish = false
 edition = "2021"
+license-file.workspace = true
 
 [dependencies]
 parity-scale-codec = { workspace = true }

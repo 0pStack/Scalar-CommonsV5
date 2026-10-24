@@ -3,6 +3,7 @@ name    = "scalar-commons-runtime"
 version = "3.0.0"
 publish = false
 edition = "2021"
+license-file.workspace = true
 
 [dependencies]
 # Encoding

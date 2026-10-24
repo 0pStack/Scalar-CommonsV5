@@ -53,7 +53,7 @@ allow = [
 confidence-threshold = 0.93
 
 [licenses.private]
-# Our own crates are publish = false and carry no licence field until #93 lands.
+# Our own crates are publish = false and proprietary (LICENSE, all rights reserved).
 ignore = true
 
 [bans]

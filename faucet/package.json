@@ -2,7 +2,7 @@
   "name": "@scalar-commons/faucet",
   "version": "0.1.0",
   "description": "Devnet CMN faucet for Scalar Commons. Dispenses from a pre-funded devnet account — never a mint path. Rate limited per address and per IP.",
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "type": "module",
   "private": true,
   "scripts": {

@@ -2,7 +2,7 @@
   "name": "@scalar-commons/explorer",
   "version": "0.1.0",
   "description": "Web block explorer for Scalar Commons. Server-rendered block, extrinsic and account views read straight off a live node — every type shape comes from runtime metadata, none are hand-written.",
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "type": "module",
   "private": true,
   "scripts": {

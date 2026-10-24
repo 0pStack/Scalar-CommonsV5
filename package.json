@@ -2,7 +2,7 @@
   "name": "scalar-commons",
   "private": true,
   "description": "npm workspace root for the Scalar Commons JS/TS packages. One lockfile, one Node major, one @polkadot version.",
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "workspaces": [
     "sdk",
     "faucet",

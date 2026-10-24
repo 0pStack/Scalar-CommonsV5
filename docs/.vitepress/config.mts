@@ -80,7 +80,7 @@ export default defineConfig({
 
     footer: {
       message: `Documented values verified against ${snapshot.chain.name} (spec ${snapshot.runtime.specVersion}).`,
-      copyright: 'Scalar Commons — Apache-2.0',
+      copyright: 'Copyright 2026 The Scalar Commons contributors. All rights reserved.',
     },
   },
 });

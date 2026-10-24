@@ -14,6 +14,9 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+license-file = "LICENSE"
+
 # ─── Polkadot SDK polkadot-stable2606-3 — all versions pinned explicitly ───────
 # Cargo.lock resolves sp-core 36.1.0, frame-system 40.1.0, sp-runtime 41.1.0
 # Never use wildcard versions. Never upgrade without checking all dependents.

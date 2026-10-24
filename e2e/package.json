@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Every test that needs a live Scalar Commons chain: pallet lifecycles, SDK conformance, faucet, indexer and explorer against a node, and the attacker-archetype runner. CI typechecks the package and runs only its offline unit tests.",
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "scripts": {
     "setup:sdk": "npm --prefix ../sdk run build",
     "pretypecheck": "npm run setup:sdk",

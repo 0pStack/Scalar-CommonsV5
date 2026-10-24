@@ -2,7 +2,7 @@
   "name": "@scalar-commons/sdk",
   "version": "0.1.0",
   "description": "TypeScript agent SDK for the Scalar Commons chain. polkadot-js based, no silent retries.",
-  "license": "Apache-2.0",
+  "license": "UNLICENSED",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
