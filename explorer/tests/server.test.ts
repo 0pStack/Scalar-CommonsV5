@@ -96,3 +96,41 @@ describe('status codes', () => {
     expect(answer.body).toContain('the node did not answer');
   });
 });
+
+describe('content security policy', () => {
+  // Every value on these pages came off a public chain. Escaping is the first
+  // line; the policy is what keeps one escaping slip from becoming script.
+  const POLICY =
+    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+
+  it.each([
+    ['a page', '/', 200],
+    ['a bad request', '/block/nope', 400],
+    ['a missing page', '/nope', 404],
+    ['a node failure', '/block/1', 502],
+  ])('is sent with %s', async (_label, path, status) => {
+    const answer = await send('GET', path);
+    expect(answer.status).toBe(status);
+    expect(answer.headers['content-security-policy']).toBe(POLICY);
+  });
+});
+
+describe('methods', () => {
+  it('serves HEAD with the headers and no body', async () => {
+    const answer = await send('HEAD', '/');
+    expect(answer.status).toBe(200);
+    expect(answer.body).toBe('');
+  });
+
+  it.each(['POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'])(
+    'refuses %s with 405 before asking the node',
+    async (method) => {
+      const before = chainCalls;
+      const answer = await send(method, '/');
+      expect(answer.status).toBe(405);
+      expect(answer.headers.allow).toBe('GET, HEAD');
+      expect(answer.headers['content-security-policy']).toBeDefined();
+      expect(chainCalls).toBe(before);
+    },
+  );
+});

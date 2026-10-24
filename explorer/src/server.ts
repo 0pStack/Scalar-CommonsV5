@@ -8,7 +8,8 @@
  * Every failure mode has a distinct status, because they mean different things
  * to a visitor: 400 for "that is not a block/address at all", 404 for "the chain
  * does not have it", 502 for "the node did not answer". Collapsing them would
- * make an unreachable node look like an empty chain.
+ * make an unreachable node look like an empty chain. Only GET and HEAD are
+ * served; anything else is 405.
  */
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
@@ -44,12 +45,37 @@ export interface ExplorerServerOptions {
   readonly onError?: (error: unknown) => void;
 }
 
-function send(response: ServerResponse, status: number, html: string): void {
+/**
+ * The content security policy every page is sent with.
+ *
+ * Every value on these pages came off a public chain, so escaping is all that
+ * stands between an on-chain string and script — and one slip would make it
+ * stored XSS. The policy is the second line: the pages ship no script, load
+ * nothing, and use only the inline stylesheet, so everything else is refused.
+ * `form-action` and `frame-ancestors` do not fall back to `default-src`, so
+ * they are stated: the activity filter submits to this origin, and nothing may
+ * frame the explorer.
+ */
+const CONTENT_SECURITY_POLICY =
+  "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+
+/** The explorer is read-only; no other method names anything it serves. */
+const ALLOWED_METHODS = new Set(['GET', 'HEAD']);
+
+function send(
+  response: ServerResponse,
+  status: number,
+  html: string,
+  headers: Record<string, string> = {},
+): void {
   response.writeHead(status, {
     'content-type': 'text/html; charset=utf-8',
     'cache-control': 'no-store',
+    'content-security-policy': CONTENT_SECURITY_POLICY,
     'content-length': Buffer.byteLength(html),
+    ...headers,
   });
+  // Node writes no body for a HEAD request, and keeps content-length.
   response.end(html);
 }
 
@@ -60,6 +86,15 @@ export function createExplorerServer(options: ExplorerServerOptions): Server {
   const info = chain.chainInfo();
 
   async function handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
+    // Refused before routing, so a method the explorer does not serve never
+    // costs the node a read.
+    if (!ALLOWED_METHODS.has(request.method ?? '')) {
+      send(response, 405, renderError(405, `method not allowed: ${request.method ?? ''}`, info), {
+        allow: 'GET, HEAD',
+      });
+      return;
+    }
+
     const route = parseRoute(request.url ?? '/');
 
     switch (route.kind) {
