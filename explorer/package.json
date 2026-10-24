@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@polkadot/keyring": "^14.0.3",
+    "@polkadot/types-support": "17.0.2",
     "@types/node": "^22.20.1",
     "typescript": "^7.0.2",
     "vitest": "5.0.5"

@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, it, expect } from 'vitest';
@@ -7,14 +7,13 @@ import { describe, it, expect } from 'vitest';
 /**
  * Dependency hygiene, asserted rather than assumed.
  *
- * `accounts.ts` recognises an account with `instanceof GenericAccountId`. A
- * class identity check is only sound while exactly one copy of
- * `@polkadot/types` is installed — with two copies it returns `false` for every
- * account and the explorer answers with an empty accounts list instead of an
- * error. Nothing about that failure is visible on the page, so it has to be
- * caught here: every package a source file imports must be declared, and the
+ * Every package a source file imports must be declared, and the
  * `@polkadot/types*` packages must be pinned to the exact version
- * `@polkadot/api` itself depends on, so npm can never resolve a second copy.
+ * `@polkadot/api` itself depends on, so npm resolves one copy of the codec
+ * classes the explorer decodes with. Account recognition no longer depends on
+ * that — `accounts.ts` asks `toRawType()` rather than `instanceof`, covered in
+ * `accounts.test.ts` — so it is not checked here against the installed layout,
+ * which differs between a hoisted workspace and a standalone install.
  */
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -89,65 +88,10 @@ describe('declared dependencies', () => {
 
   it('pins @polkadot/types and @polkadot/types-codec to the version @polkadot/api resolves', () => {
     // Exact, and equal to @polkadot/api's own exact pin on them: any looser
-    // range lets npm nest a second copy, which silently breaks `instanceof`.
+    // range lets npm nest a second copy of the codec classes.
     const api = manifest.dependencies['@polkadot/api'];
     expect(api).toMatch(/^\d+\.\d+\.\d+$/);
     expect(manifest.dependencies['@polkadot/types']).toBe(api);
     expect(manifest.dependencies['@polkadot/types-codec']).toBe(api);
-  });
-});
-
-/** Every installed package directory, including the scoped ones, under a node_modules dir. */
-function installedPackages(nodeModules: string): string[] {
-  return readdirSync(nodeModules, { withFileTypes: true }).flatMap((entry) => {
-    if (!entry.isDirectory() || entry.name.startsWith('.')) {
-      return [];
-    }
-    const path = join(nodeModules, entry.name);
-    return entry.name.startsWith('@')
-      ? readdirSync(path, { withFileTypes: true })
-          .filter((scoped) => scoped.isDirectory())
-          .map((scoped) => join(path, scoped.name))
-      : [path];
-  });
-}
-
-/**
- * The node_modules directories Node searches from explorer/, nearest first. In
- * the npm workspace the packages are hoisted to the repo root, so explorer's
- * own node_modules may not exist at all; the search stops at the workspace root.
- */
-function nodeModulesChain(): string[] {
-  const chain: string[] = [];
-  for (let dir = root; ; dir = dirname(dir)) {
-    const candidate = join(dir, 'node_modules');
-    if (existsSync(candidate)) {
-      chain.push(candidate);
-    }
-    const manifestPath = join(dir, 'package.json');
-    const isWorkspaceRoot =
-      existsSync(manifestPath) &&
-      'workspaces' in (JSON.parse(readFileSync(manifestPath, 'utf8')) as object);
-    if (isWorkspaceRoot || dirname(dir) === dir) {
-      return chain;
-    }
-  }
-}
-
-describe('installed dependencies', () => {
-  it('installs exactly one copy of @polkadot/types, so instanceof stays sound', () => {
-    // A nested copy is how the class identity check silently starts returning
-    // false, so the invariant is checked against what npm actually laid down,
-    // not just against what package.json asks for.
-    const chain = nodeModulesChain();
-    const nested = chain
-      .flatMap(installedPackages)
-      .map((path) => join(path, 'node_modules', '@polkadot', 'types'))
-      .filter((path) => existsSync(path));
-    expect(nested).toEqual([]);
-    const visible = chain
-      .map((dir) => join(dir, '@polkadot', 'types'))
-      .filter((path) => existsSync(path));
-    expect(visible).toHaveLength(1);
   });
 });

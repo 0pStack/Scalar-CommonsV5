@@ -2,12 +2,20 @@ import { describe, it, expect } from 'vitest';
 
 import {
   renderAccount,
+  renderActivity,
   renderBlock,
   renderError,
   renderExtrinsic,
   renderHome,
 } from '../src/render.js';
-import type { AccountView, BlockView, ChainInfo, ExtrinsicView, HomeView } from '../src/types.js';
+import type {
+  AccountView,
+  ActivityView,
+  BlockView,
+  ChainInfo,
+  ExtrinsicView,
+  HomeView,
+} from '../src/types.js';
 import { CMN_DECIMALS, SS58_PREFIX } from '@scalar-commons/sdk';
 
 const ALICE = '5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY';
@@ -235,5 +243,65 @@ describe('renderError', () => {
     expect(html).toContain('404');
     expect(html).toContain('block 99 not found &lt;b&gt;');
     expect(html).not.toContain('<b>');
+  });
+});
+
+/**
+ * Escaping in attribute context.
+ *
+ * A value that breaks out of a quoted attribute is script on the page without
+ * ever containing a `<` in text position, so every attribute that carries
+ * chain- or indexer-supplied data is checked with a quote-breaking payload.
+ */
+describe('attribute escaping', () => {
+  const BREAKOUT = '"><script>alert(1)</script>';
+  const ESCAPED = '&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;';
+
+  const activity: ActivityView = {
+    agent: BREAKOUT,
+    offset: 0,
+    limit: 50,
+    total: 1,
+    historyFrom: 1,
+    entries: [
+      {
+        id: BREAKOUT,
+        blockNumber: 42,
+        extrinsicIndex: 1,
+        timestampMs: null,
+        kind: BREAKOUT,
+        section: 'agents',
+        method: 'Heartbeat',
+        agents: [BREAKOUT],
+        fields: [{ name: 'who', value: BREAKOUT, kind: 'account' }],
+      },
+    ],
+  };
+  const html = renderActivity(activity, CHAIN);
+
+  it('never lets a payload close an attribute on the activity page', () => {
+    expect(html).not.toContain(BREAKOUT);
+    expect(html).not.toContain('<script>');
+  });
+
+  it('escapes the row id, the kind class and the filter value', () => {
+    expect(html).toContain(`<tr id="${ESCAPED}">`);
+    expect(html).toContain(`<span class="kind ${ESCAPED}">`);
+    expect(html).toContain(`value="${ESCAPED}"`);
+  });
+
+  it('escapes account hrefs built from indexer values', () => {
+    // activityPath URL-encodes the query and escapeHtml then covers the attribute.
+    expect(html).toContain(`href="/activity?agent=%22%3E%3Cscript%3Ealert%281%29%3C%2Fscript%3E"`);
+    expect(html).toContain(`href="/account/${ESCAPED}"`);
+  });
+
+  it('escapes account hrefs on the extrinsic page', () => {
+    const extrinsic = renderExtrinsic(
+      { ...EXTRINSIC, signer: BREAKOUT, accounts: [BREAKOUT] },
+      CHAIN,
+    );
+    expect(extrinsic).not.toContain(BREAKOUT);
+    expect(extrinsic).toContain(`href="/account/${ESCAPED}"`);
   });
 });

@@ -12,7 +12,6 @@
  * hash is indistinguishable from a public key once it is a string).
  */
 
-import { GenericAccountId } from '@polkadot/types';
 import type { Codec } from '@polkadot/types-codec/types';
 import { encodeAddress } from '@polkadot/util-crypto';
 
@@ -26,9 +25,27 @@ import { encodeAddress } from '@polkadot/util-crypto';
  */
 const MAX_DEPTH = 16;
 
-/** True for the values polkadot-js decodes an `AccountId32` into. */
-function isAccountId(value: unknown): value is GenericAccountId {
-  return value instanceof GenericAccountId;
+/**
+ * True for the values polkadot-js decodes an `AccountId32` into.
+ *
+ * Asked through `toRawType()`, not `instanceof GenericAccountId`: class
+ * identity holds only while exactly one copy of `@polkadot/types` is
+ * installed, and against a second copy it is false for every account, which
+ * empties the accounts list without an error. The raw type is what the
+ * registry decoded the value as, whichever copy did the decoding. It is only
+ * asked of 32-byte arrays — what an `AccountId32` is underneath — because
+ * building the raw type of every struct and vector on the walk is not free.
+ */
+function isAccountId(value: unknown): value is Pick<Codec, 'toU8a'> {
+  if (!(value instanceof Uint8Array) || value.length !== 32) {
+    return false;
+  }
+  const codec = value as Partial<Codec>;
+  return (
+    typeof codec.toRawType === 'function' &&
+    typeof codec.toU8a === 'function' &&
+    codec.toRawType() === 'AccountId'
+  );
 }
 
 function walk(

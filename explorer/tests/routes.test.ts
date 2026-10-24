@@ -97,6 +97,15 @@ describe('parseRoute', () => {
     });
   });
 
+  it('reports a request URL that does not parse as a bad request, not as a thrown error', () => {
+    // "//[" is a scheme-relative URL with an invalid host, so `new URL` throws.
+    // Escaping would reach the server's catch-all and be reported as 502.
+    expect(parseRoute('//[')).toEqual({
+      kind: 'badRequest',
+      message: 'not a valid request URL: //[',
+    });
+  });
+
   it('reports a block number beyond u32 as a bad request', () => {
     expect(parseRoute('/block/9007199254740991')).toEqual({
       kind: 'badRequest',
