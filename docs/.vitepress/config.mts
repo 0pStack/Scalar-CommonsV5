@@ -76,7 +76,7 @@ export default defineConfig({
 
     outline: [2, 3],
 
-    socialLinks: [{ icon: 'github', link: 'https://github.com/tejaspatil1936/scalar-commons-v4' }],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/0pStack/Scalar-CommonsV5' }],
 
     footer: {
       message: `Documented values verified against ${snapshot.chain.name} (spec ${snapshot.runtime.specVersion}).`,

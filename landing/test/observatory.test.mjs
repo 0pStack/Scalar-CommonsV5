@@ -525,10 +525,7 @@ test('the script contacts only the chain API, the chain RPC and GitHub', () => {
   // browsers reject. A WebSocket handshake is not subject to CORS.
   assert.equal(RPC_URL, 'wss://rpc.scalarnet.io');
   assert.equal(new URL(GITHUB_COMMITS_URL).origin, 'https://api.github.com');
-  assert.match(
-    GITHUB_COMMITS_URL,
-    /\/repos\/tejaspatil1936\/scalar-commons-v4\/commits\?sha=master/,
-  );
+  assert.match(GITHUB_COMMITS_URL, /\/repos\/0pStack\/Scalar-CommonsV5\/commits\?sha=main/);
   const allowed = new Set([
     'api.scalarnet.io',
     'rpc.scalarnet.io',
