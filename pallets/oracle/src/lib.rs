@@ -461,6 +461,14 @@ pub mod pallet {
                     req.response_count < T::MaxResponsesPerRequest::get(),
                     Error::<T>::ResponseLimitReached
                 );
+                // A dispute's parties cannot judge it (#31). Reads only the request
+                // already loaded here, so the declared weight is unchanged.
+                if let Some(ctx) = &req.dispute_context {
+                    ensure!(
+                        agent != ctx.buyer && agent != ctx.provider,
+                        Error::<T>::DisputePartyCannotRespond
+                    );
+                }
                 if let Some(cap_id) = req.required_capability {
                     ensure!(
                         T::CapabilityChecker::agent_has_capability(&agent, cap_id),
@@ -636,6 +644,14 @@ pub mod pallet {
                             OracleResponses::<T>::get(request_id, &agent).is_none(),
                             Error::<T>::AlreadyResponded
                         );
+                        // Same party guard as `submit_response` (#31); the item is skipped.
+                        // No extra storage read: the request is already loaded.
+                        if let Some(ctx) = &req.dispute_context {
+                            ensure!(
+                                agent != ctx.buyer && agent != ctx.provider,
+                                Error::<T>::DisputePartyCannotRespond
+                            );
+                        }
                         if let Some(cap_id) = req.required_capability {
                             ensure!(
                                 T::CapabilityChecker::agent_has_capability(&agent, cap_id),

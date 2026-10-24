@@ -1444,8 +1444,9 @@ fn atomic_oracle_request(dispute: bool, bounty: u64) -> [u8; 32] {
         register(who);
     }
     let id = if dispute {
+        // Provider 5 is not a juror: dispute parties cannot answer their own question (#31).
         <Oracle as DisputeOracle<u64, u64, u64>>::post_dispute_question(
-            &ALICE, &BOB, 9, bounty, 10, None,
+            &ALICE, &5, 9, bounty, 10, None,
         )
         .unwrap()
     } else {
