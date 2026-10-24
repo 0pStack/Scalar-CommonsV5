@@ -41,7 +41,9 @@ impl frame_system::Config for Test {
     // BlockNumber is u64 in this mock, so these want ConstU64/ConstU16, not
     // ConstU32. Values unchanged: 250 blocks of hashes, SS58 prefix 42.
     type BlockHashCount = ConstU64<250>;
-    type DbWeight = ();
+    // Real Rocks numbers, not `()`: with a zero DbWeight every `reads_writes(..)` in a
+    // declaration is free, and the declared-weight floor test below would test nothing.
+    type DbWeight = frame_support::weights::constants::RocksDbWeight;
     type Version = ();
     type PalletInfo = PalletInfo;
     type AccountData = pallet_balances::AccountData<u64>;
