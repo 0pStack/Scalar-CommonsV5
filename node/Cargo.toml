@@ -27,7 +27,6 @@ path = "src/main.rs"
 clap        = { workspace = true }
 futures     = { workspace = true }
 jsonrpsee   = { workspace = true }
-log         = { workspace = true }
 serde_json  = { workspace = true }
 
 # ── The runtime this node executes ───────────────────────────────────────────
@@ -49,10 +48,8 @@ sc-network              = { workspace = true }
 sc-network-sync         = { workspace = true }
 sc-offchain             = { workspace = true }
 sc-rpc                  = { workspace = true }
-sc-rpc-api              = { workspace = true }
 sc-service              = { workspace = true }
 sc-storage-monitor      = { workspace = true }
-sc-sysinfo              = { workspace = true }
 sc-telemetry            = { workspace = true }
 sc-transaction-pool     = { workspace = true }
 sc-transaction-pool-api = { workspace = true }
@@ -66,7 +63,6 @@ sp-consensus         = { workspace = true }
 sp-consensus-babe    = { workspace = true, default-features = true }
 sp-consensus-grandpa = { workspace = true, default-features = true }
 sp-core              = { workspace = true, default-features = true }
-sp-inherents         = { workspace = true, default-features = true }
 sp-io                = { workspace = true, default-features = true }
 sp-keystore          = { workspace = true, default-features = true }
 sp-runtime           = { workspace = true, default-features = true }
@@ -87,8 +83,6 @@ sp-timestamp         = { workspace = true, default-features = true }
 frame-benchmarking-cli = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3" }
 
 # ── Runtime-API traits the RPC layer needs to name in its bounds ─────────────
-frame-system-rpc-runtime-api = { workspace = true, default-features = true }
-pallet-transaction-payment-rpc-runtime-api = { workspace = true, default-features = true }
 substrate-frame-rpc-system   = { workspace = true }
 pallet-transaction-payment-rpc = { workspace = true }
 

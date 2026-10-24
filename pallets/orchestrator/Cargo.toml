@@ -12,9 +12,6 @@ frame-system = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polk
 sp-runtime = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false }
 pallet-agents = { path = "../agents", default-features = false }
-pallet-escrow = { path = "../escrow", default-features = false }
-pallet-oracle = { path = "../oracle", default-features = false }
-pallet-emissions = { path = "../emissions", default-features = false }
 frame-benchmarking = { git = "https://github.com/paritytech/polkadot-sdk", tag = "polkadot-stable2606-3", default-features = false, optional = true }
 
 # Crates the test mock in src/tests.rs needs but the pallet itself does not.
@@ -31,6 +28,6 @@ pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", tag = "p
 
 [features]
 default = ["std"]
-std = ["pallet-agents/std","pallet-escrow/std","pallet-oracle/std","pallet-emissions/std","parity-scale-codec/std","scale-info/std","frame-support/std","frame-system/std","sp-runtime/std","sp-std/std","frame-benchmarking?/std"]
+std = ["pallet-agents/std","parity-scale-codec/std","scale-info/std","frame-support/std","frame-system/std","sp-runtime/std","sp-std/std","frame-benchmarking?/std"]
 runtime-benchmarks = ["frame-support/runtime-benchmarks","frame-system/runtime-benchmarks","frame-benchmarking/runtime-benchmarks"]
 try-runtime = ["frame-support/try-runtime","frame-system/try-runtime"]
