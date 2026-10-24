@@ -224,6 +224,23 @@ pub mod pallet {
     /// `runtime/src/lib.rs`, so there is no runtime constant to add.
     pub const EXPIRY_GRACE: u32 = 10;
 
+    // Non-DB execution cost of each extrinsic, carried over unchanged from the flat part
+    // of its hand-written declaration (#118). Named so the `declared_weight_*` floor tests
+    // can price storage on top of them: compared against storage alone, a missing read
+    // or write hides inside the flat part and the floor cannot fail. `benchmarks.rs` is a
+    // scaffold, so these are not measurements — the DB term is what keeps each declaration
+    // a ceiling, and it must count the whole storage path.
+    pub const CREATE_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(150_000_000, 0);
+    pub const RECORD_DELIVERY_COMPUTE_WEIGHT: Weight = Weight::from_parts(80_000_000, 0);
+    pub const CONFIRM_DELIVERY_COMPUTE_WEIGHT: Weight = Weight::from_parts(120_000_000, 0);
+    pub const DISPUTE_DELIVERY_COMPUTE_WEIGHT: Weight = Weight::from_parts(200_000_000, 0);
+    pub const CLAIM_REFUND_COMPUTE_WEIGHT: Weight = Weight::from_parts(80_000_000, 0);
+    pub const EXTEND_DEADLINE_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const ACCEPT_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const REJECT_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const CANCEL_PENDING_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const EXPIRE_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(80_000_000, 0);
+
     /// Whether an agreement's provider has consented to it (E18).
     ///
     /// Every refund path classifies this *first*, before any timing arithmetic, because the
@@ -379,7 +396,7 @@ pub mod pallet {
     {
         #[pallet::call_index(0)]
         #[pallet::weight(T::DbWeight::get().reads_writes(6, 5)
-            .saturating_add(Weight::from_parts(150_000_000, 0)))]
+            .saturating_add(CREATE_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn create_agreement(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -463,7 +480,7 @@ pub mod pallet {
 
         #[pallet::call_index(1)]
         #[pallet::weight(T::DbWeight::get().reads_writes(2, 1)
-            .saturating_add(Weight::from_parts(80_000_000, 0)))]
+            .saturating_add(RECORD_DELIVERY_COMPUTE_WEIGHT))]
         pub fn record_delivery(
             origin: OriginFor<T>,
             buyer: T::AccountId,
@@ -512,7 +529,7 @@ pub mod pallet {
 
         #[pallet::call_index(2)]
         #[pallet::weight(T::DbWeight::get().reads_writes(4, 4)
-            .saturating_add(Weight::from_parts(120_000_000, 0)))]
+            .saturating_add(CONFIRM_DELIVERY_COMPUTE_WEIGHT))]
         pub fn confirm_delivery(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -592,7 +609,7 @@ pub mod pallet {
         // oracle's path must update this count.
         #[pallet::call_index(3)]
         #[pallet::weight(T::DbWeight::get().reads_writes(8, 7)
-            .saturating_add(Weight::from_parts(200_000_000, 0)))]
+            .saturating_add(DISPUTE_DELIVERY_COMPUTE_WEIGHT))]
         pub fn dispute_delivery(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -648,7 +665,7 @@ pub mod pallet {
 
         #[pallet::call_index(4)]
         #[pallet::weight(T::DbWeight::get().reads_writes(3, 3)
-            .saturating_add(Weight::from_parts(80_000_000, 0)))]
+            .saturating_add(CLAIM_REFUND_COMPUTE_WEIGHT))]
         pub fn claim_refund(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -711,7 +728,7 @@ pub mod pallet {
 
         #[pallet::call_index(5)]
         #[pallet::weight(T::DbWeight::get().reads_writes(2, 1)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+            .saturating_add(EXTEND_DEADLINE_COMPUTE_WEIGHT))]
         pub fn extend_deadline(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -769,7 +786,7 @@ pub mod pallet {
         /// already headed for expiry.
         #[pallet::call_index(6)]
         #[pallet::weight(T::DbWeight::get().reads_writes(4, 2)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+            .saturating_add(ACCEPT_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn accept_agreement(
             origin: OriginFor<T>,
             buyer: T::AccountId,
@@ -811,7 +828,7 @@ pub mod pallet {
         /// or let the agreement expire.
         #[pallet::call_index(7)]
         #[pallet::weight(T::DbWeight::get().reads_writes(3, 4)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+            .saturating_add(REJECT_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn reject_agreement(
             origin: OriginFor<T>,
             buyer: T::AccountId,
@@ -835,7 +852,7 @@ pub mod pallet {
         /// immediately, with no deadline to wait out, and refunds the same full amount.
         #[pallet::call_index(8)]
         #[pallet::weight(T::DbWeight::get().reads_writes(3, 4)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+            .saturating_add(CANCEL_PENDING_COMPUTE_WEIGHT))]
         pub fn cancel_pending(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -880,7 +897,7 @@ pub mod pallet {
         /// `DESIGN-E18-E2.md` §8.1.
         #[pallet::call_index(9)]
         #[pallet::weight(T::DbWeight::get().reads_writes(4, 5)
-            .saturating_add(Weight::from_parts(80_000_000, 0)))]
+            .saturating_add(EXPIRE_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn expire_agreement(
             origin: OriginFor<T>,
             buyer: T::AccountId,

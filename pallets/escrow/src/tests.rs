@@ -2277,38 +2277,195 @@ fn atomic_failed_creation_cannot_forge_closed_sequence_witness() {
 
 // ─── Declared weight is a floor over the worst-case storage path ───────────────
 
-/// Same rule as the pallet-agents and pallet-messages floors: an under-declared
-/// extrinsic is underpriced, so the caller's fee buys less storage work than the chain
-/// performs (#118).
-///
-/// The mock's `MockDisputeOracle` touches no storage, so the oracle half is counted
-/// against the runtime's oracle (`post_dispute_question_internal`), not measured here.
-///
-/// 8 reads — escrow's 3: `Agreements`, `block_number`, the buyer's `System::Account`
-///   for the bounty `unreserve`; the oracle's 5: the `OracleRequests` counter for the
-///   open-request cap, the buyer's `System::Account` for `reserve`, `OracleRequests`
-///   insert (`contains_key` + counter), `EraTotalQuestions`.
-/// 7 writes — escrow's 3: `Agreements`, the buyer's `System::Account` for `unreserve`,
-///   `DisputeToAgreement`; the oracle's 4: the buyer's `System::Account` for `reserve`,
-///   `OracleRequests` value + counter, `EraTotalQuestions`.
-#[test]
-fn declared_weight_dispute_delivery_covers_its_storage_path() {
+// Same rule as the pallet-agents and pallet-messages floors: an under-declared extrinsic
+// is underpriced, so the caller's fee buys less storage work than the chain performs
+// (#118). Unlike those floors, these add the call's named compute weight: compared
+// against storage alone, a shortfall smaller than the flat part could never fail.
+//
+// Counts are of the RUNTIME's path, worst branch, every `Get<>` resolved against
+// `runtime/src/lib.rs` — the mock's oracle, collective and orchestrator hooks are stubs,
+// so nothing here is measured. A key touched by two operations is counted for each.
+
+/// Assert `call` declares at least `reads`/`writes` priced by the mock's `DbWeight`,
+/// on top of the call's own compute weight.
+fn assert_declared_covers(
+    call: Call<Test>,
+    reads: u64,
+    writes: u64,
+    compute: frame_support::weights::Weight,
+) {
     use frame_support::dispatch::GetDispatchInfo;
     let db = <Test as frame_system::Config>::DbWeight::get();
     assert!(
         db.read > 0 && db.write > 0,
         "the mock's DbWeight must be non-zero or the floor below is vacuous"
     );
-    let floor = db.reads_writes(8, 7);
-    let declared = Call::<Test>::dispute_delivery {
-        provider: BOB,
-        seq: 0,
-    }
-    .get_dispatch_info()
-    .call_weight;
+    let floor = db.reads_writes(reads, writes).saturating_add(compute);
+    let declared = call.get_dispatch_info().call_weight;
     assert!(
         declared.all_gte(floor),
-        "dispute_delivery declares {declared:?} but its storage path, oracle included, \
-         needs at least {floor:?}"
+        "{call:?} declares {declared:?} but {reads} reads / {writes} writes on top of its \
+         compute weight need at least {floor:?}"
+    );
+}
+
+/// 8 reads: `AgentStake` × 2 (`is_agent` buyer, provider), `AgentCapabilities`,
+///   `block_number`, `NextSeq`, `Agreements`, the buyer's `System::Account` for
+///   `reserve`, `ActiveAgreementCount`.
+/// 5 writes: `NextSeq`, `Agreements`, the buyer's `System::Account`,
+///   `PendingAcceptance`, `ActiveAgreementCount`.
+#[test]
+fn declared_weight_create_agreement_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::create_agreement {
+            provider: BOB,
+            amount: 1_000,
+            deliverable_hash: [1; 32],
+            deliver_by: 500,
+            capability_id: Some(1),
+        },
+        8,
+        5,
+        CREATE_AGREEMENT_COMPUTE_WEIGHT,
+    );
+}
+
+/// 4 reads: `PendingAcceptance` (consent), `Agreements`, `AgentCapabilities`,
+///   `block_number`.
+/// 1 write: `Agreements`.
+#[test]
+fn declared_weight_record_delivery_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::record_delivery {
+            buyer: ALICE,
+            seq: 0,
+            delivery_hash: [2; 32],
+        },
+        4,
+        1,
+        RECORD_DELIVERY_COMPUTE_WEIGHT,
+    );
+}
+
+/// 9 reads — escrow's 3: `Agreements`, `block_number`, the buyer's `System::Account`
+///   for the bounty `unreserve`; the oracle's 6: the `OracleRequests` counter for the
+///   open-request cap, `MinScoreEligibleResponses` in auto-params (the runtime's
+///   `MinResponses`), the buyer's `System::Account` for `reserve`, `OracleRequests`
+///   insert (`contains_key` + counter), `EraTotalQuestions`.
+/// 7 writes — escrow's 3: `Agreements`, the buyer's `System::Account` for `unreserve`,
+///   `DisputeToAgreement`; the oracle's 4: the buyer's `System::Account` for `reserve`,
+///   `OracleRequests` value + counter, `EraTotalQuestions`.
+#[test]
+fn declared_weight_dispute_delivery_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::dispute_delivery {
+            provider: BOB,
+            seq: 0,
+        },
+        9,
+        7,
+        DISPUTE_DELIVERY_COMPUTE_WEIGHT,
+    );
+}
+
+/// 6 reads: `Agreements`, `PendingAcceptance` (consent), `block_number`, the buyer's
+///   `System::Account` for `unreserve`, `ActiveEscrowCount`, `ActiveAgreementCount`.
+/// 5 writes: `Agreements`, the buyer's `System::Account`, `ActiveEscrowCount`,
+///   `DisputeToAgreement` (a disputed agreement), `ActiveAgreementCount`.
+#[test]
+fn declared_weight_claim_refund_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::claim_refund {
+            provider: BOB,
+            seq: 0,
+        },
+        6,
+        5,
+        CLAIM_REFUND_COMPUTE_WEIGHT,
+    );
+}
+
+/// 2 reads: `Agreements`, `block_number`. 1 write: `Agreements`. Already declared in
+/// full; kept so a later change to the path is priced.
+#[test]
+fn declared_weight_extend_deadline_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::extend_deadline {
+            provider: BOB,
+            seq: 0,
+            new_deadline: 600,
+        },
+        2,
+        1,
+        EXTEND_DEADLINE_COMPUTE_WEIGHT,
+    );
+}
+
+/// 6 reads: `Agreements`, `PendingAcceptance` (consent), `AgentCapabilities`,
+///   `block_number`, `AgentStake` and `ActiveEscrowCount` for
+///   `increment_active_escrow`.
+/// 2 writes: `ActiveEscrowCount`, `PendingAcceptance`.
+#[test]
+fn declared_weight_accept_agreement_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::accept_agreement {
+            buyer: ALICE,
+            seq: 0,
+        },
+        6,
+        2,
+        ACCEPT_AGREEMENT_COMPUTE_WEIGHT,
+    );
+}
+
+/// `reject_agreement` and `cancel_pending` both run `close_pending`.
+/// 4 reads: `Agreements`, `PendingAcceptance` (consent), the buyer's `System::Account`
+///   for `unreserve`, `ActiveAgreementCount`.
+/// 4 writes: `Agreements`, the buyer's `System::Account`, `PendingAcceptance`,
+///   `ActiveAgreementCount`.
+#[test]
+fn declared_weight_reject_agreement_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::reject_agreement {
+            buyer: ALICE,
+            seq: 0,
+        },
+        4,
+        4,
+        REJECT_AGREEMENT_COMPUTE_WEIGHT,
+    );
+}
+
+/// Same path as `reject_agreement`: 4 reads / 4 writes through `close_pending`.
+#[test]
+fn declared_weight_cancel_pending_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::cancel_pending {
+            provider: BOB,
+            seq: 0,
+        },
+        4,
+        4,
+        CANCEL_PENDING_COMPUTE_WEIGHT,
+    );
+}
+
+/// 6 reads: `Agreements`, `block_number`, `PendingAcceptance` (consent), the buyer's
+///   `System::Account` for `unreserve`, `ActiveEscrowCount` (accepted arm),
+///   `ActiveAgreementCount`.
+/// 5 writes: `Agreements`, the buyer's `System::Account`, `ActiveEscrowCount` or
+///   `PendingAcceptance` (one arm each), `DisputeToAgreement` (a disputed agreement),
+///   `ActiveAgreementCount`.
+#[test]
+fn declared_weight_expire_agreement_covers_its_storage_path() {
+    assert_declared_covers(
+        Call::<Test>::expire_agreement {
+            buyer: ALICE,
+            provider: BOB,
+            seq: 0,
+        },
+        6,
+        5,
+        EXPIRE_AGREEMENT_COMPUTE_WEIGHT,
     );
 }
