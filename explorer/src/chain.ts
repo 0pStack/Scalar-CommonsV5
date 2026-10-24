@@ -14,32 +14,23 @@
 
 import { ApiPromise, WsProvider } from '@polkadot/api';
 import type { Codec } from '@polkadot/types-codec/types';
-import type { DispatchError, EventRecord } from '@polkadot/types/interfaces';
+import type { EventRecord } from '@polkadot/types/interfaces';
 import { u8aToHex } from '@polkadot/util';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { SS58_PREFIX } from '@scalar-commons/sdk';
 
-import { collectAccounts } from './accounts.js';
+import { type DecodedExtrinsic, decodeExtrinsics, resolveBlock, toBigInt } from './decode.js';
 import type { BlockRef } from './routes.js';
 import type {
   AccountView,
   BlockView,
   ChainInfo,
-  EventView,
-  ExtrinsicArg,
   ExtrinsicSummary,
   ExtrinsicView,
   HomeView,
-  Outcome,
 } from './types.js';
 
-/** Asked for a block the chain does not have (yet, or ever). */
-export class BlockNotFoundError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'BlockNotFoundError';
-  }
-}
+export { BlockNotFoundError } from './decode.js';
 
 /** Asked for an extrinsic index the block does not contain. */
 export class ExtrinsicNotFoundError extends Error {
@@ -111,38 +102,6 @@ function structField(value: Codec, name: string, context: string): Codec {
   return field;
 }
 
-/** Renders a decoded value the way a reader wants it: plain when it is plain, JSON when it is structured. */
-function humanValue(value: Codec): string {
-  const human = value.toHuman();
-  return typeof human === 'string' ? human : JSON.stringify(human);
-}
-
-/** Reads a numeric codec as a bigint without going through `number` (balances exceed 2^53). */
-function toBigInt(value: Codec | undefined | null): bigint | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  const maybe = value as { toBigInt?: () => bigint };
-  return typeof maybe.toBigInt === 'function' ? maybe.toBigInt() : BigInt(value.toString());
-}
-
-/** One extrinsic, fully decoded — the block, extrinsic and account views are all projections of this. */
-interface DecodedExtrinsic {
-  readonly index: number;
-  readonly section: string;
-  readonly method: string;
-  readonly hash: string;
-  readonly isSigned: boolean;
-  readonly signer: string | null;
-  readonly nonce: number | null;
-  readonly tip: bigint | null;
-  readonly lengthBytes: number;
-  readonly args: readonly ExtrinsicArg[];
-  readonly events: readonly EventView[];
-  readonly outcome: Outcome;
-  readonly accounts: readonly string[];
-}
-
 interface DecodedBlock {
   readonly number: number;
   readonly hash: string;
@@ -211,76 +170,6 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
     }
   }
 
-  /** Turns a URL block reference into the (number, hash) pair everything else works from. */
-  async function resolveBlock(ref: BlockRef): Promise<{ number: number; hash: string }> {
-    if (ref.kind === 'number') {
-      const hash = await api.rpc.chain.getBlockHash(ref.number);
-      // A block the chain has not authored yet answers with the zero hash
-      // rather than an error, so this check is what turns "the future" into 404.
-      if (hash.isEmpty) {
-        throw new BlockNotFoundError(`block ${ref.number} not found on this chain`);
-      }
-      return { number: ref.number, hash: hash.toHex() };
-    }
-    try {
-      const header = await api.rpc.chain.getHeader(ref.hash);
-      return { number: header.number.toNumber(), hash: header.hash.toHex() };
-    } catch (error) {
-      throw new BlockNotFoundError(
-        `block ${ref.hash} not found on this chain (${
-          error instanceof Error ? error.message : String(error)
-        })`,
-      );
-    }
-  }
-
-  /** Reads the dispatch outcome of one extrinsic out of the block's event records. */
-  function outcomeOf(records: readonly EventRecord[]): Outcome {
-    for (const record of records) {
-      if (record.event.section !== 'system') {
-        continue;
-      }
-      if (record.event.method === 'ExtrinsicSuccess') {
-        return { kind: 'success' };
-      }
-      if (record.event.method === 'ExtrinsicFailed') {
-        // The first field of the event is the `DispatchError` the runtime
-        // returned; it is decoded from metadata like everything else here.
-        const dispatchError = record.event.data[0] as DispatchError | undefined;
-        if (dispatchError === undefined) {
-          return { kind: 'failed', reason: 'ExtrinsicFailed carried no error' };
-        }
-        if (dispatchError.isModule) {
-          // Module errors are indices into metadata; resolving them through the
-          // registry is what turns "Module { index: 26, error: [3,0,0,0] }" into
-          // "agents.NotRegistered" without hard-coding a single error name here.
-          const meta = api.registry.findMetaError(dispatchError.asModule);
-          return { kind: 'failed', reason: `${meta.section}.${meta.name}` };
-        }
-        return { kind: 'failed', reason: dispatchError.type };
-      }
-    }
-    return { kind: 'unknown' };
-  }
-
-  /** Names each event field from metadata, falling back to its position for unnamed tuple variants. */
-  function eventView(record: EventRecord, index: number): EventView {
-    const fieldsMeta = record.event.meta.fields;
-    const fields = record.event.data.map((value, position) => {
-      const name = fieldsMeta[position]?.name;
-      return {
-        name: name !== undefined && name.isSome ? name.unwrap().toString() : String(position),
-        value: humanValue(value),
-      };
-    });
-    return {
-      index,
-      section: record.event.section,
-      method: record.event.method,
-      fields,
-    };
-  }
-
   /** Decodes one block: header, timestamp, and every extrinsic with its events and outcome. */
   async function decodeBlock(hash: string): Promise<DecodedBlock> {
     const [signedBlock, apiAt] = await Promise.all([api.rpc.chain.getBlock(hash), api.at(hash)]);
@@ -293,64 +182,12 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
       ? toBigInt(await apiAt.query.timestamp.now())
       : null;
 
-    const extrinsics = signedBlock.block.extrinsics.map((extrinsic, index): DecodedExtrinsic => {
-      // Each record keeps the position it holds in the block's event list, so
-      // the rendered event number is the node's own index. Looking it back up
-      // with `indexOf` would rescan every record for every event, which is
-      // quadratic in a busy block.
-      const mine = [...records.entries()]
-        .filter(
-          ([, record]) =>
-            record.phase.isApplyExtrinsic && record.phase.asApplyExtrinsic.toNumber() === index,
-        )
-        .map(([position, record]) => ({ position, record }));
-
-      const argsMeta = extrinsic.method.meta.args;
-      const args = extrinsic.method.args.map((value, position): ExtrinsicArg => {
-        const meta = argsMeta[position];
-        const typeName = meta?.typeName;
-        return {
-          name: meta ? meta.name.toString() : String(position),
-          type:
-            typeName !== undefined && typeName.isSome
-              ? typeName.unwrap().toString()
-              : (meta?.type.toString() ?? value.toRawType()),
-          value: humanValue(value),
-        };
-      });
-
-      // The signer is an `Address` (a MultiAddress on this runtime), so it is
-      // resolved through the same codec walk as everything else rather than by
-      // assuming which variant it is.
-      const signer = extrinsic.isSigned
-        ? (collectAccounts([extrinsic.signer], ss58Format)[0] ?? null)
-        : null;
-
-      const accounts = collectAccounts(
-        [
-          ...(extrinsic.isSigned ? [extrinsic.signer] : []),
-          ...extrinsic.method.args,
-          ...mine.flatMap(({ record }) => Array.from(record.event.data)),
-        ],
-        ss58Format,
-      );
-
-      return {
-        index,
-        section: extrinsic.method.section,
-        method: extrinsic.method.method,
-        hash: extrinsic.hash.toHex(),
-        isSigned: extrinsic.isSigned,
-        signer,
-        nonce: extrinsic.isSigned ? extrinsic.nonce.toNumber() : null,
-        tip: extrinsic.isSigned ? extrinsic.tip.toBigInt() : null,
-        lengthBytes: extrinsic.encodedLength,
-        args,
-        events: mine.map(({ position, record }) => eventView(record, position)),
-        outcome: outcomeOf(mine.map(({ record }) => record)),
-        accounts,
-      };
-    });
+    const extrinsics = decodeExtrinsics(
+      api.registry,
+      signedBlock.block.extrinsics,
+      records,
+      ss58Format,
+    );
 
     return {
       number: signedBlock.block.header.number.toNumber(),
@@ -392,7 +229,7 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
     },
 
     async block(ref: BlockRef): Promise<BlockView> {
-      const { hash } = await resolveBlock(ref);
+      const { hash } = await resolveBlock(api.rpc.chain, ref);
       const [decoded, runtimeVersion] = await Promise.all([
         decodeBlock(hash),
         api.rpc.state.getRuntimeVersion(hash),
@@ -410,7 +247,7 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
     },
 
     async extrinsic(ref: BlockRef, index: number): Promise<ExtrinsicView> {
-      const { hash } = await resolveBlock(ref);
+      const { hash } = await resolveBlock(api.rpc.chain, ref);
       const decoded = await decodeBlock(hash);
       const extrinsic = decoded.extrinsics[index];
       if (extrinsic === undefined) {
