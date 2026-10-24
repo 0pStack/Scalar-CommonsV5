@@ -103,7 +103,7 @@ decoding and serving logic under test must be the real logic.
 
 ## THE GATE (the only definition of success)
 
-    cd indexer && npm test
+    npm ci --no-audit --no-fund && npm test -w @scalar-commons/indexer
 
 It is run in the repository root's worktree after you stop. Exit 0 is the only
 success. Run it yourself first. The suite must contain real assertions over real

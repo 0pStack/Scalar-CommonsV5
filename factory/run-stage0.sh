@@ -45,9 +45,9 @@ done
 # Gates are the per-component test suites the prompts require the agent to
 # create. Rust-touching gates would be wrapped with gate_locked; none here are.
 TASKS=(
-  "trackB-indexer|trackB-indexer.prompt|cd indexer && npm ci --no-audit --no-fund && npm test"
-  "trackB-sdk|trackB-sdk.prompt|cd sdk && npm ci --no-audit --no-fund && npm run typecheck && npm test"
-  "trackB-explorer|trackB-explorer.prompt|cd explorer && npm ci --no-audit --no-fund && npm run build && npm test"
+  "trackB-indexer|trackB-indexer.prompt|npm ci --no-audit --no-fund && npm test -w @scalar-commons/indexer"
+  "trackB-sdk|trackB-sdk.prompt|npm ci --no-audit --no-fund && npm run typecheck -w @scalar-commons/sdk && npm test -w @scalar-commons/sdk"
+  "trackB-explorer|trackB-explorer.prompt|npm ci --no-audit --no-fund && npm run build -w @scalar-commons/explorer && npm test -w @scalar-commons/explorer"
   "trackC-od4|trackC-od4.prompt|python3 -m pytest docs/history/sc-e1/tests -q"
 )
 

@@ -134,14 +134,13 @@ tmux attach -t loops                # watch (ctrl-b n / ctrl-b w to navigate)
 
 | Loop | Gate |
 |---|---|
-| `trackB-indexer` | `cd indexer && npm ci && npm test` |
-| `trackB-sdk` | `cd sdk && npm ci && npm run typecheck && npm test` |
-| `trackB-explorer` | `cd explorer && npm ci && npm run build && npm test` |
+| `trackB-indexer` | `npm ci --no-audit --no-fund && npm test -w @scalar-commons/indexer` |
+| `trackB-sdk` | `npm ci --no-audit --no-fund && npm run typecheck -w @scalar-commons/sdk && npm test -w @scalar-commons/sdk` |
+| `trackB-explorer` | `npm ci --no-audit --no-fund && npm run build -w @scalar-commons/explorer && npm test -w @scalar-commons/explorer` |
 | `trackC-od4` | `python3 -m pytest docs/history/sc-e1/tests -q` |
 
-The stage-0 gates still `cd` into the package and run `npm ci` there, which prunes the
-shared `node_modules` to that package; `run-stage0.sh` is left as-is until #89. Outside the
-factory, install once at the root (`npm ci`) and use `-w @scalar-commons/<name>`.
+Every Node gate installs once at the repository root and scopes package scripts with
+`-w @scalar-commons/<name>`, preserving the shared workspace `node_modules`.
 
 Each prompt requires the agent to **write its test suite first, from the spec**,
 then implement. Three of these components largely don't exist yet, so the tests
