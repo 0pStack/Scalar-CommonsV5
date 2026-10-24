@@ -1,5 +1,6 @@
 import { isDeterministicFailure, isRetryableFailure } from './errors.js';
 import { consoleLogger, errorMessage, type Logger } from './logger.js';
+import { requireNonNegativeFinite, requireNonNegativeInteger } from './timeout.js';
 
 /** Options controlling the no-silent-retry wrapper. */
 export interface RetryOptions {
@@ -38,6 +39,8 @@ export async function withRetry<T>(
 ): Promise<T> {
   const maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
   const retryDelayMs = options.retryDelayMs ?? DEFAULT_RETRY_DELAY_MS;
+  requireNonNegativeInteger(maxRetries, 'maxRetries');
+  requireNonNegativeFinite(retryDelayMs, 'retryDelayMs');
   const logger = options.logger ?? consoleLogger;
   const totalAttempts = maxRetries + 1;
 
