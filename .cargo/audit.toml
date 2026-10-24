@@ -9,6 +9,7 @@ ignore = [
   "RUSTSEC-2025-0055", # tracing-subscriber pinned =0.3.19 by polkadot-sdk
   "RUSTSEC-2026-0119", # hickory-proto 0.24 via libp2p in sc-network
   "RUSTSEC-2026-0381", # webpki-roots 0.25 via libp2p in sc-network
+  "RUSTSEC-2026-0387", # crypto-bigint 0.5 via elliptic-curve 0.13 in polkadot-sdk
   # Locked but not built: `cargo tree -i <crate>@<version>` finds no path from the
   # workspace on any target. Re-check on every Polkadot SDK upgrade.
   "RUSTSEC-2025-0009", # ring 0.16.20
