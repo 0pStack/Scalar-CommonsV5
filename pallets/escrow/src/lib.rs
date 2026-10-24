@@ -224,6 +224,23 @@ pub mod pallet {
     /// `runtime/src/lib.rs`, so there is no runtime constant to add.
     pub const EXPIRY_GRACE: u32 = 10;
 
+    // Non-DB execution cost of each extrinsic, carried over unchanged from the flat part
+    // of its hand-written declaration (#118). Named so the `declared_weight_*` floor tests
+    // can price storage on top of them: compared against storage alone, a missing read
+    // or write hides inside the flat part and the floor cannot fail. `benchmarks.rs` is a
+    // scaffold, so these are not measurements — the DB term is what keeps each declaration
+    // a ceiling, and it must count the whole storage path.
+    pub const CREATE_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(150_000_000, 0);
+    pub const RECORD_DELIVERY_COMPUTE_WEIGHT: Weight = Weight::from_parts(80_000_000, 0);
+    pub const CONFIRM_DELIVERY_COMPUTE_WEIGHT: Weight = Weight::from_parts(120_000_000, 0);
+    pub const DISPUTE_DELIVERY_COMPUTE_WEIGHT: Weight = Weight::from_parts(200_000_000, 0);
+    pub const CLAIM_REFUND_COMPUTE_WEIGHT: Weight = Weight::from_parts(80_000_000, 0);
+    pub const EXTEND_DEADLINE_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const ACCEPT_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const REJECT_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const CANCEL_PENDING_COMPUTE_WEIGHT: Weight = Weight::from_parts(60_000_000, 0);
+    pub const EXPIRE_AGREEMENT_COMPUTE_WEIGHT: Weight = Weight::from_parts(80_000_000, 0);
+
     /// Whether an agreement's provider has consented to it (E18).
     ///
     /// Every refund path classifies this *first*, before any timing arithmetic, because the
@@ -377,9 +394,12 @@ pub mod pallet {
         BalanceOf<T>: From<u32>,
         <T as agents_pallet::Config>::Currency: ReservableCurrency<T::AccountId>,
     {
+        // 8r/5w (#118): `AgentStake` × 2, `AgentCapabilities`, `block_number` (4r);
+        // `NextSeq`, `Agreements`, the buyer's `System::Account` for `reserve`,
+        // `ActiveAgreementCount` (1r 1w each); `PendingAcceptance` (1w).
         #[pallet::call_index(0)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(6, 5)
-            .saturating_add(Weight::from_parts(150_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(8, 5)
+            .saturating_add(CREATE_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn create_agreement(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -461,9 +481,11 @@ pub mod pallet {
             Ok(())
         }
 
+        // 4r/1w (#118): `PendingAcceptance`, `AgentCapabilities`, `block_number` (3r);
+        // `Agreements` (1r 1w).
         #[pallet::call_index(1)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(2, 1)
-            .saturating_add(Weight::from_parts(80_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(4, 1)
+            .saturating_add(RECORD_DELIVERY_COMPUTE_WEIGHT))]
         pub fn record_delivery(
             origin: OriginFor<T>,
             buyer: T::AccountId,
@@ -510,9 +532,10 @@ pub mod pallet {
             })
         }
 
+        // Under-declared: the counted path is (28 + K)r/21w with K unbounded — see #191.
         #[pallet::call_index(2)]
         #[pallet::weight(T::DbWeight::get().reads_writes(4, 4)
-            .saturating_add(Weight::from_parts(120_000_000, 0)))]
+            .saturating_add(CONFIRM_DELIVERY_COMPUTE_WEIGHT))]
         pub fn confirm_delivery(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -580,12 +603,20 @@ pub mod pallet {
         /// unit of the buyer's reserve has exactly one owner. Reserving it twice left a
         /// bounty locked on every dispute outcome and made disputing cost the buyer two
         /// bounties instead of one (#16).
-        // +1 read/write for the bounty `unreserve` (#16). The full path, oracle included,
-        // is 7 reads / 7 writes; the pre-#16 declaration was already short (4/3 against
-        // an actual 6/6). Declaring the full path is tracked in #118.
+        // Declares the full storage path, oracle included (#118), so the fee covers the
+        // work the chain performs.
+        // Escrow, 3r/3w: `Agreements` (1r 1w), `block_number` (1r), the buyer's
+        //   `System::Account` for the bounty `unreserve` (1r 1w), `DisputeToAgreement` (1w).
+        // Oracle `post_dispute_question_internal`, 6r/4w: the `OracleRequests` counter
+        //   for the open-request cap (1r), `MinResponses` — in the runtime a read of
+        //   auto-params' `MinScoreEligibleResponses` (1r), the buyer's `System::Account`
+        //   for `reserve` (1r 1w), `OracleRequests::insert` (`contains_key` + counter:
+        //   2r 2w), `EraTotalQuestions` (1r 1w).
+        // Hard-coded here because `DisputeOracle` exposes no weight; a change to the
+        // oracle's path must update this count.
         #[pallet::call_index(3)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(5, 4)
-            .saturating_add(Weight::from_parts(200_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(9, 7)
+            .saturating_add(DISPUTE_DELIVERY_COMPUTE_WEIGHT))]
         pub fn dispute_delivery(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -639,9 +670,12 @@ pub mod pallet {
             })
         }
 
+        // 6r/5w (#118): `PendingAcceptance`, `block_number` (2r); `Agreements`, the
+        // buyer's `System::Account` for `unreserve`, `ActiveEscrowCount`,
+        // `ActiveAgreementCount` (1r 1w each); `DisputeToAgreement` (1w).
         #[pallet::call_index(4)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(3, 3)
-            .saturating_add(Weight::from_parts(80_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(6, 5)
+            .saturating_add(CLAIM_REFUND_COMPUTE_WEIGHT))]
         pub fn claim_refund(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -704,7 +738,7 @@ pub mod pallet {
 
         #[pallet::call_index(5)]
         #[pallet::weight(T::DbWeight::get().reads_writes(2, 1)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+            .saturating_add(EXTEND_DEADLINE_COMPUTE_WEIGHT))]
         pub fn extend_deadline(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -760,9 +794,12 @@ pub mod pallet {
         /// takes the job on. Accepting after `deliver_by` is refused — it would pin the
         /// provider's count for work that can no longer be delivered, and the agreement is
         /// already headed for expiry.
+        // 6r/2w (#118): `Agreements`, `PendingAcceptance`, `AgentCapabilities`,
+        // `block_number`, `AgentStake` (5r); `ActiveEscrowCount` (1r 1w);
+        // `PendingAcceptance` removal (1w).
         #[pallet::call_index(6)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(4, 2)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(6, 2)
+            .saturating_add(ACCEPT_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn accept_agreement(
             origin: OriginFor<T>,
             buyer: T::AccountId,
@@ -802,9 +839,12 @@ pub mod pallet {
         /// Valid only while pending, so it can never be used to walk away from a commitment
         /// already made — once accepted, the provider is bound and must deliver, be disputed,
         /// or let the agreement expire.
+        // 4r/4w via `close_pending` (#118): `PendingAcceptance` (1r); `Agreements`, the
+        // buyer's `System::Account` for `unreserve`, `ActiveAgreementCount` (1r 1w
+        // each); `PendingAcceptance` removal (1w).
         #[pallet::call_index(7)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(3, 4)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(4, 4)
+            .saturating_add(REJECT_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn reject_agreement(
             origin: OriginFor<T>,
             buyer: T::AccountId,
@@ -826,9 +866,10 @@ pub mod pallet {
         /// The buyer's counterpart to `reject_agreement`, and the reason refusing pending
         /// agreements from `claim_refund` costs a buyer nothing: this door is open
         /// immediately, with no deadline to wait out, and refunds the same full amount.
+        // 4r/4w via `close_pending`, counted as for `reject_agreement` (#118).
         #[pallet::call_index(8)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(3, 4)
-            .saturating_add(Weight::from_parts(60_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(4, 4)
+            .saturating_add(CANCEL_PENDING_COMPUTE_WEIGHT))]
         pub fn cancel_pending(
             origin: OriginFor<T>,
             provider: T::AccountId,
@@ -871,9 +912,13 @@ pub mod pallet {
         /// have received. Restricting this to `Created` is what let a silent buyer pin a
         /// provider's whole stake behind `ActiveEscrowCount > 0` forever — see
         /// `DESIGN-E18-E2.md` §8.1.
+        // 6r/5w (#118): `block_number`, `PendingAcceptance` (2r); `Agreements`, the
+        // buyer's `System::Account` for `unreserve`, `ActiveAgreementCount` (1r 1w
+        // each); the accepted arm's `ActiveEscrowCount` (1r 1w) or the pending arm's
+        // `PendingAcceptance` removal (1w); `DisputeToAgreement` (1w).
         #[pallet::call_index(9)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(4, 5)
-            .saturating_add(Weight::from_parts(80_000_000, 0)))]
+        #[pallet::weight(T::DbWeight::get().reads_writes(6, 5)
+            .saturating_add(EXPIRE_AGREEMENT_COMPUTE_WEIGHT))]
         pub fn expire_agreement(
             origin: OriginFor<T>,
             buyer: T::AccountId,
