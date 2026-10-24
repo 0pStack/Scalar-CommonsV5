@@ -204,6 +204,30 @@ describe('resolveBlock', () => {
     await expect(lookup).rejects.toThrow('header not found');
   });
 
+  it('resolves a real header without re-hashing it against the requested hash', async () => {
+    // Whether a locally recomputed header hash matches the node's byte for byte
+    // depends on the runtime's header type; a real header is a real block either
+    // way, and the requested hash is the one the node answered for.
+    await expect(resolveBlock(rpc({}), { kind: 'hash', hash: unknown })).resolves.toEqual({
+      number: 5,
+      hash: unknown,
+    });
+  });
+
+  it('resolves a genesis-like header: number 0 and a zero parent, but a real state root', async () => {
+    const genesis = registry.createType('Header', {
+      number: 0,
+      parentHash: `0x${'00'.repeat(32)}`,
+      stateRoot: `0x${'04'.repeat(32)}`,
+      extrinsicsRoot: `0x${'03'.repeat(32)}`,
+    });
+    const lookup = resolveBlock(rpc({ getHeader: async () => genesis }), {
+      kind: 'hash',
+      hash: unknown,
+    });
+    await expect(lookup).resolves.toEqual({ number: 0, hash: unknown });
+  });
+
   it('passes a node failure through instead of calling the block missing', async () => {
     const dropped = rpc({
       getHeader: async () => {

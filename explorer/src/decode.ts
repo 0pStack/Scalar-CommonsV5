@@ -73,17 +73,18 @@ export async function resolveBlock(
     return { number: ref.number, hash: hash.toHex() };
   }
   // chain_getHeader answers null for a hash it holds no header for, and
-  // polkadot-js decodes that null as an empty Header instead of throwing. The
-  // empty header's own hash is never the one asked for, so a mismatch is the
-  // one "header not found" signal. Anything the RPC throws — a dropped socket,
-  // a timeout — is the node failing, and passes through to be reported as that
-  // rather than as a block that does not exist.
+  // polkadot-js decodes that null as an empty Header instead of throwing. An
+  // all-zero state root is the mark of that empty header: every real block,
+  // genesis included, commits to a state. Re-hashing the header to compare
+  // with the requested hash is deliberately avoided, because it would turn any
+  // header-encoding mismatch into a 404 for every real block. Anything the RPC
+  // throws — a dropped socket, a timeout — is the node failing, and passes
+  // through to be reported as that rather than as a block that does not exist.
   const header = await rpc.getHeader(ref.hash);
-  const hash = header.hash.toHex();
-  if (hash !== ref.hash) {
+  if (header.stateRoot.isEmpty) {
     throw new BlockNotFoundError(`block ${ref.hash} not found on this chain: header not found`);
   }
-  return { number: header.number.toNumber(), hash };
+  return { number: header.number.toNumber(), hash: ref.hash };
 }
 
 /** Reads the dispatch outcome of one extrinsic out of the block's event records. */
