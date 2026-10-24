@@ -21,11 +21,11 @@
     "archetypes": "node archetypes/run.mjs"
   },
   "devDependencies": {
-    "@polkadot/api": "^16.5.0",
-    "@polkadot/keyring": "^14.0.0",
-    "@polkadot/types": "^16.5.0",
-    "@polkadot/util": "^14.0.0",
-    "@polkadot/util-crypto": "^14.0.0",
+    "@polkadot/api": "^17.0.2",
+    "@polkadot/keyring": "^14.0.3",
+    "@polkadot/types": "^17.0.2",
+    "@polkadot/util": "^14.0.3",
+    "@polkadot/util-crypto": "^14.0.3",
     "@scalar-commons/sdk": "*",
     "@types/node": "^22.20.1",
     "typescript": "^7.0.2",
