@@ -18,6 +18,14 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Fixed
+
+- SDK: stop retrying dispatch errors that cannot succeed ([#183](https://github.com/0pStack/Scalar-CommonsV5/pull/183), closes [#29](https://github.com/0pStack/Scalar-CommonsV5/issues/29))
+
+### Documentation
+
+- docs: tidy stale references after recent merges ([#185](https://github.com/0pStack/Scalar-CommonsV5/pull/185), closes [#184](https://github.com/0pStack/Scalar-CommonsV5/issues/184))
+
 ## [v0.8.1] - 2026-10-24
 
 ### Changed
