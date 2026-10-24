@@ -17,15 +17,23 @@ import type { SubmittableExtrinsic, AddressOrPair } from '@polkadot/api/types';
 import type { Codec } from '@polkadot/types/types';
 import { u8aToHex } from '@polkadot/util';
 
-import { submitAndWatch, type SubmitResult } from './submit.js';
+import { submitAndWatch, type SubmitOptions, type SubmitResult } from './submit.js';
 import { consoleLogger, type Logger } from './logger.js';
-import type { RetryOptions } from './retry.js';
+import { requirePositiveFinite, withTimeout } from './timeout.js';
 import type { SendMessageArgs } from './messaging/transport.js';
 
 export { consoleLogger, errorMessage, type Logger } from './logger.js';
-export { DispatchFailure, isDeterministicFailure, isRetryableFailure } from './errors.js';
+export {
+  DispatchFailure,
+  SubmitError,
+  SubmitStatusError,
+  SubmitTransportError,
+  TimeoutError,
+  isDeterministicFailure,
+  isRetryableFailure,
+} from './errors.js';
 export { withRetry, type RetryOptions } from './retry.js';
-export { submitAndWatch, type SubmitResult } from './submit.js';
+export { submitAndWatch, type SubmitOptions, type SubmitResult } from './submit.js';
 export * from './messaging/index.js';
 export { CMN_DECIMALS, PLANCKS_PER_CMN, SS58_PREFIX } from './constants.js';
 export { isLoopbackHostname } from './net.js';
@@ -92,8 +100,10 @@ export interface NetPosition {
 }
 
 /** Options for constructing a {@link ScalarCommonsClient}. */
-export interface ClientOptions extends RetryOptions {
+export interface ClientOptions extends SubmitOptions {
   logger?: Logger;
+  /** Maximum time to connect and initialize the API. Defaults to 10 seconds. */
+  connectTimeoutMs?: number;
 }
 
 /** Convert an optional/plain numeric codec into a `bigint` (missing → 0). */
@@ -199,10 +209,26 @@ export class ScalarCommonsClient {
     endpoint: string,
     options: ClientOptions = {},
   ): Promise<ScalarCommonsClient> {
-    const provider = new WsProvider(endpoint);
-    const api = await ApiPromise.create({ provider });
-    await api.isReady;
-    return new ScalarCommonsClient(api, options);
+    const connectTimeoutMs = options.connectTimeoutMs ?? 10_000;
+    requirePositiveFinite(connectTimeoutMs, 'connectTimeoutMs');
+    const provider = new WsProvider(endpoint, false);
+    try {
+      await withTimeout(
+        Promise.resolve(provider.connect()).then(() => provider.isReady),
+        connectTimeoutMs,
+        `connection to ${endpoint}`,
+      );
+      const api = await withTimeout(
+        ApiPromise.create({ provider, throwOnConnect: true }),
+        connectTimeoutMs,
+        `API initialization for ${endpoint}`,
+      );
+      await withTimeout(api.isReady, connectTimeoutMs, `API readiness for ${endpoint}`);
+      return new ScalarCommonsClient(api, options);
+    } catch (error) {
+      await provider.disconnect().catch(() => undefined);
+      throw error;
+    }
   }
 
   /** Disconnect the underlying provider. */
@@ -221,25 +247,25 @@ export class ScalarCommonsClient {
   // ─── Write methods ─────────────────────────────────────────────────────────
 
   /** Register as an agent, locking `stake` plancks. → `agents.register`. */
-  register(signer: AddressOrPair, stake: bigint): Promise<SubmitResult> {
-    return this.submit(txEntry(this.api, 'agents', 'register')(stake), signer, 'register');
+  async register(signer: AddressOrPair, stake: bigint): Promise<SubmitResult> {
+    return await this.submit(txEntry(this.api, 'agents', 'register')(stake), signer, 'register');
   }
 
   /** Add `amount` plancks to the caller's existing stake. → `agents.addStake`. */
-  stake(signer: AddressOrPair, amount: bigint): Promise<SubmitResult> {
-    return this.submit(txEntry(this.api, 'agents', 'addStake')(amount), signer, 'stake');
+  async stake(signer: AddressOrPair, amount: bigint): Promise<SubmitResult> {
+    return await this.submit(txEntry(this.api, 'agents', 'addStake')(amount), signer, 'stake');
   }
 
   /** Prove liveness for the emissions heartbeat multiplier. → `agents.heartbeat`. */
-  heartbeat(signer: AddressOrPair): Promise<SubmitResult> {
-    return this.submit(txEntry(this.api, 'agents', 'heartbeat')(), signer, 'heartbeat');
+  async heartbeat(signer: AddressOrPair): Promise<SubmitResult> {
+    return await this.submit(txEntry(this.api, 'agents', 'heartbeat')(), signer, 'heartbeat');
   }
 
   /**
    * Open an escrow agreement as buyer against `provider`. → `escrow.createAgreement`.
    * `capabilityId` is optional; pass `null`/omit for a generic agreement.
    */
-  createEscrow(
+  async createEscrow(
     signer: AddressOrPair,
     provider: string,
     amount: bigint,
@@ -247,7 +273,7 @@ export class ScalarCommonsClient {
     deliverBy: bigint | number,
     capabilityId: number | null = null,
   ): Promise<SubmitResult> {
-    return this.submit(
+    return await this.submit(
       txEntry(this.api, 'escrow', 'createAgreement')(
         provider,
         amount,
@@ -269,8 +295,8 @@ export class ScalarCommonsClient {
    * agreed to. `recordDelivery` on an agreement that was not accepted fails with
    * `NotAccepted`. The runtime re-checks the capability here and refuses after `deliverBy`.
    */
-  acceptAgreement(signer: AddressOrPair, buyer: string, seq: number): Promise<SubmitResult> {
-    return this.submit(
+  async acceptAgreement(signer: AddressOrPair, buyer: string, seq: number): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'escrow', 'acceptAgreement')(buyer, seq),
       signer,
       'acceptAgreement',
@@ -283,8 +309,8 @@ export class ScalarCommonsClient {
    * The buyer's reserve is released in full. Valid only while pending, so it can never be
    * used to walk away from an agreement already accepted.
    */
-  rejectAgreement(signer: AddressOrPair, buyer: string, seq: number): Promise<SubmitResult> {
-    return this.submit(
+  async rejectAgreement(signer: AddressOrPair, buyer: string, seq: number): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'escrow', 'rejectAgreement')(buyer, seq),
       signer,
       'rejectAgreement',
@@ -298,8 +324,8 @@ export class ScalarCommonsClient {
    * immediately, with no deadline to wait out — the buyer's counterpart to
    * {@link ScalarCommonsClient.rejectAgreement}.
    */
-  cancelPending(signer: AddressOrPair, provider: string, seq: number): Promise<SubmitResult> {
-    return this.submit(
+  async cancelPending(signer: AddressOrPair, provider: string, seq: number): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'escrow', 'cancelPending')(provider, seq),
       signer,
       'cancelPending',
@@ -313,13 +339,13 @@ export class ScalarCommonsClient {
    * otherwise) and `created_at + MinDeliveryBlocks` to have passed
    * (`MinDeliveryBlocksNotElapsed`).
    */
-  recordDelivery(
+  async recordDelivery(
     signer: AddressOrPair,
     buyer: string,
     seq: number,
     deliveryHash: Hash32,
   ): Promise<SubmitResult> {
-    return this.submit(
+    return await this.submit(
       txEntry(this.api, 'escrow', 'recordDelivery')(buyer, seq, deliveryHash),
       signer,
       'recordDelivery',
@@ -331,18 +357,22 @@ export class ScalarCommonsClient {
    * accepted anything: it records delivery. To consent to an agreement, call
    * {@link ScalarCommonsClient.acceptAgreement} first.
    */
-  acceptEscrow(
+  async acceptEscrow(
     signer: AddressOrPair,
     buyer: string,
     seq: number,
     deliveryHash: Hash32,
   ): Promise<SubmitResult> {
-    return this.recordDelivery(signer, buyer, seq, deliveryHash);
+    return await this.recordDelivery(signer, buyer, seq, deliveryHash);
   }
 
   /** Confirm a delivered agreement as the buyer, releasing funds. → `escrow.confirmDelivery`. */
-  completeEscrow(signer: AddressOrPair, provider: string, seq: number): Promise<SubmitResult> {
-    return this.submit(
+  async completeEscrow(
+    signer: AddressOrPair,
+    provider: string,
+    seq: number,
+  ): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'escrow', 'confirmDelivery')(provider, seq),
       signer,
       'completeEscrow',
@@ -350,13 +380,13 @@ export class ScalarCommonsClient {
   }
 
   /** Submit an oracle answer for a request. → `oracle.submitResponse`. */
-  submitOracle(
+  async submitOracle(
     signer: AddressOrPair,
     requestId: Hash32,
     answerHash: Hash32,
     capability: number,
   ): Promise<SubmitResult> {
-    return this.submit(
+    return await this.submit(
       txEntry(this.api, 'oracle', 'submitResponse')(requestId, answerHash, capability),
       signer,
       'submitOracle',
@@ -368,8 +398,8 @@ export class ScalarCommonsClient {
    * `vote` is the polkadot-js `AccountVote` shape, e.g.
    * `{ Standard: { vote: { aye: true, conviction: 'Locked1x' }, balance } }`.
    */
-  vote(signer: AddressOrPair, pollIndex: number, vote: unknown): Promise<SubmitResult> {
-    return this.submit(
+  async vote(signer: AddressOrPair, pollIndex: number, vote: unknown): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'convictionVoting', 'vote')(pollIndex, vote),
       signer,
       'vote',
@@ -391,8 +421,8 @@ export class ScalarCommonsClient {
    * The `agent` argument is derived from `signer`: the extrinsic is self-only
    * and rejects any other account with `Unauthorized`.
    */
-  recordGovVote(signer: AddressOrPair, pollIndex: number): Promise<SubmitResult> {
-    return this.submit(
+  async recordGovVote(signer: AddressOrPair, pollIndex: number): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'agents', 'recordGovVote')(signerAddress(signer), pollIndex),
       signer,
       'recordGovVote',
@@ -400,13 +430,13 @@ export class ScalarCommonsClient {
   }
 
   /** Permissionlessly settle the current era once it is due. → `emissions.settleEra`. */
-  settleEra(signer: AddressOrPair): Promise<SubmitResult> {
-    return this.submit(txEntry(this.api, 'emissions', 'settleEra')(), signer, 'settleEra');
+  async settleEra(signer: AddressOrPair): Promise<SubmitResult> {
+    return await this.submit(txEntry(this.api, 'emissions', 'settleEra')(), signer, 'settleEra');
   }
 
   /** Claim accrued emissions for the caller. → `emissions.claim`. */
-  claim(signer: AddressOrPair): Promise<SubmitResult> {
-    return this.submit(txEntry(this.api, 'emissions', 'claim')(), signer, 'claim');
+  async claim(signer: AddressOrPair): Promise<SubmitResult> {
+    return await this.submit(txEntry(this.api, 'emissions', 'claim')(), signer, 'claim');
   }
 
   // ─── Messaging (spec 308) ────────────────────────────────────────────────
@@ -417,11 +447,11 @@ export class ScalarCommonsClient {
    * Registered agents only; calling again rotates the key. Derive the key with
    * `deriveMessagingKey` so it is recoverable from the account mnemonic alone.
    */
-  setMessagingKey(signer: AddressOrPair, publicKey: Uint8Array): Promise<SubmitResult> {
+  async setMessagingKey(signer: AddressOrPair, publicKey: Uint8Array): Promise<SubmitResult> {
     if (publicKey.length !== 32) {
-      return Promise.reject(new Error(`messaging key must be 32 bytes, got ${publicKey.length}`));
+      throw new Error(`messaging key must be 32 bytes, got ${publicKey.length}`);
     }
-    return this.submit(
+    return await this.submit(
       txEntry(this.api, 'agents', 'setMessagingKey')(u8aToHex(publicKey)),
       signer,
       'setMessagingKey',
@@ -429,8 +459,8 @@ export class ScalarCommonsClient {
   }
 
   /** Remove the caller's messaging key. → `agents.clearMessagingKey`. */
-  clearMessagingKey(signer: AddressOrPair): Promise<SubmitResult> {
-    return this.submit(
+  async clearMessagingKey(signer: AddressOrPair): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'agents', 'clearMessagingKey')(),
       signer,
       'clearMessagingKey',
@@ -445,8 +475,8 @@ export class ScalarCommonsClient {
    * The runtime burns `BaseFee + PerByteFee × payload_len` on top of the
    * weight fee (docs/reference/messages.md).
    */
-  sendMessage(signer: AddressOrPair, args: SendMessageArgs): Promise<SubmitResult> {
-    return this.submit(
+  async sendMessage(signer: AddressOrPair, args: SendMessageArgs): Promise<SubmitResult> {
+    return await this.submit(
       txEntry(this.api, 'messages', 'send')(
         args.to,
         args.kind,

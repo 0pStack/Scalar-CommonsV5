@@ -41,6 +41,15 @@ function fakeTx(update: ReturnType<typeof result> | null) {
 
 function apiWith(tx: ReturnType<typeof fakeTx>, { metadata = true, accept = true } = {}) {
   return {
+    rpc: {
+      chain: {
+        getHeader: async () => ({ number: { toNumber: () => 10 } }),
+        getBlockHash: async (height: number) => ({
+          toHex: () => `0x${height.toString(16).padStart(64, '0')}`,
+        }),
+        getBlock: async () => ({ block: { extrinsics: [] } }),
+      },
+    },
     tx: {
       escrow: accept ? { acceptAgreement: vi.fn(() => tx) } : {},
       agents: metadata ? { updateMetadata: vi.fn(() => tx) } : {},

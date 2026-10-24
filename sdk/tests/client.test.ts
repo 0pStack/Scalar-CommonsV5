@@ -104,6 +104,15 @@ function makeMockApi() {
       },
     },
     consts: { emissions: { eraDuration: leaf(100) } },
+    rpc: {
+      chain: {
+        getHeader: async () => ({ number: { toNumber: () => 10 } }),
+        getBlockHash: async (height: number) => ({
+          toHex: () => `0x${height.toString(16).padStart(64, '0')}`,
+        }),
+        getBlock: async () => ({ block: { extrinsics: [] } }),
+      },
+    },
     registry: {
       findMetaError: () => ({ section: 'agents', name: 'NotRegistered', docs: ['not registered'] }),
     },
@@ -193,15 +202,44 @@ describe('ScalarCommonsClient — escrow consent (spec 309)', () => {
     ]);
   });
 
-  it('names the missing call on a runtime without provider consent', () => {
+  it('names the missing call through the async write contract', async () => {
     const { api, calls } = makeMockApi();
     delete (api as unknown as { tx: { escrow: Record<string, unknown> } }).tx.escrow
       .acceptAgreement;
     const client = new ScalarCommonsClient(api);
-    expect(() => client.acceptAgreement(SIGNER, BUYER, 0)).toThrow(
+    const pending = client.acceptAgreement(SIGNER, BUYER, 0);
+    expect(pending).toBeInstanceOf(Promise);
+    await expect(pending).rejects.toThrow(
       'runtime does not expose extrinsic escrow.acceptAgreement',
     );
     expect(calls).toEqual([]);
+  });
+
+  it('keeps every public write method asynchronous', () => {
+    const { api } = makeMockApi();
+    const client = new ScalarCommonsClient(api);
+    for (const method of [
+      'register',
+      'stake',
+      'heartbeat',
+      'createEscrow',
+      'acceptAgreement',
+      'rejectAgreement',
+      'cancelPending',
+      'recordDelivery',
+      'acceptEscrow',
+      'completeEscrow',
+      'submitOracle',
+      'vote',
+      'recordGovVote',
+      'settleEra',
+      'claim',
+      'setMessagingKey',
+      'clearMessagingKey',
+      'sendMessage',
+    ] as const) {
+      expect(client[method].constructor.name, method).toBe('AsyncFunction');
+    }
   });
 });
 

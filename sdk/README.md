@@ -65,6 +65,30 @@ Instead of accepting, the provider can decline a pending agreement with
 `rejectAgreement(a, b.address, 0)`, or the buyer can withdraw it with
 `cancelPending(b, a.address, 0)`. Either refunds the buyer in full.
 
+## Connection and submission deadlines
+
+`ScalarCommonsClient.connect(endpoint, options)` fails with a typed `TimeoutError`
+when the provider or API does not become ready within `connectTimeoutMs` (10 seconds
+by default). Write calls have a 60-second per-attempt `submitTimeoutMs` default.
+Both values must be positive finite milliseconds.
+
+Submission failures are typed as `SubmitError` subclasses: `TimeoutError`,
+`SubmitStatusError`, and `SubmitTransportError`. `DispatchFailure` remains the
+runtime dispatch-error type. `Retracted`, `FinalityTimeout`, timeout, and ambiguous
+transport errors stop immediately. Before retrying `Dropped`, `Invalid`, `Usurped`,
+or a known-hash transport failure, the SDK scans the blocks produced since the
+submission began. If the transaction is already present, the call succeeds without
+resubmitting it.
+
+```ts
+const client = await ScalarCommonsClient.connect(endpoint, {
+  connectTimeoutMs: 10_000,
+  submitTimeoutMs: 60_000,
+  maxRetries: 1,
+  retryDelayMs: 500,
+});
+```
+
 ## Retry policy
 
 Only recognized transport failures and `Dropped`/`Invalid`/`Usurped` pool statuses

@@ -82,3 +82,23 @@ describe('withRetry — no silent retries', () => {
     expect(logger.calls.filter((c) => c.level === 'error')).toHaveLength(1);
   });
 });
+
+describe('withRetry — option validation', () => {
+  it.each([-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid maxRetries=%s before the first attempt',
+    async (maxRetries) => {
+      const fn = vi.fn(async () => 'unreachable');
+      await expect(withRetry(fn, 'invalid', { maxRetries })).rejects.toBeInstanceOf(RangeError);
+      expect(fn).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects invalid retryDelayMs=%s before the first attempt',
+    async (retryDelayMs) => {
+      const fn = vi.fn(async () => 'unreachable');
+      await expect(withRetry(fn, 'invalid', { retryDelayMs })).rejects.toBeInstanceOf(RangeError);
+      expect(fn).not.toHaveBeenCalled();
+    },
+  );
+});
