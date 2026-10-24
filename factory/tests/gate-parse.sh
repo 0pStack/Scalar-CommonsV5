@@ -121,12 +121,12 @@ printf '\n\033[1m=== CASE 3: single-line gate is passed through untouched ===\03
 fixture 9300 '## Gate
 
 ```
-cd indexer && npm ci && npm test
+npm ci --no-audit --no-fund && npm test -w @scalar-commons/indexer
 ```
 '
 G3="$(gate_from_issue 9300 || true)"
 printf '  gate: %s\n' "$G3"
-[ "$G3" = "cd indexer && npm ci && npm test" ] \
+[ "$G3" = "npm ci --no-audit --no-fund && npm test -w @scalar-commons/indexer" ] \
   && ok "single-line gate is byte-identical" \
   || bad "single-line gate was altered" "$G3"
 

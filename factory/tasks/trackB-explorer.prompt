@@ -82,7 +82,7 @@ not — the code under test must be the real path.
 
 ## THE GATE (the only definition of success)
 
-    cd explorer && npm ci --no-audit --no-fund && npm run build && npm test
+    npm ci --no-audit --no-fund && npm run build -w @scalar-commons/explorer && npm test -w @scalar-commons/explorer
 
 All three must pass. Define "build" and "test" scripts in package.json that do
 real work (a build that compiles nothing, or a test script that runs no tests,

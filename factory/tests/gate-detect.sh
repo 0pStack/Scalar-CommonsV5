@@ -51,29 +51,30 @@ printf '\n\033[1m=== gate detection ===\033[0m\n'
 R="$(mk_repo)"
 mkdir -p "$R/sdk/src"
 cat > "$R/sdk/package.json" <<'EOF'
-{ "name":"x","scripts":{"build":"tsc","typecheck":"tsc --noEmit","test":"vitest run"} }
+{ "name":"@scalar-commons/sdk","scripts":{"build":"tsc","typecheck":"tsc --noEmit","test":"vitest run"} }
 EOF
 printf 'export const a=1;\n' > "$R/sdk/src/a.ts"
 git -C "$R" add -A; git -C "$R" commit -qm sdk
 printf 'export const a=2;\n' > "$R/sdk/src/a.ts"   # uncommitted change under sdk/
 G="$(detect_gate "$R")"
-check "sdk diff -> npm ci"        "npm ci"        "$G"
-check "sdk diff -> npm run build" "npm run build" "$G"
-check "sdk diff -> npm run typecheck (read from package.json)" "npm run typecheck" "$G"
-check "sdk diff -> npm test"      "npm test"      "$G"
-check "sdk diff -> scoped to sdk" "cd sdk"        "$G"
+check "sdk diff -> root npm ci"   "npm ci --no-audit --no-fund" "$G"
+check "sdk diff -> workspace build" "npm run build -w @scalar-commons/sdk" "$G"
+check "sdk diff -> workspace typecheck (read from package.json)" "npm run typecheck -w @scalar-commons/sdk" "$G"
+check "sdk diff -> workspace test" "npm test -w @scalar-commons/sdk" "$G"
+check "sdk scripts remain fail-fast" "npm run build -w @scalar-commons/sdk && npm run typecheck -w @scalar-commons/sdk && npm test -w @scalar-commons/sdk" "$G"
+case "$G" in *"cd sdk"*) bad "sdk gate must install at the repository root" "$G" ;; *) ok "sdk gate stays at the repository root" ;; esac
 case "$G" in *cargo*) bad "sdk gate must NOT be the cargo workspace gate" "$G" ;; *) ok "sdk gate is not the workspace fallback" ;; esac
 rm -rf "$R"
 
 # --- Node subproject with test only (no build/lint) ------------------------
 R="$(mk_repo)"
 mkdir -p "$R/indexer"
-printf '{ "name":"i","scripts":{"test":"node --test"} }\n' > "$R/indexer/package.json"
+printf '{ "name":"@scalar-commons/indexer","scripts":{"test":"node --test"} }\n' > "$R/indexer/package.json"
 printf 'x\n' > "$R/indexer/server.js"
 git -C "$R" add -A; git -C "$R" commit -qm idx
 printf 'y\n' > "$R/indexer/server.js"
 G="$(detect_gate "$R")"
-check "indexer test-only -> npm test" "npm test" "$G"
+check "indexer test-only -> workspace test" "npm test -w @scalar-commons/indexer" "$G"
 case "$G" in *"npm run build"*) bad "must not invent a build script that does not exist" "$G" ;; *) ok "does not invent a missing build script" ;; esac
 rm -rf "$R"
 
