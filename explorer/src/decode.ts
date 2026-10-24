@@ -131,6 +131,41 @@ export function eventView(record: EventRecord, index: number): EventView {
   };
 }
 
+/** An event record together with the position the node gave it in the block's event list. */
+interface PositionedRecord {
+  readonly position: number;
+  readonly record: EventRecord;
+}
+
+/**
+ * Groups a block's event records by the extrinsic that emitted them, in one pass.
+ *
+ * Each record keeps the position it holds in the block's event list, so the
+ * rendered event number is the node's own index. Filtering the whole list once
+ * per extrinsic instead would be O(extrinsics × events), and every block page
+ * pays that cost. Initialization and finalization events belong to no
+ * extrinsic and are left out.
+ */
+export function groupEventsByExtrinsic(
+  records: readonly EventRecord[],
+): ReadonlyMap<number, readonly PositionedRecord[]> {
+  const groups = new Map<number, PositionedRecord[]>();
+  records.forEach((record, position) => {
+    const phase = record.phase;
+    if (!phase.isApplyExtrinsic) {
+      return;
+    }
+    const index = phase.asApplyExtrinsic.toNumber();
+    const group = groups.get(index);
+    if (group === undefined) {
+      groups.set(index, [{ position, record }]);
+    } else {
+      group.push({ position, record });
+    }
+  });
+  return groups;
+}
+
 /** Decodes every extrinsic of a block with its arguments, events, outcome and the accounts it touched. */
 export function decodeExtrinsics(
   registry: Registry,
@@ -138,17 +173,9 @@ export function decodeExtrinsics(
   records: readonly EventRecord[],
   ss58Format: number,
 ): DecodedExtrinsic[] {
+  const byExtrinsic = groupEventsByExtrinsic(records);
   return extrinsics.map((extrinsic, index): DecodedExtrinsic => {
-    // Each record keeps the position it holds in the block's event list, so
-    // the rendered event number is the node's own index. Looking it back up
-    // with `indexOf` would rescan every record for every event, which is
-    // quadratic in a busy block.
-    const mine = [...records.entries()]
-      .filter(
-        ([, record]) =>
-          record.phase.isApplyExtrinsic && record.phase.asApplyExtrinsic.toNumber() === index,
-      )
-      .map(([position, record]) => ({ position, record }));
+    const mine = byExtrinsic.get(index) ?? [];
 
     const argsMeta = extrinsic.method.meta.args;
     const args = extrinsic.method.args.map((value, position): ExtrinsicArg => {

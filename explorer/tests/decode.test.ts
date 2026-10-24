@@ -1,3 +1,4 @@
+import type { EventRecord } from '@polkadot/types/interfaces';
 import { describe, it, expect } from 'vitest';
 
 import { decodeExtrinsics, eventView, outcomeOf } from '../src/decode.js';
@@ -130,6 +131,26 @@ describe('decodeExtrinsics', () => {
     expect(signed?.accounts).toEqual([ALICE, BOB]);
     // The unsigned transfer names BOB; the hook-phase events naming ALICE are not its own.
     expect(unsigned?.accounts).toEqual([BOB]);
+  });
+
+  it('reads each event record phase once per block, not once per extrinsic', () => {
+    // Grouping by phase once is what keeps a busy block linear: rescanning the
+    // whole event list for every extrinsic is O(extrinsics × events).
+    let reads = 0;
+    const counted = records.map(
+      (record) =>
+        ({
+          get phase() {
+            reads += 1;
+            return record.phase;
+          },
+          event: record.event,
+        }) as unknown as EventRecord,
+    );
+    const extrinsics = [transfer(1n), transfer(2n), transfer(3n), transfer(4n)];
+    const decoded = decodeExtrinsics(registry, extrinsics, counted, SS58_PREFIX);
+    expect(decoded[1]?.events.map((event) => event.index)).toEqual([2, 3]);
+    expect(reads).toBeLessThanOrEqual(records.length * 2);
   });
 
   it('reads an extrinsic with no events as an unknown outcome', () => {

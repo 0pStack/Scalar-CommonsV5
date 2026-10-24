@@ -19,6 +19,7 @@ import { u8aToHex } from '@polkadot/util';
 import { decodeAddress, encodeAddress } from '@polkadot/util-crypto';
 import { SS58_PREFIX } from '@scalar-commons/sdk';
 
+import { BLOCK_CACHE_SIZE, createBlockCache } from './cache.js';
 import { type DecodedExtrinsic, decodeExtrinsics, resolveBlock, toBigInt } from './decode.js';
 import type { BlockRef } from './routes.js';
 import type {
@@ -200,6 +201,21 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
     };
   }
 
+  // Both are read by hash, and what a hash names never changes, so they are
+  // cached by it. See cache.ts for why numbers are never keys.
+  const decodedBlocks = createBlockCache<DecodedBlock>(BLOCK_CACHE_SIZE);
+  const specVersions = createBlockCache<number>(BLOCK_CACHE_SIZE);
+
+  function cachedBlock(hash: string): Promise<DecodedBlock> {
+    return decodedBlocks.get(hash, () => decodeBlock(hash));
+  }
+
+  function cachedSpecVersion(hash: string): Promise<number> {
+    return specVersions.get(hash, async () =>
+      (await api.rpc.state.getRuntimeVersion(hash)).specVersion.toNumber(),
+    );
+  }
+
   function summarize(decoded: DecodedExtrinsic): ExtrinsicSummary {
     return {
       index: decoded.index,
@@ -230,9 +246,9 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
 
     async block(ref: BlockRef): Promise<BlockView> {
       const { hash } = await resolveBlock(api.rpc.chain, ref);
-      const [decoded, runtimeVersion] = await Promise.all([
-        decodeBlock(hash),
-        api.rpc.state.getRuntimeVersion(hash),
+      const [decoded, specVersion] = await Promise.all([
+        cachedBlock(hash),
+        cachedSpecVersion(hash),
       ]);
       return {
         number: decoded.number,
@@ -241,14 +257,14 @@ export async function connectExplorerChain(options: ConnectOptions): Promise<Exp
         stateRoot: decoded.stateRoot,
         extrinsicsRoot: decoded.extrinsicsRoot,
         timestampMs: decoded.timestampMs,
-        specVersion: runtimeVersion.specVersion.toNumber(),
+        specVersion,
         extrinsics: decoded.extrinsics.map(summarize),
       };
     },
 
     async extrinsic(ref: BlockRef, index: number): Promise<ExtrinsicView> {
       const { hash } = await resolveBlock(api.rpc.chain, ref);
-      const decoded = await decodeBlock(hash);
+      const decoded = await cachedBlock(hash);
       const extrinsic = decoded.extrinsics[index];
       if (extrinsic === undefined) {
         throw new ExtrinsicNotFoundError(
