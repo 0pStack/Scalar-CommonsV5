@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Maintenance
+
+- Move every package to polkadot-js v17 in one change ([#188](https://github.com/0pStack/Scalar-CommonsV5/pull/188), closes [#157](https://github.com/0pStack/Scalar-CommonsV5/issues/157))
+
 ## [v0.8.2] - 2026-10-24
 
 ### Fixed
