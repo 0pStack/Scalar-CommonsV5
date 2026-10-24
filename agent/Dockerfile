@@ -2,10 +2,10 @@
 #
 # Build context is the REPOSITORY ROOT (the agent depends on the workspace sdk/
 # until the SDK is on npm, and the one npm lockfile lives at the root):
-#   docker build -f agent/Dockerfile -t ghcr.io/tejaspatil1936/scalar-agent:0.1 .
+#   docker build -f agent/Dockerfile -t ghcr.io/0pstack/scalar-agent:0.1 .
 #
 # Run (the key comes from the env file, never from the command line):
-#   docker run --env-file agent.env -v scalar-agent:/state ghcr.io/tejaspatil1936/scalar-agent:0.1
+#   docker run --env-file agent.env -v scalar-agent:/state ghcr.io/0pstack/scalar-agent:0.1
 # agent.env: SCALAR_WS=..., AGENT_MNEMONIC=..., AGENT_MODE=provider|buyer|both
 
 FROM node:22-slim AS build

@@ -24,7 +24,7 @@ export const API_ORIGIN = 'https://api.scalarnet.io';
 export const RPC_URL = 'wss://rpc.scalarnet.io';
 export const EXPLORER_ORIGIN = 'https://explorer.scalarnet.io';
 export const GITHUB_COMMITS_URL =
-  'https://api.github.com/repos/tejaspatil1936/scalar-commons-v4/commits?sha=master&per_page=1';
+  'https://api.github.com/repos/0pStack/Scalar-CommonsV5/commits?sha=main&per_page=1';
 
 /** The indexer's `MAX_LIMIT` (indexer/src/pagination.ts). */
 export const INDEXER_MAX_LIMIT = 200;

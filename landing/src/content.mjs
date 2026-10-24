@@ -280,7 +280,7 @@ export const content = {
     {
       key: 'repo',
       label: 'Source repository',
-      url: 'https://github.com/tejaspatil1936/scalar-commons-v4',
+      url: 'https://github.com/0pStack/Scalar-CommonsV5',
       status: 'available',
       note: 'The node, the runtime, every pallet, and this page.',
     },

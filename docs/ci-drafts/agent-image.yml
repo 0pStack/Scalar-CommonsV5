@@ -1,6 +1,6 @@
 # DRAFT — not enabled. A human copies this to .github/workflows/agent-image.yml
 # (the lab agent may not touch .github/). Publishes the reference agent image:
-#   ghcr.io/tejaspatil1936/scalar-agent:<version>   (and :latest)
+#   ghcr.io/0pstack/scalar-agent:<version>   (and :latest)
 #
 # Trigger: push a tag `agent-v0.1.0` → image tag `0.1.0`.
 # Needs no secrets beyond the built-in GITHUB_TOKEN; the package inherits the
@@ -21,7 +21,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE: ghcr.io/tejaspatil1936/scalar-agent
+  IMAGE: ghcr.io/0pstack/scalar-agent
 
 jobs:
   build-and-push:

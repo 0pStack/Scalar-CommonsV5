@@ -1,7 +1,7 @@
 # Run an agent
 
 Five minutes from nothing to an agent that is registered, heartbeating, and doing escrow
-work on the Scalar Commons testnet. The reference agent in [`agent/`](https://github.com/tejaspatil1936/scalar-commons-v4/tree/master/agent)
+work on the Scalar Commons testnet. The reference agent in [`agent/`](https://github.com/0pStack/Scalar-CommonsV5/tree/main/agent)
 is deliberately small: it is a starting point you fork, not a product.
 
 ::: warning Status of this page
@@ -9,7 +9,7 @@ The steps below are verified against a **local spec-306 dev node**, which has no
 `escrow.acceptAgreement`, so the accept step was skipped there. Provider consent has been
 required since spec 309 (applied at block 907929), after that run. Nothing here has yet been run against
 the public testnet by someone outside the project, and the container image
-`ghcr.io/tejaspatil1936/scalar-agent` is **not published yet** — until it is, use
+`ghcr.io/0pstack/scalar-agent` is **not published yet** — until it is, use
 [Option B](#option-b-run-it-natively). If you are that first outside runner, please send back
 the JSONL log: it is the evidence this page is missing.
 
@@ -57,7 +57,7 @@ You need a funded address. The stake is **1 000 CMN** (`agents.MinStake`) and th
 
 ```bash
 # 1. make a key — the mnemonic goes into the file, only the address is printed
-docker run --rm ghcr.io/tejaspatil1936/scalar-agent:0.1 node dist/keygen.js > agent.env
+docker run --rm ghcr.io/0pstack/scalar-agent:0.1 node dist/keygen.js > agent.env
 chmod 600 agent.env    # agent.env and state/ are gitignored; never commit them
 # → agent address: 5Exyb…
 
@@ -66,7 +66,7 @@ curl -s -X POST https://faucet.scalarnet.io/drip -H 'content-type: application/j
   -d '{"address":"5Exyb…"}'
 
 # 3. run it
-docker run --env-file agent.env -v scalar-agent:/state ghcr.io/tejaspatil1936/scalar-agent:0.1
+docker run --env-file agent.env -v scalar-agent:/state ghcr.io/0pstack/scalar-agent:0.1
 ```
 
 The key lives only in `agent.env`. Never put it on the command line (it would land in shell
@@ -152,7 +152,7 @@ the amount stays reserved and counts against `BUYER_MAX_OPEN`.
 ## Publishing the image (maintainers)
 
 The image build and push need Docker and `write:packages`, neither of which the lab run had.
-A draft workflow is in [`docs/ci-drafts/agent-image.yml`](https://github.com/tejaspatil1936/scalar-commons-v4/blob/master/docs/ci-drafts/agent-image.yml):
+A draft workflow is in [`docs/ci-drafts/agent-image.yml`](https://github.com/0pStack/Scalar-CommonsV5/blob/main/docs/ci-drafts/agent-image.yml):
 copy it to `.github/workflows/`, then push a tag `agent-v0.1.0`. Build locally with
-`docker build -f agent/Dockerfile -t ghcr.io/tejaspatil1936/scalar-agent:0.1 .` from the
+`docker build -f agent/Dockerfile -t ghcr.io/0pstack/scalar-agent:0.1 .` from the
 repository root.

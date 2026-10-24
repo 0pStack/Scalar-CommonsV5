@@ -18,7 +18,7 @@ export const API_HOST = 'api.scalarnet.io';
 export const RPC_WSS = 'wss://rpc.scalarnet.io';
 export const RPC_HTTPS = 'https://rpc.scalarnet.io';
 export const CHAINSPEC_URL = 'https://scalarnet.io/docs/chainspec.json';
-export const REPO_URL = 'https://github.com/tejaspatil1936/scalar-commons-v4';
+export const REPO_URL = 'https://github.com/0pStack/Scalar-CommonsV5';
 // The explorer's activity feed (explorer/src/routes.ts, `activity`), which
 // takes `?agent=<address>` to filter to one agent.
 export const EXPLORER_URL = 'https://explorer.scalarnet.io/activity';
