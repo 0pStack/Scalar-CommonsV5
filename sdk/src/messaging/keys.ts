@@ -26,7 +26,7 @@
  * (the old tweetnacl `box`), so HSalsa20 is implemented here; the tests pin the
  * NaCl reference vector and a libsodium-generated box.
  */
-import { x25519 } from '@noble/curves/ed25519';
+import { x25519 } from '@noble/curves/ed25519.js';
 import { DEV_PHRASE } from '@polkadot/keyring';
 import { hexToU8a, isHex, stringToU8a, u8aConcat } from '@polkadot/util';
 import {

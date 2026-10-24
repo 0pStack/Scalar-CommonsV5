@@ -38,6 +38,15 @@ describe('deriveMessagingKey', () => {
     }
   });
 
+  it('preserves the X25519 public-key vectors across dependency upgrades', () => {
+    expect(u8aToHex(deriveMessagingKey('//Alice').publicKey)).toBe(
+      '0x3b03602806a0f5e831b0688d6a2e263a2772a797603f18ea6b1694efb60e6b31',
+    );
+    expect(u8aToHex(deriveMessagingKey('//Alice', { rotation: 1 }).publicKey)).toBe(
+      '0xa75b4cce199a14d67feedfd62cb3b666a6e15cee19244c65f2d70f9c24d55b16',
+    );
+  });
+
   it('is deterministic, 32 bytes, and distinct per account', () => {
     const a1 = deriveMessagingKey('//Alice');
     const b = deriveMessagingKey('//Bob');
