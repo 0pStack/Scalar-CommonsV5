@@ -18,6 +18,10 @@ chain. That still takes `system.setCode` from root.
 
 ## Unreleased
 
+### Security
+
+- fix(oracle): reject buyer and provider responses to their own dispute ([#190](https://github.com/0pStack/Scalar-CommonsV5/pull/190), closes [#31](https://github.com/0pStack/Scalar-CommonsV5/issues/31))
+
 ### Fixed
 
 - fix(sdk): bound connect and transaction submission ([#189](https://github.com/0pStack/Scalar-CommonsV5/pull/189), closes [#74](https://github.com/0pStack/Scalar-CommonsV5/issues/74))
