@@ -18,7 +18,7 @@ import { compareByStakeDescending, toAgreement } from '../src/chainState.ts';
  * identical stake, so even an inconsistent comparator happens to come back in a
  * plausible order. The defect is in the function, so that is where it is caught.
  *
- * The rest of `chainState` is covered end-to-end in `e2e/indexer/live.test.ts` against a
+ * The rest of `chainState` is covered end-to-end in `e2e/indexer/indexer.live.test.ts` against a
  * real node — nothing here stands in for chain data.
  */
 

@@ -6,12 +6,11 @@
 //! - Era snapshots: ring_count + active_count before drain (fed to auto-params)
 //! - Rank promotion triggers: calls into pallet-ranked-collective
 //! - Cross-pallet hooks: OnAgentRegistered, ActiveEscrowCount management
+//! - Liveness: the `heartbeat` extrinsic records LastHeartbeat
 //!
 //! ## NOT in this pallet (handled by standard pallets)
 //! - Tiers/ranks   → pallet-ranked-collective
 //! - Governance    → pallet-referenda + pallet-conviction-voting
-//! - Floor pay     → pallet-salary (per rank)
-//! - Heartbeat     → pallet-im-online + LastHeartbeat in this pallet
 //! - Succession    → v3.1 feature (ink! contract)
 
 #![cfg_attr(not(feature = "std"), no_std)]

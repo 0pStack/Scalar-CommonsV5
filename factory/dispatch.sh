@@ -96,7 +96,8 @@ note_state() { printf '%s  %s\n' "$(ts)" "$*" >> "$FACTORY_DIR/logs/dispatch-not
 # ------------------------------------------------------------ issue fetching --
 # FACTORY_ISSUE_FIXTURE is a TEST-ONLY escape hatch: point it at a JSON file
 # shaped like `gh issue list --json number,title,labels,body` to exercise the
-# label logic without touching GitHub. Used by factory/tests/dispatch-dryrun.sh.
+# label logic without touching GitHub. Used by factory/tests/gate-parse.sh and
+# the dry run in factory/README.md.
 fetch_issues() {
   if [ -n "${FACTORY_ISSUE_FIXTURE:-}" ]; then
     warn "using issue FIXTURE ${FACTORY_ISSUE_FIXTURE} (test mode, no GitHub calls)"
