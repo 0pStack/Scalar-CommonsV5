@@ -3,6 +3,8 @@
 Archived engineering records from the scalar-commons-v4 era: per-round logs
 (`ROUND*.md`), audits, status snapshots, CI and factory postmortems, launch
 records, and the superseded SC-E1 experiment harness (`sc-e1/`).
+`INSTRUCTIONS-F-spec308.md` is the later work brief for the messaging layer
+(spec 308–309), archived once `pallets/messages` landed.
 
 These files are historical. They describe the repo and chain as they were when
 written (spec 304–306, branch `master`), and paths inside them are the original

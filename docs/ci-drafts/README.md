@@ -1,11 +1,12 @@
 # CI drafts
 
-Two workflow drafts. They are **not active**: GitHub only runs files in
+Three workflow drafts. They are **not active**: GitHub only runs files in
 `.github/workflows/`, and these live here so they can be reviewed without
 changing CI. Nothing in this directory is required by branch protection.
 
 | Draft | What it does |
 |---|---|
+| `agent-image.yml` | On an `agent-v*` tag (or manual dispatch), builds `agent/Dockerfile` and publishes `ghcr.io/0pstack/scalar-agent:<version>` and `:latest` with the built-in `GITHUB_TOKEN`. |
 | `ci-devnode.yml` | Builds `scalar-node` (pinned toolchain, rust-cache), starts `--dev --tmp`, waits for RPC, runs `npm run test:live:lifecycle -w @scalar-commons/e2e` with `SCALAR_WS=ws://127.0.0.1:9944`. Uploads the node log. |
 | `test-guard.yml` | Fails a PR if the `#[test]` count falls or the `#[ignore]` count rises in `pallets/**` or `e2e/lifecycle/**` (TS `it(`/`test(` and `.skip(`/`.todo(` are counted in `e2e/lifecycle/**/*.ts`), unless the PR carries the label `tests-intentionally-changed`. |
 
@@ -33,4 +34,4 @@ changing CI. Nothing in this directory is required by branch protection.
   a different `--chain`.
 - The `ci-devnode` job uses the default `--rpc-port 9944`; adjust `SCALAR_WS`
   together with it.
-- Both drafts were only YAML-parsed here, never executed on GitHub Actions.
+- The drafts were only YAML-parsed here, never executed on GitHub Actions.

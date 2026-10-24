@@ -120,7 +120,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 ### TypeScript workspace
 
-One lockfile, one Node major, one `@polkadot/api` version across every package.
+One lockfile, one Node major, one resolved `@polkadot/api` version across every package.
 
 ```sh
 npm ci
@@ -137,10 +137,10 @@ npm run test:live -w @scalar-commons/e2e   # against a running node
 
 | Workflow | Runs on | Does |
 |---|---|---|
-| `ci-fast` | Pull requests | Secret scan, chainspec check, Rust fmt/clippy/test only when Rust changed |
+| `ci-fast` | Pull requests, nightly | Secret scan, chainspec check, dependency audit (`cargo deny`, `cargo audit`), Rust fmt/clippy/test only when Rust changed |
 | `ci-node` | Pushes and PRs to `main` | Tooling gates (Biome, coverage, ShellCheck, actionlint), then build and test each changed TypeScript package |
 | `ci-full` | Pushes to `main` touching Rust paths | Full build and test of the node and runtime, including the `runtime-benchmarks` feature |
-| `changelog-release` | Pushes to `main` | Adds a changelog entry per merged PR and cuts a release when one is due |
+| `changelog-release` | Pushes to `main`; PRs touching release tooling | Adds a changelog entry per merged PR and cuts a release when one is due |
 | `release` | Called by `changelog-release`, or a `v*` tag | Builds the `scalar-node` binary and publishes the GitHub release |
 | `pages` | Manual | Publishes the docs site |
 | `claude-swarm` | `@claude` in a PR review, from collaborators | Runs the Claude agent on the PR |
