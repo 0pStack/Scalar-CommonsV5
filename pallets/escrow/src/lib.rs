@@ -532,6 +532,7 @@ pub mod pallet {
             })
         }
 
+        // Under-declared: the counted path is (28 + K)r/21w with K unbounded — see #191.
         #[pallet::call_index(2)]
         #[pallet::weight(T::DbWeight::get().reads_writes(4, 4)
             .saturating_add(CONFIRM_DELIVERY_COMPUTE_WEIGHT))]
