@@ -186,24 +186,35 @@ detect_gate() {
 node_gate() {
   local dir="$1" name="$2" cmds=()
   if [ -f "$dir/package.json" ]; then
-    local scripts
+    local scripts workspace workspace_q gate="" cmd
     scripts="$(python3 -c '
 import json,sys
 try: d=json.load(open(sys.argv[1]))
 except Exception: sys.exit(0)
 print(" ".join((d.get("scripts") or {}).keys()))
 ' "$dir/package.json" 2>/dev/null)"
-    case " $scripts " in *" build "*) cmds+=("npm run build") ;; esac
+    workspace="$(python3 -c '
+import json,sys
+try: d=json.load(open(sys.argv[1]))
+except Exception: sys.exit(0)
+print(d.get("name") or "")
+' "$dir/package.json" 2>/dev/null)"
+    [ -n "$workspace" ] || return 1
+    printf -v workspace_q '%q' "$workspace"
+    case " $scripts " in *" build "*) cmds+=("npm run build -w $workspace_q") ;; esac
     case " $scripts " in
-      *" lint "*)      cmds+=("npm run lint") ;;
-      *" typecheck "*) cmds+=("npm run typecheck") ;;
+      *" lint "*)      cmds+=("npm run lint -w $workspace_q") ;;
+      *" typecheck "*) cmds+=("npm run typecheck -w $workspace_q") ;;
     esac
     case " $scripts " in
-      *" test "*) cmds+=("npm test") ;;
+      *" test "*) cmds+=("npm test -w $workspace_q") ;;
       *) return 1 ;;   # no test script => cannot form an honest gate
     esac
-    printf 'cd %s && npm ci --no-audit --no-fund && %s' \
-      "$(printf '%q' "$name")" "$(IFS=' && '; echo "${cmds[*]}")"
+    for cmd in "${cmds[@]}"; do
+      [ -z "$gate" ] || gate+=" && "
+      gate+="$cmd"
+    done
+    printf 'npm ci --no-audit --no-fund && %s' "$gate"
     return 0
   fi
   # Python subproject (indexer/ is python today: reconcile.py, no package.json).

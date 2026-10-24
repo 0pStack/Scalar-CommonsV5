@@ -22,6 +22,8 @@ ignore = [
   { id = "RUSTSEC-2026-0381", reason = "webpki-roots 0.25 via libp2p-websocket in sc-network; fixed upstream only by an SDK upgrade" },
   # Built: polkadot-sdk pins tracing-subscriber = "=0.3.19".
   { id = "RUSTSEC-2025-0055", reason = "tracing-subscriber pinned =0.3.19 by polkadot-sdk (sc-tracing, sp-tracing); our logs are operator-side" },
+  # Built: elliptic-curve 0.13 requires crypto-bigint 0.5; the fix is only in 0.7.6.
+  { id = "RUSTSEC-2026-0387", reason = "crypto-bigint 0.5 via elliptic-curve 0.13 (k256, p256) in polkadot-sdk (frame-support, sp-io, sc-network); fixed upstream only by an SDK upgrade" },
 ]
 
 [licenses]
