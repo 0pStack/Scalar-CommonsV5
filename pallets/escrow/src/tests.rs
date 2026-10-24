@@ -2274,3 +2274,41 @@ fn atomic_failed_creation_cannot_forge_closed_sequence_witness() {
         );
     });
 }
+
+// ─── Declared weight is a floor over the worst-case storage path ───────────────
+
+/// Same rule as the pallet-agents and pallet-messages floors: an under-declared
+/// extrinsic is underpriced, so the caller's fee buys less storage work than the chain
+/// performs (#118).
+///
+/// The mock's `MockDisputeOracle` touches no storage, so the oracle half is counted
+/// against the runtime's oracle (`post_dispute_question_internal`), not measured here.
+///
+/// 8 reads — escrow's 3: `Agreements`, `block_number`, the buyer's `System::Account`
+///   for the bounty `unreserve`; the oracle's 5: the `OracleRequests` counter for the
+///   open-request cap, the buyer's `System::Account` for `reserve`, `OracleRequests`
+///   insert (`contains_key` + counter), `EraTotalQuestions`.
+/// 7 writes — escrow's 3: `Agreements`, the buyer's `System::Account` for `unreserve`,
+///   `DisputeToAgreement`; the oracle's 4: the buyer's `System::Account` for `reserve`,
+///   `OracleRequests` value + counter, `EraTotalQuestions`.
+#[test]
+fn declared_weight_dispute_delivery_covers_its_storage_path() {
+    use frame_support::dispatch::GetDispatchInfo;
+    let db = <Test as frame_system::Config>::DbWeight::get();
+    assert!(
+        db.read > 0 && db.write > 0,
+        "the mock's DbWeight must be non-zero or the floor below is vacuous"
+    );
+    let floor = db.reads_writes(8, 7);
+    let declared = Call::<Test>::dispute_delivery {
+        provider: BOB,
+        seq: 0,
+    }
+    .get_dispatch_info()
+    .call_weight;
+    assert!(
+        declared.all_gte(floor),
+        "dispute_delivery declares {declared:?} but its storage path, oracle included, \
+         needs at least {floor:?}"
+    );
+}

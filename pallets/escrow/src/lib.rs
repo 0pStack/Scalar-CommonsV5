@@ -580,11 +580,18 @@ pub mod pallet {
         /// unit of the buyer's reserve has exactly one owner. Reserving it twice left a
         /// bounty locked on every dispute outcome and made disputing cost the buyer two
         /// bounties instead of one (#16).
-        // +1 read/write for the bounty `unreserve` (#16). The full path, oracle included,
-        // is 7 reads / 7 writes; the pre-#16 declaration was already short (4/3 against
-        // an actual 6/6). Declaring the full path is tracked in #118.
+        // Declares the full storage path, oracle included (#118), so the fee covers the
+        // work the chain performs.
+        // Escrow, 3r/3w: `Agreements` (1r 1w), `block_number` (1r), the buyer's
+        //   `System::Account` for the bounty `unreserve` (1r 1w), `DisputeToAgreement` (1w).
+        // Oracle `post_dispute_question_internal`, 5r/4w: the `OracleRequests` counter
+        //   for the open-request cap (1r), the buyer's `System::Account` for `reserve`
+        //   (1r 1w), `OracleRequests::insert` (`contains_key` + counter: 2r 2w),
+        //   `EraTotalQuestions` (1r 1w).
+        // Hard-coded here because `DisputeOracle` exposes no weight; a change to the
+        // oracle's path must update this count.
         #[pallet::call_index(3)]
-        #[pallet::weight(T::DbWeight::get().reads_writes(5, 4)
+        #[pallet::weight(T::DbWeight::get().reads_writes(8, 7)
             .saturating_add(Weight::from_parts(200_000_000, 0)))]
         pub fn dispute_delivery(
             origin: OriginFor<T>,
